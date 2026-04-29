@@ -1,18 +1,17 @@
 import bcrypt from "bcryptjs";
-import {prisma} from "../../utils/prisma.js";
+import { prisma } from "../../utils/prisma.js";
+
 type RegisterData = {
   email: string;
   password: string;
-  role: "STUDENT" | "PROF" | "PRO" | "ADMIN";
 };
 
 export const registerUser = async ({
   email,
   password,
-  role,
 }: RegisterData) => {
 
-  // Check if user already exists
+  // Check existing user
   const existingUser = await prisma.user.findUnique({
     where: {
       email,
@@ -21,6 +20,26 @@ export const registerUser = async ({
 
   if (existingUser) {
     throw new Error("User already exists");
+  }
+
+  // Detect role from email
+  let role: "STUDENT" | "PROF" | "PRO";
+
+  if (email.endsWith("@etu.uae.ac.ma")) {
+
+    role = "STUDENT";
+
+  } else if (
+    email.endsWith("@uae.ac.ma") &&
+    !email.endsWith("@etu.uae.ac.ma")
+  ) {
+
+    role = "PROF";
+
+  } else {
+
+    role = "PRO";
+
   }
 
   // Hash password
@@ -32,10 +51,28 @@ export const registerUser = async ({
       email,
       password: hashedPassword,
       role,
+
+      // Create related profile automatically
+      ...(role === "STUDENT" && {
+        student: {
+          create: {},
+        },
+      }),
+
+      ...(role === "PROF" && {
+        prof: {
+          create: {},
+        },
+      }),
+
+      ...(role === "PRO" && {
+        professionnel: {
+          create: {},
+        },
+      }),
     },
   });
 
-  // Return safe user data
   return {
     id: user.id,
     email: user.email,

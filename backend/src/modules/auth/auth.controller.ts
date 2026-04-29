@@ -9,12 +9,10 @@ export const registerController = async (
   try {
 
     // Validate request body
-    const validatedData =
-      registerSchema.parse(req.body);
+    const validatedData = registerSchema.parse(req.body);
 
     // Register user
-    const user =
-      await registerUser(validatedData);
+    const user = await registerUser(validatedData);
 
     // Success response
     res.status(201).json({
@@ -24,11 +22,12 @@ export const registerController = async (
 
   } catch (error: any) {
 
-    res.status(400).json({
-      errors: error.issues?.map(
+  res.status(400).json({
+    errors:
+      error.issues?.map(
         (issue: any) => issue.message
       ) || [error.message],
-    });
+  });
 
-  }
+}
 };
