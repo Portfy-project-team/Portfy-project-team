@@ -27,7 +27,7 @@ jobs:
       - name: Build frontend
         run: |
           cd frontend
-          npm run build
+          npx vite build
 
       - name: Install backend
         run: |
