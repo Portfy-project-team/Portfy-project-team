@@ -27,8 +27,8 @@ jobs:
       - name: Build frontend
         run: |
           cd frontend
-          chmod +x node_modules/.bin/vite
-          npm run build
+          npm install vite
+          npx vite build
 
       - name: Install backend
         run: |
