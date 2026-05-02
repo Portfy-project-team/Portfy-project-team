@@ -1,0 +1,386 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  email         String         @unique
+  password      String
+  role          Role
+  admin         Admin?
+  prof          Prof?
+  professionnel Professionnel?
+  refreshTokens RefreshToken[]
+  student       Student?
+}
+
+model RefreshToken {
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userId    Int
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model Student {
+  nom              String?
+  prenom           String?
+  dateC            DateTime?
+  filiere          String?
+  userId           Int                @unique
+  id               Int                @id @default(autoincrement())
+  Commentaire      Commentaire[]
+  LettreStudent    LettreStudent[]
+  Notification     Notification[]
+  portfolio        Portfolio?
+  Recommendation   Recommendation[]
+  Stage            Stage[]
+  user             User               @relation(fields: [userId], references: [id])
+  StudentActivite  StudentActivite[]
+  StudentFormation StudentFormation[]
+  skills           StudentSkill[]
+}
+
+model Prof {
+  departement          String?
+  specialite           String?
+  prenom               String?
+  nom                  String?
+  userId               Int                    @unique
+  id                   Int                    @id @default(autoincrement())
+  Commentaire          Commentaire[]
+  LettreRecommandation LettreRecommandation[]
+  Notification         Notification[]
+  user                 User                   @relation(fields: [userId], references: [id])
+  Projet               Projet[]
+  Recommendation       Recommendation[]
+  Stage                Stage[]
+}
+
+model Professionnel {
+  entreprise     String?
+  poste          String?
+  nom            String?
+  prenom         String?
+  statusV        StatutValidation @default(PENDING)
+  userId         Int              @unique
+  id             Int              @id @default(autoincrement())
+  Commentaire    Commentaire[]
+  Notification   Notification[]
+  user           User             @relation(fields: [userId], references: [id])
+  Recommendation Recommendation[]
+}
+
+model Admin {
+  nom                  String?
+  prenom               String?
+  userId               Int                    @unique
+  id                   Int                    @id @default(autoincrement())
+  ActiviteParascolaire ActiviteParascolaire[]
+  user                 User                   @relation(fields: [userId], references: [id])
+  Notification         Notification[]
+}
+
+model Portfolio {
+  dateCr           DateTime            @default(now())
+  objective        String?
+  scoreCredibilite Float               @default(0)
+  visibilite       VisibilitePortfolio @default(PUBLIC)
+  id               Int                 @id @default(autoincrement())
+  studentId        Int                 @unique
+  Commentaire      Commentaire[]
+  student          Student             @relation(fields: [studentId], references: [id])
+  PortfolioBadge   PortfolioBadge[]
+  skills           PortfolioSkill[]
+  projets          Projet[]
+  Recommendation   Recommendation[]
+}
+
+model Projet {
+  titre          String?
+  description    String?
+  score          Float?
+  technologie    String?
+  dateSoumission DateTime?
+  githubLink     String?
+  noteProf       String?
+  portfolioId    Int
+  resultats      String?
+  screenshots    String?
+  statusV        StatutValidation @default(PENDING)
+  type           TypeProjet?
+  youtubeLink    String?
+  id             Int              @id @default(autoincrement())
+  profId         Int?
+  Commentaire    Commentaire[]
+  portfolio      Portfolio        @relation(fields: [portfolioId], references: [id])
+  Prof           Prof?            @relation(fields: [profId], references: [id])
+  ProjetBadge    ProjetBadge[]
+  skills         ProjetSkill[]
+}
+
+model Skill {
+  categorie  String?
+  nom        String
+  id         Int              @id @default(autoincrement())
+  portfolios PortfolioSkill[]
+  projets    ProjetSkill[]
+  students   StudentSkill[]
+}
+
+model StudentSkill {
+  dateAjout DateTime    @default(now())
+  niveau    NiveauSkill @default(DEBUTANT)
+  studentId Int
+  skillId   Int
+  skill     Skill       @relation(fields: [skillId], references: [id])
+  student   Student     @relation(fields: [studentId], references: [id])
+
+  @@id([studentId, skillId])
+}
+
+model PortfolioSkill {
+  portfolioId Int
+  skillId     Int
+  importance  Int?
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+  skill       Skill     @relation(fields: [skillId], references: [id])
+
+  @@id([portfolioId, skillId])
+}
+
+model ProjetSkill {
+  projetId Int
+  skillId  Int
+  projet   Projet @relation(fields: [projetId], references: [id])
+  skill    Skill  @relation(fields: [skillId], references: [id])
+
+  @@id([projetId, skillId])
+}
+
+model ActiviteParascolaire {
+  id              Int               @id @default(autoincrement())
+  nom             String?
+  description     String?
+  type            String?
+  statutV         StatutValidation  @default(PENDING)
+  attestationUrl  String?
+  adminId         Int?
+  Admin           Admin?            @relation(fields: [adminId], references: [id])
+  StudentActivite StudentActivite[]
+}
+
+model Badge {
+  icone          String?
+  description    String?
+  couleur        String?
+  nom            String?
+  id             Int              @id @default(autoincrement())
+  PortfolioBadge PortfolioBadge[]
+  ProjetBadge    ProjetBadge[]
+}
+
+model Commentaire {
+  contenu         String?
+  authorProId     Int?
+  authorProfId    Int?
+  authorStudentId Int?
+  dateC           DateTime          @default(now())
+  statut          StatutCommentaire @default(PENDING)
+  id              Int               @id @default(autoincrement())
+  portfolioId     Int
+  projetId        Int?
+  Professionnel   Professionnel?    @relation(fields: [authorProId], references: [id])
+  Prof            Prof?             @relation(fields: [authorProfId], references: [id])
+  Student         Student?          @relation(fields: [authorStudentId], references: [id])
+  Portfolio       Portfolio         @relation(fields: [portfolioId], references: [id])
+  Projet          Projet?           @relation(fields: [projetId], references: [id])
+}
+
+model Formation {
+  etablissement    String?
+  diplome          String?
+  specialite       String?
+  dateDebut        DateTime?
+  dateFin          DateTime?
+  id               Int                @id @default(autoincrement())
+  StudentFormation StudentFormation[]
+}
+
+model LettreRecommandation {
+  id            Int              @id @default(autoincrement())
+  type          String?
+  contenu       String?
+  visibilite    VisibiliteLettre @default(PRIVATE)
+  date          DateTime         @default(now())
+  profId        Int
+  Prof          Prof             @relation(fields: [profId], references: [id])
+  LettreStudent LettreStudent[]
+}
+
+model LettreStudent {
+  lettreId             Int
+  studentId            Int
+  LettreRecommandation LettreRecommandation @relation(fields: [lettreId], references: [id])
+  Student              Student              @relation(fields: [studentId], references: [id])
+
+  @@id([lettreId, studentId])
+}
+
+model Notification {
+  adminId       Int?
+  dateC         DateTime         @default(now())
+  entityId      Int?
+  entityType    String?
+  isRead        Boolean          @default(false)
+  link          String?
+  message       String
+  proId         Int?
+  profId        Int?
+  type          TypeNotification
+  id            Int              @id @default(autoincrement())
+  studentId     Int?
+  Admin         Admin?           @relation(fields: [adminId], references: [id])
+  Professionnel Professionnel?   @relation(fields: [proId], references: [id])
+  Prof          Prof?            @relation(fields: [profId], references: [id])
+  Student       Student?         @relation(fields: [studentId], references: [id])
+
+  @@index([adminId])
+  @@index([proId])
+  @@index([profId])
+  @@index([studentId])
+}
+
+model PortfolioBadge {
+  portfolioId     Int
+  badgeId         Int
+  dateAttribution DateTime  @default(now())
+  Badge           Badge     @relation(fields: [badgeId], references: [id])
+  Portfolio       Portfolio @relation(fields: [portfolioId], references: [id])
+
+  @@id([portfolioId, badgeId])
+}
+
+model ProjetBadge {
+  projetId Int
+  badgeId  Int
+  Badge    Badge  @relation(fields: [badgeId], references: [id])
+  Projet   Projet @relation(fields: [projetId], references: [id])
+
+  @@id([projetId, badgeId])
+}
+
+model Recommendation {
+  id              Int              @id @default(autoincrement())
+  message         String?
+  date            DateTime         @default(now())
+  statut          StatutValidation @default(PENDING)
+  portfolioId     Int
+  authorStudentId Int?
+  authorProfId    Int?
+  authorProId     Int?
+  Professionnel   Professionnel?   @relation(fields: [authorProId], references: [id])
+  Prof            Prof?            @relation(fields: [authorProfId], references: [id])
+  Student         Student?         @relation(fields: [authorStudentId], references: [id])
+  Portfolio       Portfolio        @relation(fields: [portfolioId], references: [id])
+}
+
+model Stage {
+  mission    String?
+  entreprise String?
+  dateDebut  DateTime?
+  dateFin    DateTime?
+  rapportUrl String?
+  statutV    StatutValidation @default(PENDING)
+  id         Int              @id @default(autoincrement())
+  duree      Int?
+  studentId  Int
+  profId     Int?
+  Prof       Prof?            @relation(fields: [profId], references: [id])
+  Student    Student          @relation(fields: [studentId], references: [id])
+}
+
+model StudentActivite {
+  studentId            Int
+  activiteId           Int
+  ActiviteParascolaire ActiviteParascolaire @relation(fields: [activiteId], references: [id])
+  Student              Student              @relation(fields: [studentId], references: [id])
+
+  @@id([studentId, activiteId])
+}
+
+model StudentFormation {
+  studentId   Int
+  formationId Int
+  Formation   Formation @relation(fields: [formationId], references: [id])
+  Student     Student   @relation(fields: [studentId], references: [id])
+
+  @@id([studentId, formationId])
+}
+
+enum Role {
+  STUDENT
+  PROF
+  PRO
+  ADMIN
+}
+
+enum StatutValidation {
+  PENDING
+  VALIDATED
+  REJECTED
+}
+
+enum NiveauSkill {
+  DEBUTANT
+  INTERMEDIAIRE
+  AVANCE
+  EXPERT
+}
+
+enum StatutCommentaire {
+  PENDING
+  VALIDATED
+  REJECTED
+}
+
+enum TypeNotification {
+  PROJECT_SUBMITTED
+  PROJECT_VALIDATED
+  PROJECT_REJECTED
+  STAGE_VALIDATED
+  STAGE_REJECTED
+  ACTIVITY_VALIDATED
+  ACTIVITY_REJECTED
+  COMMENT_RECEIVED
+  RECOMMENDATION_RECEIVED
+  LETTER_RECEIVED
+}
+
+enum TypeProjet {
+  MODULE
+  INTEGRATION
+  HACKATHON
+  PERSONNEL
+  STAGE
+}
+
+enum VisibiliteLettre {
+  PUBLIC
+  PRIVATE
+  DOWNLOADABLE
+}
+
+enum VisibilitePortfolio {
+  PUBLIC
+  PRIVATE
+  LINK_ONLY
+}
