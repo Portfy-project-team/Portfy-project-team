@@ -1,5 +1,6 @@
 import 'dotenv/config'
 import express from 'express'
+import { prisma } from './utils/prisma.js'
 import cors from 'cors'
 import routes from './routes/index.js'
 import errorMiddleware from './middleware/error.middleware.js'

@@ -6,4 +6,10 @@ export const registerSchema = z.object({
   password: z
     .string()
     .min(8, "Password must be at least 8 characters"),
+
+  role: z.enum([
+    "STUDENT",
+    "PROF",
+    "PRO",
+  ]),
 });
