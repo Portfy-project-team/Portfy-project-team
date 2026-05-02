@@ -1,27 +1,24 @@
+import 'dotenv/config'
 import express from 'express'
-import authRoutes from "./modules/auth/auth.routes.js"
-import { prisma } from './utils/prisma.js'
+import cors from 'cors'
+import routes from './routes/index.js'
+import errorMiddleware from './middleware/error.middleware.js'
 
-const app = express();
+const app  = express()
+const PORT = process.env.PORT || 3000
 
-// Middleware
-app.use(express.json());
+app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:80', credentials: true }))
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 
-// Auth routes
-app.use("/auth", authRoutes);
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', app: 'Portfy API', version: '1.0.0', timestamp: new Date().toISOString() })
+})
 
-// Test route
-app.get("/", (req, res) => {
-  res.send("API is running");
-});
+app.use('/api', routes)
+app.use(errorMiddleware)
 
-// Test DB route
-app.get("/users", async (req, res) => {
-  const users = await prisma.user.findMany();
-
-  res.json(users);
-});
-
-app.listen(3000, () => {
-  console.log("Server running on http://localhost:3000");
-});
+app.listen(PORT, () => {
+  console.log(`Portfy API démarrée sur le port ${PORT}`)
+  console.log(`Environnement : ${process.env.NODE_ENV}`)
+})
