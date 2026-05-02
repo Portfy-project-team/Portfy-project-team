@@ -1,77 +1,17 @@
-version: '3.8'
 
 services:
-
-  # ── BASE DE DONNÉES ──────────────────────────────
- 
-  db:
-    image: postgres:16.8-alpine
-    container_name: portfy_db
-    restart: unless-stopped
+  postgres:
+    image: postgres:15
+    container_name: portfolio_db
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=portfolio_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      # Données persistantes : survivent aux redémarrages
       - postgres_data:/var/lib/postgresql/data
-      # Exécuté automatiquement au premier démarrage uniquement
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - portfy_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ── BACKEND ──────────────────────────────────────
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: portfy_backend
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      NODE_ENV: ${NODE_ENV}
-      PORT: ${PORT}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
-      # "db" = nom du service docker-compose, Docker résout l'IP automatiquement
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      FRONTEND_URL: ${FRONTEND_URL}
-    depends_on:
-      db:
-        condition: service_healthy  # attend que PostgreSQL soit vraiment prêt
-    networks:
-      - portfy_network
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-
-  # ── FRONTEND ─────────────────────────────────────
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: portfy_frontend
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-    networks:
-      - portfy_network
 
 volumes:
   postgres_data:
-    name: portfy_postgres_data
-
-networks:
-  portfy_network:
-    driver: bridge
-    name: portfy_network
+  

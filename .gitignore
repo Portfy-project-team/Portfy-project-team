@@ -1,20 +1,4 @@
-# Secrets — ne jamais envoyer sur GitHub
-.env
-
-# Dépendances — reconstruites avec npm install
 node_modules/
-backend/src/generated/prisma
-# Build Vue.js — généré automatiquement
-frontend/dist/
-
-# Logs
-*.log
-npm-debug.log*
-
-# Système
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
+dist
+.env
+/src/generated/prisma
