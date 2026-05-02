@@ -1,8 +1,0 @@
-# Sans ce fichier, Docker copierait node_modules (500MB+)
-node_modules
-
-# Les secrets viennent de docker-compose via environment:
-.env
-
-.git
-*.log
