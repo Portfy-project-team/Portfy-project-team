@@ -1,11 +1,14 @@
 <template>
-  <router-view />
+  <div>
+    <Navbar v-if="authStore.estConnecte" />
+    <main>
+      <RouterView />
+    </main>
+  </div>
 </template>
 
-<style>
-body {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-</style>
+<script setup>
+import Navbar from './components/Navbar.vue';
+import { useAuthStore } from './stores/auth.store';
+const authStore = useAuthStore();
+</script>

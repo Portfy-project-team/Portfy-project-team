@@ -1,17 +1,17 @@
 {
-  "name": "portfolio-backend",
+  "name": "portfy-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "API Portfy — ENSA Tanger GINF1 2025-2026",
   "main": "src/index.ts",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "nodemon --exec tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
@@ -19,8 +19,6 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^8.0.5",
-    "prisma": "^6.19.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
@@ -28,9 +26,9 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/nodemailer": "^8.0.0",
+    "@types/node": "^25.6.0",
     "nodemon": "^3.1.14",
-    "ts-node": "^10.9.2",
+    "prisma": "^6.19.3",
     "tsx": "^4.0.0",
     "typescript": "^6.0.3"
   }

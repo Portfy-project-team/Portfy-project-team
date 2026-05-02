@@ -13,6 +13,9 @@ export const registerUser = async ({
   role,
 }: RegisterData) => {
 
+}: RegisterData) => {
+
+  // Check existing user
   const existingUser = await prisma.user.findUnique({
     where: {
       email,
