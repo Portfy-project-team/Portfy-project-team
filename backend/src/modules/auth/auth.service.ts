@@ -1,6 +1,9 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../../utils/prisma.js";
-import jwt from "jsonwebtoken";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+} from "../../utils/jwt.js";
 type RegisterData = {
   email: string;
   password: string;
@@ -76,18 +79,16 @@ export const loginUser = async ({ email, password }: LoginData) => {
   if (!isValid) throw new Error("Invalid credentials");
 
   // 3. Access token (15min)
-  const accessToken = jwt.sign(
-  { userId: user.id, role: user.role },
-  process.env.JWT_SECRET!,
-  { expiresIn: 60 * 15 } // 15 minutes en secondes
-);
+  const accessToken = generateAccessToken({
+  userId: user.id,
+  role: user.role,
+});
+
 
   // 4. Refresh token (7d)
-  const refreshToken = jwt.sign(
-  { userId: user.id },
-  process.env.JWT_REFRESH_SECRET!,
-  { expiresIn: 60 * 60 * 24 * 7 } // 7 jours en secondes
-);
+  const refreshToken = generateRefreshToken({
+  userId: user.id,
+});
 
   // 5. Save refresh token in DB
   await prisma.refreshToken.create({
