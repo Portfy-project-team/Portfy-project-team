@@ -1,6 +1,7 @@
-import express from 'express'
-import authRoutes from "./modules/auth/auth.routes.js"
-import { prisma } from './utils/prisma.js'
+import express from 'express';
+import authRoutes from "./modules/auth/auth.routes.js";
+import { prisma } from './utils/prisma.js';
+
 
 const app = express();
 
@@ -22,6 +23,8 @@ app.get("/users", async (req, res) => {
   res.json(users);
 });
 
-app.listen(3000, () => {
-  console.log("Server running on http://localhost:3000");
-});
+export default app;
+
+// app.listen(3000, () => {
+//   console.log("Server running on http://localhost:3000");
+// });

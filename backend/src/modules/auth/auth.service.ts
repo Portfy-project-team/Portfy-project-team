@@ -13,7 +13,7 @@ export const registerUser = async ({
   role,
 }: RegisterData) => {
 
-}: RegisterData) => {
+
 
   // Check existing user
   const existingUser = await prisma.user.findUnique({
@@ -22,9 +22,14 @@ export const registerUser = async ({
     },
   });
 
+  // if (existingUser) {
+  //   throw new Error("User already exists");
+  // }
   if (existingUser) {
-    throw new Error("User already exists");
-  }
+  const error: any = new Error("User already exists");
+  error.statusCode = 409;
+  throw error;
+}
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
