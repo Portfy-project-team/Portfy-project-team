@@ -1,4 +1,6 @@
+
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../../utils/jwt.js";
+
 import bcrypt from "bcryptjs";
 import { prisma } from "../../utils/prisma.js";
 
@@ -12,9 +14,9 @@ export const registerUser = async ({
   email,
   password,
   role,
+
+
 }: RegisterData) => {
-
-
   // Check existing user
   const existingUser = await prisma.user.findUnique({
     where: {
@@ -59,6 +61,7 @@ export const registerUser = async ({
     email: user.email,
     role: user.role,
   };
+
 };
 
 type LoginData = {
@@ -122,4 +125,5 @@ export const refreshTokenService = async (refreshToken: string) => {
   const accessToken = generateAccessToken({ userId: payload.userId });
 
   return { accessToken };
+
 };
