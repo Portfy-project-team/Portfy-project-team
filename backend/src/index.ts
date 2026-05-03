@@ -4,6 +4,7 @@ import { prisma } from './utils/prisma.js';
 
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
@@ -19,9 +20,9 @@ app.get("/", (req, res) => {
 // Test DB route
 app.get("/users", async (req, res) => {
   const users = await prisma.user.findMany();
-
   res.json(users);
 });
+
 
 export default app;
 
@@ -29,3 +30,8 @@ export default app;
 // app.listen(3000, () => {
 //   console.log("Server running on http://localhost:3000");
 // });
+// app.listen(PORT, () => {
+//   console.log(`Portfy API démarrée sur le port ${PORT}`);
+//   console.log(`Environnement : ${process.env.NODE_ENV}`);
+// });
+
