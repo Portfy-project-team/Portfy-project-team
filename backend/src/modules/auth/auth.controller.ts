@@ -54,3 +54,25 @@ export const loginController = async (req: Request, res: Response) => {
     });
   }
 };
+
+// export const refreshController = async (req: Request, res: Response) => {
+//   try {
+//     // Validate request body
+//     const { refreshToken } = refreshSchema.parse(req.body);
+
+//     // Refresh token
+//     const result = await refreshTokenService(refreshToken);
+
+//     // Success response
+//     res.status(200).json({
+//       message: "Token refreshed successfully",
+//       ...result,
+//     });
+
+//   } catch (error: any) {
+//     res.status(401).json({
+//       errors: error.issues?.map((issue: any) => issue.message) || [error.message],
+//     });
+//   }
+
+// };
