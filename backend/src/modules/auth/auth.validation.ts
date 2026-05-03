@@ -13,3 +13,8 @@ export const registerSchema = z.object({
     "PRO",
   ]),
 });
+
+export const loginShema = z.object({
+  email: z.email("invalid email format"),
+  password: z.string().min(1,"password is requires"),
+});
