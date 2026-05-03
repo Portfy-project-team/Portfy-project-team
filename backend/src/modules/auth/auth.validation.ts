@@ -13,3 +13,12 @@ export const registerSchema = z.object({
     "PRO",
   ]),
 });
+
+export const loginSchema = z.object({
+  email: z.email("invalid email format"),
+  password: z.string().min(1,"password is required"),
+});
+
+export const refreshSchema = z.object({
+  refreshToken: z.string().min(1,"Refresh token is required"),
+});
