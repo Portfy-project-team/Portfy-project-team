@@ -36,3 +36,10 @@ export const generateRefreshToken = ({
     }
   );
 };
+
+export const verifyRefreshToken = (token: string): TokenPayload => {
+  return jwt.verify(
+    token,
+    process.env.JWT_REFRESH_SECRET as string
+  ) as TokenPayload;
+};
