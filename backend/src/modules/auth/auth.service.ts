@@ -1,7 +1,9 @@
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../../utils/jwt.js";
 import bcrypt from "bcryptjs";
 import { prisma } from "../../utils/prisma.js";
-
+import {
+  generateAccessToken,
+  generateRefreshToken,
+} from "../../utils/jwt.js";
 type RegisterData = {
   email: string;
   password: string;
@@ -15,6 +17,7 @@ export const registerUser = async ({
 }: RegisterData) => {
 
 
+
   // Check existing user
   const existingUser = await prisma.user.findUnique({
     where: {
@@ -22,9 +25,14 @@ export const registerUser = async ({
     },
   });
 
+  // if (existingUser) {
+  //   throw new Error("User already exists");
+  // }
   if (existingUser) {
-    throw new Error("User already exists");
-  }
+  const error: any = new Error("User already exists");
+  error.statusCode = 409;
+  throw error;
+}
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -98,28 +106,4 @@ export const loginUser = async ({ email, password }: LoginData) => {
   });
 
   return { accessToken, refreshToken, role: user.role };
-};
-
-export const refreshTokenService = async (refreshToken: string) => {
-
-  // 1. Check token exists in DB
-  const tokenInDb = await prisma.refreshToken.findUnique({
-    where: { token: refreshToken },
-  });
-
-  if (!tokenInDb) throw new Error("Invalid refresh token");
-
-  // 2. Check token not expired
-  if (tokenInDb.expiresAt < new Date()) {
-    await prisma.refreshToken.delete({ where: { token: refreshToken } });
-    throw new Error("Refresh token expired");
-  }
-
-  // 3. Verify signature
-  const payload = verifyRefreshToken(refreshToken);
-
-  // 4. Generate new access token
-  const accessToken = generateAccessToken({ userId: payload.userId });
-
-  return { accessToken };
 };
