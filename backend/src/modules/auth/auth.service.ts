@@ -22,9 +22,11 @@ export const registerUser = async ({
     },
   });
 
-  if (existingUser) {
-    throw new Error("User already exists");
-  }
+    if (existingUser) {
+  const error: any = new Error("User already exists");
+  error.statusCode = 409;
+  throw error;
+}
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -122,4 +124,19 @@ export const refreshTokenService = async (refreshToken: string) => {
   const accessToken = generateAccessToken({ userId: payload.userId });
 
   return { accessToken };
+};
+
+  export const logoutUser = async (refreshToken: string) => {
+
+  const tokenInDb = await prisma.refreshToken.findUnique({
+    where: { token: refreshToken },
+  });
+
+  if (!tokenInDb) throw new Error("Invalid refresh token");
+
+  await prisma.refreshToken.delete({
+    where: { token: refreshToken },
+  });
+
+  return { message: "Logged out successfully" };
 };

@@ -16,7 +16,7 @@ app.get("/", (req, res) => {
   res.send("API is running");
 });
 
-// Test DB route
+//Test DB route
 app.get("/users", async (req, res) => {
   const users = await prisma.user.findMany();
   res.json(users);
