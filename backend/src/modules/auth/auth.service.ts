@@ -1,62 +1,49 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../../utils/prisma.js";
+import { Prisma } from '@prisma/client';              // ← ajout pour typer tx
+import type { RegisterInput } from "./auth.validation.js";
 
-type RegisterData = {
-  email: string;
-  password: string;
-  role: "STUDENT" | "PROF" | "PRO";
-};
+const BCRYPT_SALT_ROUNDS = 12;
 
-export const registerUser = async ({
-  email,
-  password,
-  role,
-}: RegisterData) => {
+/**
+ * Service gérant uniquement la création d'utilisateur et de son profil associé
+ */
+export const registerUser = async (data: RegisterInput) => {
+  const { email, password, role } = data;
 
-}: RegisterData) => {
+  // Hash en premier pour garantir un temps de réponse constant
+  const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
-  // Check existing user
   const existingUser = await prisma.user.findUnique({
-    where: {
-      email,
-    },
+    where: { email },
+    select: { id: true },
   });
 
   if (existingUser) {
-    throw new Error("User already exists");
+    throw new Error("Inscription impossible");
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const user = await prisma.user.create({
-    data: {
-      email,
-      password: hashedPassword,
-      role,
-
-      ...(role === "STUDENT" && {
-        student: {
-          create: {},
-        },
-      }),
-
-      ...(role === "PROF" && {
-        prof: {
-          create: {},
-        },
-      }),
-
-      ...(role === "PRO" && {
-        professionnel: {
-          create: {},
-        },
-      }),
-    },
+  // Transaction atomique pour assurer la cohérence entre User et son profil (Student/Pro)
+  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {   // ← typage ajouté
+    return await tx.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        role,
+        // Création automatique du profil selon le rôle choisi
+        ...(role === "STUDENT" && {
+          student: { create: {} },
+        }),
+        ...(role === "PRO" && {
+          professionnel: { create: {} },
+        }),
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+    });
   });
-
-  return {
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  };
 };
