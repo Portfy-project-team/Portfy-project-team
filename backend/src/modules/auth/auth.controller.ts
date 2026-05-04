@@ -1,36 +1,3 @@
-// import { Request, Response } from "express";
-// import { registerSchema } from "./auth.validation.js";
-// import { registerUser } from "./auth.service.js";
-
-// export const registerController = async (
-//   req: Request,
-//   res: Response
-// ) => {
-//   try {
-
-//     // Validate request body
-//     const validatedData = registerSchema.parse(req.body);
-
-//     // Register user
-//     const user = await registerUser(validatedData);
-
-//     // Success response
-//     res.status(201).json({
-//       message: "User created successfully",
-//       user,
-//     });
-
-//   } catch (error: any) {
-
-//   res.status(400).json({
-//     errors:
-//       error.issues?.map(
-//         (issue: any) => issue.message
-//       ) || [error.message],
-//   });
-
-// }
-// };
 import { Request, Response } from "express";
 import { registerSchema } from "./auth.validation.js";
 import { registerUser } from "./auth.service.js";
@@ -87,6 +54,38 @@ export const loginController = async (req: Request, res: Response) => {
     });
   }
 };
+
+
+
+// export const refreshController = async (req: Request, res: Response) => {
+//   try {
+//     // Validate request body
+//     const { refreshToken } = refreshSchema.parse(req.body);
+
+//     // Refresh token
+//     const result = await refreshTokenService(refreshToken);
+
+//     // Success response
+//     res.status(200).json({
+//       message: "Token refreshed successfully",
+//       ...result,
+//     });
+
+//   } catch (error: any) {
+//     res.status(401).json({
+//       errors: error.issues?.map((issue: any) => issue.message) || [error.message],
+//     });
+//   }
+
+// };
+
+
+
+
+
+
+
+
 
 
 // export const registerController = async (req: Request, res: Response) => {
