@@ -1,10 +1,13 @@
+import "dotenv/config";
+
+
 import express from 'express';
 import authRoutes from "./modules/auth/auth.routes.js";
 import { prisma } from './utils/prisma.js';
 
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+
 
 // Middleware
 app.use(express.json());
