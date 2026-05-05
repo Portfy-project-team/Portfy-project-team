@@ -25,10 +25,7 @@ export const registerUser = async ({
     },
   });
 
-  // if (existingUser) {
-  //   throw new Error("User already exists");
-  // }
-  if (existingUser) {
+    if (existingUser) {
   const error: any = new Error("User already exists");
   error.statusCode = 409;
   throw error;
@@ -106,4 +103,43 @@ export const loginUser = async ({ email, password }: LoginData) => {
   });
 
   return { accessToken, refreshToken, role: user.role };
+};
+
+export const refreshTokenService = async (refreshToken: string) => {
+
+  // 1. Check token exists in DB
+  const tokenInDb = await prisma.refreshToken.findUnique({
+    where: { token: refreshToken },
+  });
+
+  if (!tokenInDb) throw new Error("Invalid refresh token");
+
+  // 2. Check token not expired
+  if (tokenInDb.expiresAt < new Date()) {
+    await prisma.refreshToken.delete({ where: { token: refreshToken } });
+    throw new Error("Refresh token expired");
+  }
+
+  // 3. Verify signature
+  const payload = verifyRefreshToken(refreshToken);
+
+  // 4. Generate new access token
+  const accessToken = generateAccessToken({ userId: payload.userId });
+
+  return { accessToken };
+};
+
+  export const logoutUser = async (refreshToken: string) => {
+
+  const tokenInDb = await prisma.refreshToken.findUnique({
+    where: { token: refreshToken },
+  });
+
+  if (!tokenInDb) throw new Error("Invalid refresh token");
+
+  await prisma.refreshToken.delete({
+    where: { token: refreshToken },
+  });
+
+  return { message: "Logged out successfully" };
 };
