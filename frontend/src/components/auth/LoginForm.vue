@@ -32,7 +32,7 @@
           <span class="stat-label">Entreprises</span>
         </div>
         <div class="stat">
-          <span class="stat-value accent-green">98%</span>
+          <span class="stat -value accent-green">98%</span>
           <span class="stat-label">Profils vérifiés</span>
         </div>
       </footer>
