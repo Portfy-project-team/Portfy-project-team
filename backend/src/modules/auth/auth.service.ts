@@ -1,7 +1,9 @@
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../../utils/jwt.js";
 import bcrypt from "bcryptjs";
 import { prisma } from "../../utils/prisma.js";
-
+import {
+  generateAccessToken,
+  generateRefreshToken,
+} from "../../utils/jwt.js";
 type RegisterData = {
   email: string;
   password: string;
@@ -13,6 +15,7 @@ export const registerUser = async ({
   password,
   role,
 }: RegisterData) => {
+
 
 
   // Check existing user

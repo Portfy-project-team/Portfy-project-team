@@ -2,16 +2,11 @@ import { Request, Response } from "express";
 import { registerSchema, loginSchema, refreshSchema } from "./auth.validation.js";
 import { registerUser, loginUser, refreshTokenService, logoutUser } from "./auth.service.js";
 
-export const registerController = async (
-  req: Request,
-  res: Response
-) => {
-  try {
 
-    // Validate request body
+export const registerController = async (req: Request, res: Response) => {
+  try {
     const validatedData = registerSchema.parse(req.body);
 
-    // Register user
     const user = await registerUser(validatedData);
 
     // Success response
@@ -33,12 +28,12 @@ export const registerController = async (
 }
 };
 
-export const loginController = async(req: Request , res:Response)=>{
-  try{
-    //validate request body 
+export const loginController = async (req: Request, res: Response) => {
+  try {
+    // validate request body
     const validatedData = loginSchema.parse(req.body);
 
-    // login user 
+    // login user
     const result = await loginUser(validatedData);
 
     //success response
@@ -61,13 +56,11 @@ export const loginController = async(req: Request , res:Response)=>{
 };
 
 
-export const refreshController = async (req: Request, res: Response) => {
-  try {
-    // Validate request body
-    const { refreshToken } = refreshSchema.parse(req.body);
 
-    // Refresh token
-    const result = await refreshTokenService(refreshToken);
+// export const refreshController = async (req: Request, res: Response) => {
+//   try {
+//     // Validate request body
+//     const { refreshToken } = refreshSchema.parse(req.body);
 
     // Success response
     return res.status(200).json({
@@ -82,7 +75,7 @@ export const refreshController = async (req: Request, res: Response) => {
     });
   }
 
-  return res.status(401).json({
+  return res.status(400).json({
     errors: error.issues?.map((i: any) => i.message) || [error.message],
   });
 }
