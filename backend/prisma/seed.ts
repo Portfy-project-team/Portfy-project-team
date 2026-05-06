@@ -30,9 +30,7 @@ async function main() {
   }
   console.log("✅ Skills seeded");
 
-  // ============================================================
-  // 2. Seed admin user (مدير النظام الافتراضي)
-  // ============================================================
+
   const adminPassword = await bcrypt.hash("admin123456", 12);
   const admin = await prisma.user.upsert({
     where: { email: "admin@gmail.com" },
@@ -61,7 +59,7 @@ async function main() {
     where: { email: "student@gmail.com" },
     update: {},
     create: {
-      name: "Student Test",
+      name: "Mouad",
       email: "student@gmail.com",
       password: studentPassword,
       role: "STUDENT",
