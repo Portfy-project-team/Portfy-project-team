@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { registerSchema, loginSchema, refreshSchema } from "./auth.validation.js";
 import { registerUser, loginUser, refreshTokenService, logoutUser } from "./auth.service.js";
+import { COOKIE_OPTIONS } from "../../shared/utils/constants.js";
 
 
 export const registerController = async (req: Request, res: Response) => {
@@ -55,7 +56,11 @@ export const loginController = async (req: Request, res: Response) => {
 
 
     // success response
-   
+
+ const { accessToken, refreshToken } = result
+
+    res.cookie('accessToken', accessToken, { ...COOKIE_OPTIONS, maxAge: 15 * 60 * 1000 });
+    res.cookie('refreshToken', refreshToken, { ...COOKIE_OPTIONS, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
     //success response
      return res.status(200).json({

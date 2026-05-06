@@ -6,12 +6,21 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
+enum UserStatus{
+  active
+  pending
+  blocked
+  rejected
+}
 model User {
   id            Int            @id @default(autoincrement())
+  name String?
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
   email         String         @unique
   password      String
   role          Role
+  status UserStatus
   admin         Admin?
   prof          Prof?
   professionnel Professionnel?
@@ -33,6 +42,7 @@ model RefreshToken {
 model Student {
   nom              String?
   prenom           String?
+  bio     String? 
   dateC            DateTime?
   filiere          String?
   userId           Int                @unique
@@ -43,10 +53,11 @@ model Student {
   portfolio        Portfolio?
   Recommendation   Recommendation[]
   Stage            Stage[]
-  user             User               @relation(fields: [userId], references: [id])
+  user             User               @relation(fields: [userId], references: [id],onDelete:Cascade)
   StudentActivite  StudentActivite[]
   StudentFormation StudentFormation[]
   skills           StudentSkill[]
+
 }
 
 model Prof {
@@ -59,7 +70,7 @@ model Prof {
   Commentaire          Commentaire[]
   LettreRecommandation LettreRecommandation[]
   Notification         Notification[]
-  user                 User                   @relation(fields: [userId], references: [id])
+  user                 User                   @relation(fields: [userId], references: [id],onDelete:Cascade)
   Projet               Projet[]
   Recommendation       Recommendation[]
   Stage                Stage[]
@@ -75,7 +86,7 @@ model Professionnel {
   id             Int              @id @default(autoincrement())
   Commentaire    Commentaire[]
   Notification   Notification[]
-  user           User             @relation(fields: [userId], references: [id])
+  user           User             @relation(fields: [userId], references: [id],onDelete:Cascade)
   Recommendation Recommendation[]
 }
 
@@ -85,7 +96,7 @@ model Admin {
   userId               Int                    @unique
   id                   Int                    @id @default(autoincrement())
   ActiviteParascolaire ActiviteParascolaire[]
-  user                 User                   @relation(fields: [userId], references: [id])
+  user                 User                   @relation(fields: [userId], references: [id],onDelete:Cascade)
   Notification         Notification[]
 }
 
@@ -129,7 +140,7 @@ model Projet {
 
 model Skill {
   categorie  String?
-  nom        String
+  nom        String @unique
   id         Int              @id @default(autoincrement())
   portfolios PortfolioSkill[]
   projets    ProjetSkill[]
