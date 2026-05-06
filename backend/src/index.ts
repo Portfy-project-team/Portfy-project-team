@@ -51,9 +51,9 @@ app.use((req, res) => {
   res.status(404).json({ message: "Ressource introuvable" });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Portfy API sécurisée lancée sur le port ${PORT}`);
-  if (!isProduction) console.log(`📡 CORS autorisé pour : ${process.env.FRONTEND_URL}`);
-});
+// app.listen(PORT, () => {
+//   console.log(`🚀 Portfy API sécurisée lancée sur le port ${PORT}`);
+//   if (!isProduction) console.log(`📡 CORS autorisé pour : ${process.env.FRONTEND_URL}`);
+// });
 
 export default app;
