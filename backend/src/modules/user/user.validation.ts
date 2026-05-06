@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-// تحديث بيانات الطالب
 export const updateStudentSchema = z.object({
   nom: z.string().optional(),
   prenom: z.string().optional(),
@@ -17,7 +16,6 @@ export const updateStudentSchema = z.object({
     .max(20)
     .optional(),});
 
-// تحديث بيانات الأستاذ
 export const updateProfSchema = z.object({
   nom: z.string().optional(),
   prenom: z.string().optional(),
@@ -25,7 +23,6 @@ export const updateProfSchema = z.object({
   specialite: z.string().optional(),
 });
 
-// تحديث بيانات الشركة
 export const updateProfessionnelSchema = z.object({
   nom: z.string().optional(),
   prenom: z.string().optional(),
@@ -33,7 +30,6 @@ export const updateProfessionnelSchema = z.object({
   poste: z.string().optional(),
 });
 
-// تغيير كلمة المرور (كما هي)
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
   newPassword: z.string().min(6),

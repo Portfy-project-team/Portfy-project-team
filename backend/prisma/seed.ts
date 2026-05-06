@@ -7,9 +7,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Seeding database...");
 
-  // ============================================================
-  // 1. Seed skills (المهارات)
-  // ============================================================
+
   const skills = [
     { nom: "JavaScript", categorie: "Frontend" },
     { nom: "TypeScript", categorie: "Frontend" },
@@ -51,9 +49,7 @@ async function main() {
   });
   console.log(`✅ Admin user ready: ${admin.email}`);
 
-  // ============================================================
-  // 3. Seed test student (طالب تجريبي)
-  // ============================================================
+
   const studentPassword = await bcrypt.hash("student123", 12);
   const student = await prisma.user.upsert({
     where: { email: "student@gmail.com" },
@@ -77,7 +73,7 @@ async function main() {
   console.log(`✅ Student user ready: ${student.email}`);
 
   // ============================================================
-  // 4. Seed test professor (أستاذ تجريبي)
+
   // ============================================================
   const profPassword = await bcrypt.hash("prof123456", 12);
   const prof = await prisma.user.upsert({
@@ -102,8 +98,8 @@ async function main() {
   console.log(`✅ Professor user ready: ${prof.email}`);
 
   // ============================================================
-  // 5. Seed test professional/company (شركة تجريبية)
-  // ============================================================
+
+
   const proPassword = await bcrypt.hash("pro123456", 12);
   const pro = await prisma.user.upsert({
     where: { email: "pro@gmail.com" },
