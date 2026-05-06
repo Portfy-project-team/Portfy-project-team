@@ -60,7 +60,10 @@ export const registerUser = async (data: RegisterInput) => {
 };
 
 // ── Login ─────────────────────────────────────────────────────────
-export const loginUser = async (data: LoginInput) => {
+export const loginUser = async (
+  data: LoginInput,
+  meta?: { ip?: string; userAgent?: string }
+) => {
   const { email, password } = data;
 
   const user = await prisma.user.findUnique({
@@ -80,6 +83,18 @@ export const loginUser = async (data: LoginInput) => {
   );
 
   if (!user || !isValid) {
+    // Logger FAILED seulement si l'user existe — userId obligatoire dans LoginLog
+    // Si email inconnu : user = null → pas de userId → on ne peut pas logger
+    if (user) {
+      await prisma.loginLog.create({
+        data: {
+          userId:    user.id,
+          ip:        meta?.ip ?? null,
+          userAgent: meta?.userAgent ?? null,
+          status:    "FAILED",
+        },
+      });
+    }
     const error: any = new Error("Identifiants incorrects");
     error.statusCode = 401;
     throw error;
@@ -114,6 +129,16 @@ export const loginUser = async (data: LoginInput) => {
       token:     refreshToken,
       userId:    user.id,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  // Logger SUCCESS — connexion reussie
+  await prisma.loginLog.create({
+    data: {
+      userId:    user.id,
+      ip:        meta?.ip ?? null,
+      userAgent: meta?.userAgent ?? null,
+      status:    "SUCCESS",
     },
   });
 
@@ -154,10 +179,26 @@ export const refreshTokenService = async (refreshToken: string) => {
 };
 
 // ── Logout ────────────────────────────────────────────────────────
-export const logoutUser = async (refreshToken: string) => {
+export const logoutUser = async (
+  refreshToken: string,
+  userId?: number,
+  meta?: { ip?: string; userAgent?: string }
+) => {
   // Supprimer le refresh token de la BDD — invalide la session cote serveur
   // Meme si le token n'existe pas, on continue (deconnexion idempotente)
   await prisma.refreshToken.deleteMany({
     where: { token: refreshToken },
   });
+
+  // Logger LOGOUT — userId optionnel car verifyToken peut echouer avant logout
+  if (userId) {
+    await prisma.loginLog.create({
+      data: {
+        userId,
+        ip:        meta?.ip ?? null,
+        userAgent: meta?.userAgent ?? null,
+        status:    "LOGOUT",
+      },
+    });
+  }
 };

@@ -8,6 +8,8 @@ import {
 } from "./auth.controller.js";
 import { verifyToken } from "../../middlewares/auth.middleware.js";
 
+
+
 const router = Router();
 
 const registerLimiter = rateLimit({
