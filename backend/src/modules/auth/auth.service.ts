@@ -1,170 +1,163 @@
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../../utils/jwt.js";
 import bcrypt from "bcryptjs";
 import { prisma } from "../../utils/prisma.js";
+import { Prisma } from "@prisma/client";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} from "../../utils/jwt.js";
+import type { RegisterInput, LoginInput } from "./auth.validation.js";
 
-type RegisterData = {
-  email: string;
-  password: string;
-  role: "STUDENT" | "PROF" | "PRO";
-};
+const BCRYPT_SALT_ROUNDS = 12;
 
-export const registerUser = async ({
-  email,
-  password,
-  role,
-}: RegisterData) => {
+// Hash factice pour maintenir un temps de reponse constant (anti-timing attack)
+// Utilise dans loginUser si l'email n'existe pas — bcrypt.compare tourne quand meme
+const DUMMY_HASH =
+  "$2a$12$LQv3c1yqBWVHxkd0LQ1Ns.sGKJnbHzGj0WkSTrMBxU7q5F3e1A/S2";
 
+// ── Register ─────────────────────────────────────────────────────
+export const registerUser = async (data: RegisterInput) => {
+  const { email, password, role } = data;
 
+  // Hash EN PREMIER — temps de reponse constant que l'email existe ou non
+  // Sans ca : reponse immediate (~1ms) si email existe, ~400ms si non
+  // → un attaquant detecte les emails enregistres par le temps de reponse
+  const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
-  // Check existing user
   const existingUser = await prisma.user.findUnique({
-    where: {
-      email,
+    where: { email },
+    select: { id: true },
+  });
+
+  if (existingUser) {
+    // Message generique — ne pas dire "Email deja utilise"
+    const error: any = new Error("Inscription impossible");
+    error.statusCode = 409;
+    throw error;
+  }
+
+  // Transaction atomique : User + profil crees ensemble ou pas du tout
+  // Sans transaction : si le profil echoue apres le User, BDD incoherente
+  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    return await tx.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        role,
+        ...(role === "STUDENT" && { student:      { create: {} } }),
+        ...(role === "PRO"     && { professionnel: { create: {} } }),
+        // PROF absent intentionnellement — cree uniquement par un Admin
+      },
+      // select explicite — password jamais retourne
+      select: {
+        id:        true,
+        email:     true,
+        role:      true,
+        createdAt: true,
+      },
+    });
+  });
+};
+
+// ── Login ─────────────────────────────────────────────────────────
+export const loginUser = async (data: LoginInput) => {
+  const { email, password } = data;
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: {
+      id:       true,
+      email:    true,
+      role:     true,
+      password: true, // necessaire uniquement ici pour bcrypt.compare
     },
   });
 
+  // Comparer meme si user inexistant — temps de reponse constant
+  const isValid = await bcrypt.compare(
+    password,
+    user?.password ?? DUMMY_HASH
+  );
 
-  // if (existingUser) {
-  //   throw new Error("User already exists");
-  // }
-    if (existingUser) {
-  const error: any = new Error("User already exists");
-  error.statusCode = 409;
-  throw error;
-}
+  if (!user || !isValid) {
+    const error: any = new Error("Identifiants incorrects");
+    error.statusCode = 401;
+    throw error;
+  }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  // Verification specifique PRO : compte doit etre valide par un Admin
+  if (user.role === "PRO") {
+    const pro = await prisma.professionnel.findUnique({
+      where:  { userId: user.id },
+      select: { statusV: true },
+    });
+    if (pro?.statusV === "PENDING") {
+      const error: any = new Error(
+        "Compte en attente de validation par un administrateur"
+      );
+      error.statusCode = 403;
+      throw error;
+    }
+  }
 
-  const user = await prisma.user.create({
-    data: {
-      email,
-      password: hashedPassword,
-      role,
-
-      ...(role === "STUDENT" && {
-        student: {
-          create: {},
-        },
-      }),
-
-      ...(role === "PROF" && {
-        prof: {
-          create: {},
-        },
-      }),
-
-      ...(role === "PRO" && {
-        professionnel: {
-          create: {},
-        },
-      }),
-    },
-  });
-
-  return {
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  };
-};
-
-type LoginData = {
-  email: string;
-  password: string;
-};
-
-export const loginUser = async ({ email, password }: LoginData) => {
-
-  // 1. Check user exists
-  const user = await prisma.user.findUnique({ where: { email } });
-  // if (!user) throw new Error("Invalid credentials");
-  if (!user) {
-  const error:any = new Error("Invalid credentials");
-  error.statusCode = 401;
-  throw error;
-}
-
-  // 2. Check password
-  const isValid = await bcrypt.compare(password, user.password);
-  // if (!isValid) throw new Error("Invalid credentials");
-  if (!isValid) {
-  const error:any = new Error("Invalid credentials");
-  error.statusCode = 401;
-  throw error;
-}
-
-  // 3. Access token (15min)
+  // Access token — payload minimal, courte duree (15m via .env)
   const accessToken = generateAccessToken({
-  userId: user.id,
-  role: user.role,
-});
+    userId: user.id,
+    role:   user.role,
+  });
 
+  // Refresh token — longue duree (7j via .env), stocke en BDD
+  const refreshToken = generateRefreshToken({ userId: user.id });
 
-  // 4. Refresh token (7d)
-  const refreshToken = generateRefreshToken({
-  userId: user.id,
-});
-
-  // 5. Save refresh token in DB
   await prisma.refreshToken.create({
     data: {
-      token: refreshToken,
-      userId: user.id,
+      token:     refreshToken,
+      userId:    user.id,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     },
   });
 
-  return { accessToken, refreshToken, role: user.role };
+  // Retourner uniquement les infos utilisateur — tokens via cookies dans le controller
+  return {
+    user: { id: user.id, email: user.email, role: user.role },
+    accessToken,
+    refreshToken,
+  };
 };
 
+// ── Refresh ───────────────────────────────────────────────────────
 export const refreshTokenService = async (refreshToken: string) => {
-
-  // 1. Check token exists in DB
   const tokenInDb = await prisma.refreshToken.findUnique({
     where: { token: refreshToken },
   });
 
-  // if (!tokenInDb) throw new Error("Invalid refresh token");
   if (!tokenInDb) {
-  const error:any = new Error("Invalid refresh token");
-  error.statusCode = 401;
-  throw error;
-}
-
-  // 2. Check token not expired
-  if (tokenInDb.expiresAt < new Date()) {
-    await prisma.refreshToken.delete({ where: { token: refreshToken } });
-    // throw new Error("Refresh token expired");
-    const error:any = new Error("Refresh token expired");
-error.statusCode = 401;
-throw error;
+    const error: any = new Error("Token invalide");
+    error.statusCode = 401;
+    throw error;
   }
 
-  // 3. Verify signature
+  if (tokenInDb.expiresAt < new Date()) {
+    // Supprimer le token expire de la BDD
+    await prisma.refreshToken.delete({ where: { token: refreshToken } });
+    const error: any = new Error("Session expiree. Reconnectez-vous.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  // Verifier la signature — leve une exception si falsifie
   const payload = verifyRefreshToken(refreshToken);
 
-  // 4. Generate new access token
-  const accessToken = generateAccessToken({ userId: payload.userId });
+  const newAccessToken = generateAccessToken({ userId: payload.userId });
 
-  return { accessToken };
+  return { accessToken: newAccessToken };
 };
 
-  export const logoutUser = async (refreshToken: string) => {
-
-  const tokenInDb = await prisma.refreshToken.findUnique({
+// ── Logout ────────────────────────────────────────────────────────
+export const logoutUser = async (refreshToken: string) => {
+  // Supprimer le refresh token de la BDD — invalide la session cote serveur
+  // Meme si le token n'existe pas, on continue (deconnexion idempotente)
+  await prisma.refreshToken.deleteMany({
     where: { token: refreshToken },
   });
-
-  // if (!tokenInDb) throw new Error("Invalid refresh token");
-  if (!tokenInDb) {
-  const error:any = new Error("Invalid refresh token");
-  error.statusCode = 401;
-  throw error;
-}
-
-  await prisma.refreshToken.delete({
-    where: { token: refreshToken },
-  });
-
-  return { message: "Logged out successfully" };
 };
