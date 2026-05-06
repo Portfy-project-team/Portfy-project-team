@@ -1,13 +1,30 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "module": "ES2022",
+    "lib": ["ES2022"],
+    "moduleResolution": "bundler",
     "rootDir": "./src",
     "outDir": "./dist",
-    "strict": true,
     "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
     "skipLibCheck": true,
-     "types": ["jest", "node"]  
-  }
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "types": []  // Vider le tableau types (supprimer "jest")
+  },
+  "include": [
+    "src/**/*"  // Inclure uniquement le dossier src
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests",  // Exclure le dossier tests
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
 }
