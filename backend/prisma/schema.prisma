@@ -16,6 +16,8 @@ model User {
   prof          Prof?
   professionnel Professionnel?
   refreshTokens RefreshToken[]
+  loginLogs           LoginLog[]           
+  passwordResetTokens PasswordResetToken[]
   student       Student?
 }
 
@@ -25,6 +27,29 @@ model RefreshToken {
   createdAt DateTime @default(now())
   userId    Int
   id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model LoginLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
