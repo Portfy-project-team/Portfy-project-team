@@ -1,3 +1,58 @@
+<<<<<<< HEAD
+import { Request, Response } from "express";
+import { registerSchema } from "./auth.validation.js";
+import { registerUser } from "./auth.service.js";
+import { loginSchema } from "./auth.validation.js";
+import { loginUser } from "./auth.service.js";
+
+
+export const registerController = async (req: Request, res: Response) => {
+  try {
+    const validatedData = registerSchema.parse(req.body);
+
+    const user = await registerUser(validatedData);
+
+    return res.status(201).json({
+      message: "User created successfully",
+      user,
+    });
+
+  } catch (error: any) {
+
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        message: error.message,
+      });
+    }
+
+    return res.status(400).json({
+      errors:
+        error.issues?.map((issue: any) => issue.message) ||
+        [error.message],
+    });
+  }
+};
+
+export const loginController = async (req: Request, res: Response) => {
+  try {
+    // validate request body
+    const validatedData = loginSchema.parse(req.body);
+
+    // login user
+    const result = await loginUser(validatedData);
+
+    // success response
+    return res.status(200).json({
+      message: "Login successful",
+      ...result,
+    });
+
+  } catch (error: any) {
+    return res.status(400).json({
+      errors:
+        error.issues?.map((issue: any) => issue.message) ||
+        [error.message],
+=======
 import type { Request, Response } from "express";
 import {
   registerSchema,
@@ -25,7 +80,7 @@ const REFRESH_COOKIE_OPTIONS = {
   secure:   process.env.NODE_ENV === "production",
   sameSite: "strict" as const,
   maxAge:   7 * 24 * 60 * 60 * 1000, // 7 jours
-  path:     "/",      // path restreint au seul endpoint qui en a besoin
+  path:     "/api/auth/refresh",      // path restreint au seul endpoint qui en a besoin
 };
 
 // Erreurs metier prevues — status associe
@@ -66,6 +121,7 @@ export const registerController = async (
       errors:  parsed.error.flatten().fieldErrors,
       // fieldErrors structure par champ : { email: [...], password: [...] }
       // Le frontend affiche l'erreur sous le bon input
+>>>>>>> 90ae145350d2bd1c6f4c3029f591473bfc107e39
     });
     return;
   }
@@ -78,6 +134,29 @@ export const registerController = async (
   }
 };
 
+<<<<<<< HEAD
+// export const refreshController = async (req: Request, res: Response) => {
+//   try {
+//     // Validate request body
+//     const { refreshToken } = refreshSchema.parse(req.body);
+
+//     // Refresh token
+//     const result = await refreshTokenService(refreshToken);
+
+//     // Success response
+//     res.status(200).json({
+//       message: "Token refreshed successfully",
+//       ...result,
+//     });
+
+//   } catch (error: any) {
+//     res.status(401).json({
+//       errors: error.issues?.map((issue: any) => issue.message) || [error.message],
+//     });
+//   }
+
+// };
+=======
 // ── Login ─────────────────────────────────────────────────────────
 export const loginController = async (
   req: Request,
@@ -93,10 +172,7 @@ export const loginController = async (
   }
 
   try {
-    const { user, accessToken, refreshToken } = await loginUser(parsed.data, {
-      ip:        req.ip,
-      userAgent: req.headers["user-agent"] as string,
-});
+    const { user, accessToken, refreshToken } = await loginUser(parsed.data);
 
     // Tokens en cookies httpOnly — JAMAIS dans le body de la reponse
     // Un cookie httpOnly est inaccessible au JavaScript frontend
@@ -146,23 +222,20 @@ export const logoutController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
+  // Le refresh token vient du cookie — pas du body
   const refreshToken = req.cookies?.refresh_token;
 
   if (refreshToken) {
-    await logoutUser(
-      refreshToken,
-      req.user?.id,                              // userId depuis le middleware verifyToken
-      {
-        ip:        req.ip,
-        userAgent: req.headers["user-agent"] as string,
-      }
-    ).catch((err) => {
+    // Invalider en BDD — meme si ca echoue, on deconnecte quand meme
+    await logoutUser(refreshToken).catch((err) => {
       console.error("[logoutController] Erreur suppression token:", err);
     });
   }
 
-  res.clearCookie("access_token",  { path: "/",                 sameSite: "strict", httpOnly: true });
-  res.clearCookie("refresh_token", { path: "/", sameSite: "strict", httpOnly: true });
+  
+  res.clearCookie("access_token",  { path: "/",                   sameSite: "strict", httpOnly: true });
+  res.clearCookie("refresh_token", { path: "/api/auth/refresh",   sameSite: "strict", httpOnly: true });
 
   res.status(200).json({ message: "Deconnexion reussie" });
 };
+>>>>>>> 90ae145350d2bd1c6f4c3029f591473bfc107e39
