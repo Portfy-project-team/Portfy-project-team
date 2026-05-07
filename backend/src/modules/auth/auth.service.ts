@@ -77,10 +77,7 @@ export const registerUser = async (data: RegisterInput) => {
 };
 
 // ── Login ─────────────────────────────────────────────────────────
-export const loginUser = async (
-  data: LoginInput,
-  meta?: { ip?: string; userAgent?: string }
-) => {
+export const loginUser = async (data: LoginInput) => {
   const { email, password } = data;
 
   const user = await prisma.user.findUnique({
@@ -110,18 +107,6 @@ export const loginUser = async (
 >>>>>>> 90ae145350d2bd1c6f4c3029f591473bfc107e39
 
   if (!user || !isValid) {
-    // Logger FAILED seulement si l'user existe — userId obligatoire dans LoginLog
-    // Si email inconnu : user = null → pas de userId → on ne peut pas logger
-    if (user) {
-      await prisma.loginLog.create({
-        data: {
-          userId:    user.id,
-          ip:        meta?.ip ?? null,
-          userAgent: meta?.userAgent ?? null,
-          status:    "FAILED",
-        },
-      });
-    }
     const error: any = new Error("Identifiants incorrects");
     error.statusCode = 401;
     throw error;
@@ -156,16 +141,6 @@ export const loginUser = async (
       token:     refreshToken,
       userId:    user.id,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    },
-  });
-
-  // Logger SUCCESS — connexion reussie
-  await prisma.loginLog.create({
-    data: {
-      userId:    user.id,
-      ip:        meta?.ip ?? null,
-      userAgent: meta?.userAgent ?? null,
-      status:    "SUCCESS",
     },
   });
 
@@ -210,16 +185,13 @@ export const refreshTokenService = async (refreshToken: string) => {
 };
 
 // ── Logout ────────────────────────────────────────────────────────
-export const logoutUser = async (
-  refreshToken: string,
-  userId?: number,
-  meta?: { ip?: string; userAgent?: string }
-) => {
+export const logoutUser = async (refreshToken: string) => {
   // Supprimer le refresh token de la BDD — invalide la session cote serveur
   // Meme si le token n'existe pas, on continue (deconnexion idempotente)
   await prisma.refreshToken.deleteMany({
     where: { token: refreshToken },
   });
+<<<<<<< HEAD
 <<<<<<< HEAD
 >>>>>>> 90ae145350d2bd1c6f4c3029f591473bfc107e39
 =======
@@ -236,4 +208,6 @@ export const logoutUser = async (
     });
   }
 >>>>>>> de514520bddac02492a1af86f64db9d01a7b3d06
+=======
+>>>>>>> parent of de51452 (Merge pull request #21 /feature/auth_register)
 };

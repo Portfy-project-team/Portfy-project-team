@@ -15,6 +15,7 @@ declare global {
     interface Request {
       user?: {
         id:    number; // Int dans le schema Prisma (@id @default(autoincrement()))
+        email: string;
         role:  Role;   // enum Prisma : STUDENT | PROF | PRO | ADMIN
       };
     }
@@ -41,10 +42,12 @@ export const verifyToken = (
     const decoded = jwt.verify(token, JWT_ACCESS_SECRET) as {
       userId: number;
       role:   Role;
+      email?: string;
     };
 
     req.user = {
       id:    decoded.userId,
+      email: decoded.email ?? "",
       role:  decoded.role,
     };
 
