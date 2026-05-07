@@ -193,6 +193,7 @@ export const logoutUser = async (refreshToken: string) => {
   });
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 90ae145350d2bd1c6f4c3029f591473bfc107e39
 =======
 
@@ -208,6 +209,8 @@ export const logoutUser = async (refreshToken: string) => {
     });
   }
 >>>>>>> de514520bddac02492a1af86f64db9d01a7b3d06
+=======
+>>>>>>> parent of de51452 (Merge pull request #21 /feature/auth_register)
 =======
 >>>>>>> parent of de51452 (Merge pull request #21 /feature/auth_register)
 };
