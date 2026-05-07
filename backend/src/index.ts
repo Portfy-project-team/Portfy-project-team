@@ -9,6 +9,7 @@ import authRoutes from "./modules/auth/auth.routes.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === "production";
+const isTest = process.env.NODE_ENV === "test";
 
 // 1. Sécurité des Headers (Helmet)
 // Protège contre les failles XSS, le sniffing de type MIME, et cache le header X-Powered-By
@@ -34,7 +35,11 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use(globalLimiter);
+
+//app.use(globalLimiter);
+if (!isTest) {
+  app.use(globalLimiter);
+}
 
 // 5. Routes
 app.use("/api/auth", authRoutes); // Ajout du préfixe /api pour la clarté

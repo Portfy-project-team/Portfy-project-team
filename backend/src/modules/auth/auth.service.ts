@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../../utils/jwt.js";
-
-=======
->>>>>>> 90ae145350d2bd1c6f4c3029f591473bfc107e39
 import bcrypt from "bcryptjs";
 import { prisma } from "../../utils/prisma.js";
 import { Prisma } from "@prisma/client";
@@ -16,16 +10,6 @@ import type { RegisterInput, LoginInput } from "./auth.validation.js";
 
 const BCRYPT_SALT_ROUNDS = 12;
 
-<<<<<<< HEAD
-export const registerUser = async ({
-  email,
-  password,
-  role,
-
-
-}: RegisterData) => {
-  // Check existing user
-=======
 // Hash factice pour maintenir un temps de reponse constant (anti-timing attack)
 // Utilise dans loginUser si l'email n'existe pas — bcrypt.compare tourne quand meme
 const DUMMY_HASH =
@@ -40,7 +24,7 @@ export const registerUser = async (data: RegisterInput) => {
   // → un attaquant detecte les emails enregistres par le temps de reponse
   const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
->>>>>>> 90ae145350d2bd1c6f4c3029f591473bfc107e39
+
   const existingUser = await prisma.user.findUnique({
     where: { email },
     select: { id: true },
@@ -90,21 +74,13 @@ export const loginUser = async (data: LoginInput) => {
     },
   });
 
-<<<<<<< HEAD
-  return {
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  };
 
-};
-=======
   // Comparer meme si user inexistant — temps de reponse constant
   const isValid = await bcrypt.compare(
     password,
     user?.password ?? DUMMY_HASH
   );
->>>>>>> 90ae145350d2bd1c6f4c3029f591473bfc107e39
+
 
   if (!user || !isValid) {
     const error: any = new Error("Identifiants incorrects");
@@ -177,25 +153,22 @@ export const refreshTokenService = async (refreshToken: string) => {
 
   const newAccessToken = generateAccessToken({ userId: payload.userId });
 
-<<<<<<< HEAD
-  return { accessToken };
-
-=======
   return { accessToken: newAccessToken };
 };
 
 // ── Logout ────────────────────────────────────────────────────────
-export const logoutUser = async (refreshToken: string) => {
+// export const logoutUser = async (refreshToken: string) => {
+export const logoutUser = async (
+  refreshToken: string,
+  userId?: number,
+  meta?: { ip?: string; userAgent?: string }
+) => {
   // Supprimer le refresh token de la BDD — invalide la session cote serveur
   // Meme si le token n'existe pas, on continue (deconnexion idempotente)
   await prisma.refreshToken.deleteMany({
     where: { token: refreshToken },
   });
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> 90ae145350d2bd1c6f4c3029f591473bfc107e39
-=======
+
 
   // Logger LOGOUT — userId optionnel car verifyToken peut echouer avant logout
   if (userId) {
@@ -208,9 +181,5 @@ export const logoutUser = async (refreshToken: string) => {
       },
     });
   }
->>>>>>> de514520bddac02492a1af86f64db9d01a7b3d06
-=======
->>>>>>> parent of de51452 (Merge pull request #21 /feature/auth_register)
-=======
->>>>>>> parent of de51452 (Merge pull request #21 /feature/auth_register)
+
 };
