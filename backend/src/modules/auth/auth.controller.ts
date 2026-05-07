@@ -2,13 +2,14 @@ import type { Request, Response } from "express";
 import {
   registerSchema,
   loginSchema,
-  refreshSchema,
 } from "./auth.validation.js";
 import {
   registerUser,
   loginUser,
   refreshTokenService,
   logoutUser,
+  verifyEmailService,
+  sendVerificationEmail,
 } from "./auth.service.js";
 
 // Options communes pour les cookies httpOnly
@@ -31,11 +32,15 @@ const REFRESH_COOKIE_OPTIONS = {
 // Erreurs metier prevues — status associe
 // Seuls ces messages sont retournes au client — les autres → 500 generique
 const KNOWN_ERRORS: Record<string, number> = {
-  "Inscription impossible":                          409,
-  "Identifiants incorrects":                         401,
-  "Token invalide":                                  401,
-  "Session expiree. Reconnectez-vous.":              401,
+  "Inscription impossible": 409,
+  "Identifiants incorrects": 401,
+  "Token invalide": 401,
+  "Session expiree. Reconnectez-vous.": 401,
   "Compte en attente de validation par un administrateur": 403,
+
+  // EMAIL VERIFICATION
+  "Veuillez vérifier votre email avant de vous connecter": 403,
+  "Token invalide ou expiré": 400,
 };
 
 function handleError(error: unknown, res: Response, context: string): void {
@@ -71,11 +76,21 @@ export const registerController = async (
   }
 
   try {
-    const user = await registerUser(parsed.data);
-    res.status(201).json({ message: "Compte cree avec succes", user });
-  } catch (error) {
-    handleError(error, res, "registerController");
+  const user = await registerUser(parsed.data);
+
+  try {
+    await sendVerificationEmail(user.id, user.email);
+  } catch (err) {
+    console.error("Email verification failed:", err);
   }
+
+  res.status(201).json({
+    message: "Compte cree avec succes",
+    user,
+  });
+} catch (error) {
+  handleError(error, res, "registerController");
+}
 };
 
 // ── Login ─────────────────────────────────────────────────────────
@@ -166,3 +181,23 @@ export const logoutController = async (
 
   res.status(200).json({ message: "Deconnexion reussie" });
 };
+
+  export const verifyEmailController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { token } = req.query;
+
+  if (!token || typeof token !== "string") {
+    res.status(400).json({ message: "Token manquant" });
+    return;
+  }
+
+  try {
+    await verifyEmailService(token);
+    res.status(200).json({ message: "Email vérifié avec succès" });
+  } catch (error) {
+    handleError(error, res, "verifyEmailController");
+  }
+};
+
