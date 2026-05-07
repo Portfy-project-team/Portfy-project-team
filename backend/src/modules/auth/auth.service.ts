@@ -24,7 +24,6 @@ export const registerUser = async (data: RegisterInput) => {
   // → un attaquant detecte les emails enregistres par le temps de reponse
   const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
-
   const existingUser = await prisma.user.findUnique({
     where: { email },
     select: { id: true },
@@ -61,7 +60,10 @@ export const registerUser = async (data: RegisterInput) => {
 };
 
 // ── Login ─────────────────────────────────────────────────────────
-export const loginUser = async (data: LoginInput) => {
+export const loginUser = async (
+  data: LoginInput,
+  meta?: { ip?: string; userAgent?: string }
+) => {
   const { email, password } = data;
 
   const user = await prisma.user.findUnique({
@@ -74,15 +76,25 @@ export const loginUser = async (data: LoginInput) => {
     },
   });
 
-
   // Comparer meme si user inexistant — temps de reponse constant
   const isValid = await bcrypt.compare(
     password,
     user?.password ?? DUMMY_HASH
   );
 
-
   if (!user || !isValid) {
+    // Logger FAILED seulement si l'user existe — userId obligatoire dans LoginLog
+    // Si email inconnu : user = null → pas de userId → on ne peut pas logger
+    if (user) {
+      await prisma.loginLog.create({
+        data: {
+          userId:    user.id,
+          ip:        meta?.ip ?? null,
+          userAgent: meta?.userAgent ?? null,
+          status:    "FAILED",
+        },
+      });
+    }
     const error: any = new Error("Identifiants incorrects");
     error.statusCode = 401;
     throw error;
@@ -117,6 +129,16 @@ export const loginUser = async (data: LoginInput) => {
       token:     refreshToken,
       userId:    user.id,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  // Logger SUCCESS — connexion reussie
+  await prisma.loginLog.create({
+    data: {
+      userId:    user.id,
+      ip:        meta?.ip ?? null,
+      userAgent: meta?.userAgent ?? null,
+      status:    "SUCCESS",
     },
   });
 
@@ -157,7 +179,6 @@ export const refreshTokenService = async (refreshToken: string) => {
 };
 
 // ── Logout ────────────────────────────────────────────────────────
-// export const logoutUser = async (refreshToken: string) => {
 export const logoutUser = async (
   refreshToken: string,
   userId?: number,
@@ -168,7 +189,6 @@ export const logoutUser = async (
   await prisma.refreshToken.deleteMany({
     where: { token: refreshToken },
   });
-
 
   // Logger LOGOUT — userId optionnel car verifyToken peut echouer avant logout
   if (userId) {
@@ -181,5 +201,4 @@ export const logoutUser = async (
       },
     });
   }
-
 };

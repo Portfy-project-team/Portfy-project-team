@@ -1,5 +1,4 @@
 import { Router } from "express";
-
 import rateLimit from "express-rate-limit";
 import {
   registerController,
@@ -9,9 +8,9 @@ import {
 } from "./auth.controller.js";
 import { verifyToken } from "../../middlewares/auth.middleware.js";
 
-const router = Router();
 
-const isTest = process.env.NODE_ENV === "test";
+
+const router = Router();
 
 const registerLimiter = rateLimit({
   windowMs:        15 * 60 * 1000,
@@ -20,7 +19,6 @@ const registerLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders:   false,
 });
-
 
 const loginLimiter = rateLimit({
   windowMs:        15 * 60 * 1000,
@@ -38,26 +36,9 @@ const refreshLimiter = rateLimit({
   legacyHeaders:   false,
 });
 
-const registerMiddlewares = isTest
-  ? [registerController]
-  : [registerLimiter, registerController];
-
-const loginMiddlewares = isTest
-  ? [loginController]
-  : [loginLimiter, loginController];
-
-const refreshMiddlewares = isTest
-  ? [refreshController]
-  : [refreshLimiter, refreshController];
-
-
-router.post("/register", ...registerMiddlewares);
-router.post("/login", ...loginMiddlewares);
-router.post("/refresh", ...refreshMiddlewares);
-
-// router.post("/register", registerLimiter, registerController);
-// router.post("/login",    loginLimiter,    loginController);
-// router.post("/refresh",  refreshLimiter,  refreshController);
+router.post("/register", registerLimiter, registerController);
+router.post("/login",    loginLimiter,    loginController);
+router.post("/refresh",  refreshLimiter,  refreshController);
 router.post("/logout",   verifyToken,     logoutController);
 
 export default router;

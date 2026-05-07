@@ -25,7 +25,7 @@ const REFRESH_COOKIE_OPTIONS = {
   secure:   process.env.NODE_ENV === "production",
   sameSite: "strict" as const,
   maxAge:   7 * 24 * 60 * 60 * 1000, // 7 jours
-  path:     "/api/auth/refresh",      // path restreint au seul endpoint qui en a besoin
+  path:     "/",      // path restreint au seul endpoint qui en a besoin
 };
 
 // Erreurs metier prevues — status associe
@@ -66,7 +66,6 @@ export const registerController = async (
       errors:  parsed.error.flatten().fieldErrors,
       // fieldErrors structure par champ : { email: [...], password: [...] }
       // Le frontend affiche l'erreur sous le bon input
-
     });
     return;
   }
@@ -94,7 +93,10 @@ export const loginController = async (
   }
 
   try {
-    const { user, accessToken, refreshToken } = await loginUser(parsed.data);
+    const { user, accessToken, refreshToken } = await loginUser(parsed.data, {
+      ip:        req.ip,
+      userAgent: req.headers["user-agent"] as string,
+});
 
     // Tokens en cookies httpOnly — JAMAIS dans le body de la reponse
     // Un cookie httpOnly est inaccessible au JavaScript frontend
@@ -144,20 +146,23 @@ export const logoutController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  // Le refresh token vient du cookie — pas du body
   const refreshToken = req.cookies?.refresh_token;
 
   if (refreshToken) {
-    // Invalider en BDD — meme si ca echoue, on deconnecte quand meme
-    await logoutUser(refreshToken).catch((err) => {
+    await logoutUser(
+      refreshToken,
+      req.user?.id,                              // userId depuis le middleware verifyToken
+      {
+        ip:        req.ip,
+        userAgent: req.headers["user-agent"] as string,
+      }
+    ).catch((err) => {
       console.error("[logoutController] Erreur suppression token:", err);
     });
   }
 
-  
-  res.clearCookie("access_token",  { path: "/",                   sameSite: "strict", httpOnly: true });
-  res.clearCookie("refresh_token", { path: "/api/auth/refresh",   sameSite: "strict", httpOnly: true });
+  res.clearCookie("access_token",  { path: "/",                 sameSite: "strict", httpOnly: true });
+  res.clearCookie("refresh_token", { path: "/", sameSite: "strict", httpOnly: true });
 
   res.status(200).json({ message: "Deconnexion reussie" });
 };
-
