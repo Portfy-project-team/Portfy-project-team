@@ -5,13 +5,12 @@ import {
   loginController,
   refreshController,
   logoutController,
-  forgotPasswordController, 
+  verifyEmailController,
+  resendVerificationController,
+  forgotPasswordController,
   resetPasswordController,
 } from "./auth.controller.js";
 import { verifyToken } from "../../middlewares/auth.middleware.js";
-import { verifyEmailController } from "./auth.controller.js";
-
-
 
 const router = Router();
 
@@ -39,23 +38,23 @@ const refreshLimiter = rateLimit({
   legacyHeaders:   false,
 });
 
-  const verifyEmailLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 heure
-  max:      10,
-  message:  { message: "Trop de tentatives. Réessayez dans 1 heure." },
-  standardHeaders: true,
-  legacyHeaders:   false,
-});
-
-  const forgotPasswordLimiter = rateLimit({
-  windowMs:        60 * 60 * 1000, // 1 heure
-  max:             5,
+const verifyEmailLimiter = rateLimit({
+  windowMs:        60 * 60 * 1000,
+  max:             10,
   message:         { message: "Trop de tentatives. Réessayez dans 1 heure." },
   standardHeaders: true,
   legacyHeaders:   false,
 });
 
-  const resetPasswordLimiter = rateLimit({
+const resendVerificationLimiter = rateLimit({
+  windowMs:        60 * 60 * 1000,
+  max:             3,
+  message:         { message: "Trop de demandes. Réessayez dans 1 heure." },
+  standardHeaders: true,
+  legacyHeaders:   false,
+});
+
+const forgotPasswordLimiter = rateLimit({
   windowMs:        60 * 60 * 1000,
   max:             5,
   message:         { message: "Trop de tentatives. Réessayez dans 1 heure." },
@@ -63,13 +62,21 @@ const refreshLimiter = rateLimit({
   legacyHeaders:   false,
 });
 
-router.post("/register", registerLimiter, registerController);
-router.post("/login",    loginLimiter,    loginController);
-router.post("/refresh",  refreshLimiter,  refreshController);
-router.post("/logout",   verifyToken,     logoutController);
-router.get("/verify-email", verifyEmailLimiter, verifyEmailController);
-router.post("/forgot-password", forgotPasswordLimiter, forgotPasswordController);
-router.post("/reset-password",  resetPasswordLimiter,  resetPasswordController);
+const resetPasswordLimiter = rateLimit({
+  windowMs:        60 * 60 * 1000,
+  max:             5,
+  message:         { message: "Trop de tentatives. Réessayez dans 1 heure." },
+  standardHeaders: true,
+  legacyHeaders:   false,
+});
 
+router.post("/register",            registerLimiter,           registerController);
+router.post("/login",               loginLimiter,              loginController);
+router.post("/refresh",             refreshLimiter,            refreshController);
+router.post("/logout",              verifyToken,               logoutController);
+router.get("/verify-email",         verifyEmailLimiter,        verifyEmailController);
+router.post("/resend-verification", resendVerificationLimiter, resendVerificationController);
+router.post("/forgot-password",     forgotPasswordLimiter,     forgotPasswordController);
+router.post("/reset-password",      resetPasswordLimiter,      resetPasswordController);
 
 export default router;

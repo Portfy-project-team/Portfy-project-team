@@ -1,59 +1,69 @@
 import "dotenv/config";
-import express from 'express';
-import helmet from 'helmet';
-import cors from 'cors';
-import cookieParser from 'cookie-parser';
-import rateLimit from 'express-rate-limit';
+import express from "express";
+import helmet from "helmet";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import rateLimit from "express-rate-limit";
 import authRoutes from "./modules/auth/auth.routes.js";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const isProduction = process.env.NODE_ENV === "production";
 
-// 1. Sécurité des Headers (Helmet)
-// Protège contre les failles XSS, le sniffing de type MIME, et cache le header X-Powered-By
-app.use(helmet());
+//  CONFIGURATION RÉSEAU ---
+// Nécessaire pour capturer la vraie IP derrière Docker pour le Rate Limiting et LoginLog
+app.set("trust proxy", 1);
 
-// 2. Configuration CORS restrictive
-app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:5173", // URL précise du front
-  credentials: true, // INDISPENSABLE pour autoriser l'envoi des cookies HttpOnly
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+// SÉCURITÉ DES HEADERS (Défense en profondeur) 
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "same-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:     ["'self'"],
+      scriptSrc:      ["'self'"],
+      styleSrc:       ["'self'", "'unsafe-inline'"], // Autorise les styles internes si besoin
+      objectSrc:      ["'none'"],
+      frameAncestors: ["'none'"], // Empêche le Clickjacking
+    },
+  },
 }));
 
-// 3. Middlewares de parsing
-app.use(express.json({ limit: '10kb' })); // Limite la taille du body pour éviter les attaques DoS
-app.use(cookieParser()); // Permet à Express de lire req.cookies
+// CONTRÔLE DES ACCÈS (CORS) 
+const ALLOWED_ORIGIN = process.env.FRONTEND_URL || "http://localhost:5173";
+app.use(cors({
+  origin:      ALLOWED_ORIGIN,
+  credentials: true, // Crucial pour les cookies HttpOnly (JWT)
+  methods:     ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"], 
+}));
 
-// 4. Rate Limiting Global (Protection contre le déni de service)
+// PROTECTION CONTRE LE DÉNI DE SERVICE (DoS)
+app.use(express.json({ limit: "10kb" })); // Limite la taille des JSON entrants
+app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+app.use(cookieParser());
+
+// Rate Limiting Global
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limite chaque IP à 100 requêtes par fenêtre
-  message: { message: "Trop de requêtes, veuillez réessayer plus tard." },
+  windowMs:        15 * 60 * 1000, // 15 minutes
+  max:             100,            // 100 requêtes max par IP
+  message:         { message: "Trop de requêtes, veuillez réessayer plus tard." },
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders:   false,
 });
 app.use(globalLimiter);
 
-// 5. Routes
-app.use("/api/auth", authRoutes); // Ajout du préfixe /api pour la clarté
+app.use("/api/auth", authRoutes);
 
-// Route de santé (Healthcheck)
+// Healthcheck améliorée pour le debug
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", env: process.env.NODE_ENV });
+  res.status(200).json({ 
+    status: "ok", 
+    env: process.env.NODE_ENV || "development",
+    timestamp: new Date().toISOString()
+  });
 });
 
-// SÉCURITÉ : Suppression de la route /users globale qui fuyait les données
-
-// 6. Gestion des erreurs 404
+// Capture des routes inexistantes (404)
 app.use((req, res) => {
   res.status(404).json({ message: "Ressource introuvable" });
 });
-
-// app.listen(PORT, () => {
-//   console.log(`🚀 Portfy API sécurisée lancée sur le port ${PORT}`);
-//   if (!isProduction) console.log(`📡 CORS autorisé pour : ${process.env.FRONTEND_URL}`);
-// });
 
 export default app;
