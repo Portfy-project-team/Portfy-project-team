@@ -281,3 +281,91 @@ export const verifyEmailService = async (rawToken: string) => {
     },
   });
 };
+
+// ── Forgot Password ───────────────────────────────────────────────
+export const forgotPasswordService = async (email: string) => {
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, email: true },
+  });
+
+  // Réponse identique que l'email existe ou non — anti-énumération
+  // Un attaquant ne peut pas savoir si l'email est enregistré
+  if (!user) return;
+
+  // Générer un token raw — envoyé par email
+  const rawToken = crypto.randomBytes(32).toString("hex");
+
+  // Hasher avant stockage — si la DB est compromise, le token raw n'est pas exposé
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(rawToken)
+    .digest("hex");
+
+  // Sauvegarder le token hashé en DB avec expiration 1h
+  await prisma.passwordResetToken.create({
+    data: {
+      token:     hashedToken,
+      userId:    user.id,
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 heure
+    },
+  });
+
+  // Construire le lien avec le token raw
+  const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${rawToken}`;
+
+  // Envoyer l'email
+  const template = emailTemplates.resetPassword(resetLink);
+  await sendEmail({
+    to:      user.email,
+    subject: template.subject,
+    html:    template.html,
+  });
+};
+
+// ── Reset Password ────────────────────────────────────────────────
+export const resetPasswordService = async (
+  rawToken: string,
+  newPassword: string
+) => {
+  // Hasher le token reçu pour comparer avec celui en DB
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(rawToken)
+    .digest("hex");
+
+  // Chercher le token en DB — non utilisé et non expiré
+  const tokenInDb = await prisma.passwordResetToken.findFirst({
+    where: {
+      token:     hashedToken,
+      used:      false,
+      expiresAt: { gt: new Date() },
+    },
+    select: { id: true, userId: true },
+  });
+
+  if (!tokenInDb) {
+    const error: any = new Error("Token invalide ou expiré");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Hasher le nouveau password
+  const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
+
+  // Transaction — mettre à jour password + marquer token comme utilisé ensemble
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: tokenInDb.userId },
+      data:  { password: hashedPassword },
+    }),
+    prisma.passwordResetToken.update({
+      where: { id: tokenInDb.id },
+      data:  { used: true },
+    }),
+    // Supprimer tous les refresh tokens — forcer reconnexion sur tous les appareils
+    prisma.refreshToken.deleteMany({
+      where: { userId: tokenInDb.userId },
+    }),
+  ]);
+};
