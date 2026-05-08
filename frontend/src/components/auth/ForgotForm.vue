@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive } from 'vue'
-
+import { useRouter } from 'vue-router'
 // étape actuelle
 const forgotStep = ref(1)
 
@@ -126,8 +126,9 @@ const resetPassword = () => {
   forgotStep.value = 4
 }
 
-const goToLogin = () => {
-  console.log('Retour à la connexion')
+const router = useRouter()
+function goToLogin() {
+  router.push('/login')
 }
 </script>
 
@@ -238,7 +239,7 @@ const goToLogin = () => {
           <div class="forgot-footer">
             <p>
               Vous vous souvenez du mot de passe ?
-              <a href="#">Se connecter</a>
+              <a href="#" class="inline-link" @click="goToLogin">Se connecter</a>
             </p>
 
             <div class="secure-line">

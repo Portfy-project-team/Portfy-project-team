@@ -1,5 +1,6 @@
 <script setup>
 import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 
 // Step 1
 const name = ref('')
@@ -28,6 +29,10 @@ const photoPreview = ref('')
 // Current step
 const currentStep = ref(1)
 
+const router = useRouter()
+function goToLogin() {
+  router.push('/login')
+}
 // Errors
 const errors = reactive({
   name: '',
@@ -277,10 +282,15 @@ const register = () => {
     <section class="right-panel">
       <div class="form-container">
 
-        <div class="tabs">
-          <button type="button" class="tab">Connexion</button>
-          <button type="button" class="tab active">Inscription</button>
-        </div>
+<div class="tabs">
+  <button type="button" class="tab" @click="goToLogin">
+    Connexion
+  </button>
+
+  <button type="button" class="tab active">
+    Inscription
+  </button>
+</div>
 
         <div class="form-header">
           <template v-if="currentStep === 1">
@@ -656,7 +666,7 @@ const register = () => {
         <div class="form-footer">
           <p class="no-account">
             Vous avez déjà un compte ?
-            <a href="#" class="inline-link">Se connecter</a>
+            <a href="#" class="inline-link" @click="goToLogin">Se connecter</a>
           </p>
 
           <p class="security-note">Connexion sécurisée · Données chiffrées</p>
