@@ -2,6 +2,8 @@ import type { Request, Response } from "express";
 import {
   registerSchema,
   loginSchema,
+  forgotPasswordSchema,   
+  resetPasswordSchema,
 } from "./auth.validation.js";
 import {
   registerUser,
@@ -10,6 +12,8 @@ import {
   logoutUser,
   verifyEmailService,
   sendVerificationEmail,
+  forgotPasswordService,    
+  resetPasswordService,
 } from "./auth.service.js";
 
 // Options communes pour les cookies httpOnly
@@ -201,3 +205,56 @@ export const logoutController = async (
   }
 };
 
+// ── Forgot Password ───────────────────────────────────────────────
+export const forgotPasswordController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const parsed = forgotPasswordSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    // Réponse générique — ne pas confirmer si l'email existe
+    res.status(200).json({
+      message: "Si cet email existe, un lien de réinitialisation a été envoyé",
+    });
+    return;
+  }
+
+  try {
+    await forgotPasswordService(parsed.data.email);
+
+    // Toujours répondre 200 — même si l'email n'existe pas
+    // Évite l'énumération des emails enregistrés
+    res.status(200).json({
+      message: "Si cet email existe, un lien de réinitialisation a été envoyé",
+    });
+  } catch (error) {
+    handleError(error, res, "forgotPasswordController");
+  }
+};
+
+// ── Reset Password ────────────────────────────────────────────────
+export const resetPasswordController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const parsed = resetPasswordSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    res.status(400).json({
+      message: "Donnees invalides",
+      errors:  parsed.error.flatten().fieldErrors,
+    });
+    return;
+  }
+
+  try {
+    await resetPasswordService(parsed.data.token, parsed.data.password);
+
+    res.status(200).json({
+      message: "Mot de passe réinitialisé avec succès. Veuillez vous reconnecter.",
+    });
+  } catch (error) {
+    handleError(error, res, "resetPasswordController");
+  }
+};
