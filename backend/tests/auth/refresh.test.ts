@@ -1,5 +1,6 @@
 import request from "supertest";
 import app from "../../src/index";
+import { prisma } from "../../src/utils/prisma";
 
 describe("POST /api/auth/refresh", () => {
 
@@ -10,6 +11,11 @@ describe("POST /api/auth/refresh", () => {
       email,
       password: "Secure123!!!",
       role: "STUDENT",
+    });
+
+    await prisma.user.update({
+      where: { email },
+      data: { isEmailVerified: true },
     });
 
     const login = await request(app).post("/api/auth/login").send({
@@ -25,10 +31,16 @@ describe("POST /api/auth/refresh", () => {
 
     expect(res.status).toBe(200);
 
-    // const refreshedCookies = res.headers["set-cookie"];
     const rawRefreshedCookies = res.headers["set-cookie"];
-const refreshedCookies = Array.isArray(rawRefreshedCookies) ? rawRefreshedCookies : [];
-    expect(refreshedCookies.some((c: string) => c.includes("access_token"))).toBe(true);
+    const refreshedCookies = Array.isArray(rawRefreshedCookies)
+      ? rawRefreshedCookies
+      : [];
+
+    expect(
+      refreshedCookies.some((c: string) =>
+        c.includes("access_token")
+      )
+    ).toBe(true);
   });
 
   it("RT-04 : no token", async () => {
@@ -41,6 +53,7 @@ const refreshedCookies = Array.isArray(rawRefreshedCookies) ? rawRefreshedCookie
 });
 
 
+
 // import request from "supertest";
 // import app from "../../src/index";
 
@@ -51,26 +64,34 @@ const refreshedCookies = Array.isArray(rawRefreshedCookies) ? rawRefreshedCookie
 
 //     await request(app).post("/api/auth/register").send({
 //       email,
-//       password: "Secure123!",
+//       password: "Secure123!!!",
 //       role: "STUDENT",
 //     });
 
 //     const login = await request(app).post("/api/auth/login").send({
 //       email,
-//       password: "Secure123!",
+//       password: "Secure123!!!",
 //     });
 
-//     const res = await request(app).post("/api/auth/refresh").send({
-//       refreshToken: login.body.refreshToken,
-//     });
+//     const cookies = login.headers["set-cookie"];
+
+//     const res = await request(app)
+//       .post("/api/auth/refresh")
+//       .set("Cookie", cookies);
 
 //     expect(res.status).toBe(200);
-//     expect(res.body.accessToken).toBeDefined();
+
+//     // const refreshedCookies = res.headers["set-cookie"];
+//     const rawRefreshedCookies = res.headers["set-cookie"];
+// const refreshedCookies = Array.isArray(rawRefreshedCookies) ? rawRefreshedCookies : [];
+//     expect(refreshedCookies.some((c: string) => c.includes("access_token"))).toBe(true);
 //   });
 
 //   it("RT-04 : no token", async () => {
-//     const res = await request(app).post("/api/auth/refresh").send({});
-//     expect(res.status).toBe(400);
+//     const res = await request(app)
+//       .post("/api/auth/refresh");
+
+//     expect(res.status).toBe(401);
 //   });
 
 // });
