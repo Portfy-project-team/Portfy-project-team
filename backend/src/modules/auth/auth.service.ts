@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../../utils/jwt.js";
-
-=======
->>>>>>> 90ae145350d2bd1c6f4c3029f591473bfc107e39
 import bcrypt from "bcryptjs";
 import { prisma } from "../../utils/prisma.js";
 import { Prisma } from "@prisma/client";
@@ -13,48 +7,31 @@ import {
   verifyRefreshToken,
 } from "../../utils/jwt.js";
 import type { RegisterInput, LoginInput } from "./auth.validation.js";
+import crypto from "crypto";
+import { sendEmail, emailTemplates } from "../../utils/mailer.js";
 
 const BCRYPT_SALT_ROUNDS = 12;
 
-<<<<<<< HEAD
-export const registerUser = async ({
-  email,
-  password,
-  role,
-
-
-}: RegisterData) => {
-  // Check existing user
-=======
-// Hash factice pour maintenir un temps de reponse constant (anti-timing attack)
-// Utilise dans loginUser si l'email n'existe pas — bcrypt.compare tourne quand meme
 const DUMMY_HASH =
   "$2a$12$LQv3c1yqBWVHxkd0LQ1Ns.sGKJnbHzGj0WkSTrMBxU7q5F3e1A/S2";
 
-// ── Register ─────────────────────────────────────────────────────
+// ── Register ──────────────────────────────────────────────────────
 export const registerUser = async (data: RegisterInput) => {
   const { email, password, role } = data;
 
-  // Hash EN PREMIER — temps de reponse constant que l'email existe ou non
-  // Sans ca : reponse immediate (~1ms) si email existe, ~400ms si non
-  // → un attaquant detecte les emails enregistres par le temps de reponse
   const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
->>>>>>> 90ae145350d2bd1c6f4c3029f591473bfc107e39
   const existingUser = await prisma.user.findUnique({
-    where: { email },
+    where:  { email },
     select: { id: true },
   });
 
   if (existingUser) {
-    // Message generique — ne pas dire "Email deja utilise"
     const error: any = new Error("Inscription impossible");
     error.statusCode = 409;
     throw error;
   }
 
-  // Transaction atomique : User + profil crees ensemble ou pas du tout
-  // Sans transaction : si le profil echoue apres le User, BDD incoherente
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     return await tx.user.create({
       data: {
@@ -63,9 +40,7 @@ export const registerUser = async (data: RegisterInput) => {
         role,
         ...(role === "STUDENT" && { student:      { create: {} } }),
         ...(role === "PRO"     && { professionnel: { create: {} } }),
-        // PROF absent intentionnellement — cree uniquement par un Admin
       },
-      // select explicite — password jamais retourne
       select: {
         id:        true,
         email:     true,
@@ -77,42 +52,65 @@ export const registerUser = async (data: RegisterInput) => {
 };
 
 // ── Login ─────────────────────────────────────────────────────────
-export const loginUser = async (data: LoginInput) => {
+export const loginUser = async (
+  data: LoginInput,
+  meta?: { ip?: string; userAgent?: string }
+) => {
   const { email, password } = data;
 
   const user = await prisma.user.findUnique({
-    where: { email },
+    where:  { email },
     select: {
-      id:       true,
-      email:    true,
-      role:     true,
-      password: true, // necessaire uniquement ici pour bcrypt.compare
+      id:              true,
+      email:           true,
+      role:            true,
+      password:        true,
+      isEmailVerified: true,
     },
   });
 
-<<<<<<< HEAD
-  return {
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  };
-
-};
-=======
-  // Comparer meme si user inexistant — temps de reponse constant
   const isValid = await bcrypt.compare(
     password,
     user?.password ?? DUMMY_HASH
   );
->>>>>>> 90ae145350d2bd1c6f4c3029f591473bfc107e39
 
   if (!user || !isValid) {
+    if (user) {
+      await prisma.loginLog.create({
+        data: {
+          userId:    user.id,
+          ip:        meta?.ip        ?? null,
+          userAgent: meta?.userAgent ?? null,
+          status:    "FAILED",
+        },
+      });
+    }
     const error: any = new Error("Identifiants incorrects");
     error.statusCode = 401;
     throw error;
   }
 
-  // Verification specifique PRO : compte doit etre valide par un Admin
+  // if (!user.isEmailVerified) {
+  //   const error: any = new Error(
+  //     "Veuillez vérifier votre email avant de vous connecter"
+  //   );
+  //   error.statusCode = 403;
+  //   throw error;
+  // }
+  const isEmailVerified =
+  process.env.SKIP_EMAIL_VERIFICATION === "true"
+    ? true
+    : user.isEmailVerified;
+
+if (!isEmailVerified) {
+  const error: any = new Error(
+    "Veuillez vérifier votre email avant de vous connecter"
+  );
+  error.statusCode = 403;
+  throw error;
+}
+
+
   if (user.role === "PRO") {
     const pro = await prisma.professionnel.findUnique({
       where:  { userId: user.id },
@@ -127,26 +125,29 @@ export const loginUser = async (data: LoginInput) => {
     }
   }
 
-  // Access token — payload minimal, courte duree (15m via .env)
-  const accessToken = generateAccessToken({
-    userId: user.id,
-    role:   user.role,
-  });
-
-  // Refresh token — longue duree (7j via .env), stocke en BDD
+  const accessToken  = generateAccessToken({ userId: user.id, role: user.role });
   const refreshToken = generateRefreshToken({ userId: user.id });
 
-  await prisma.refreshToken.create({
-    data: {
-      token:     refreshToken,
-      userId:    user.id,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    },
-  });
+  await prisma.$transaction([
+    prisma.refreshToken.create({
+      data: {
+        token:     refreshToken,
+        userId:    user.id,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    }),
+    prisma.loginLog.create({
+      data: {
+        userId:    user.id,
+        ip:        meta?.ip        ?? null,
+        userAgent: meta?.userAgent ?? null,
+        status:    "SUCCESS",
+      },
+    }),
+  ]);
 
-  // Retourner uniquement les infos utilisateur — tokens via cookies dans le controller
   return {
-    user: { id: user.id, email: user.email, role: user.role },
+    user:         { id: user.id, email: user.email, role: user.role },
     accessToken,
     refreshToken,
   };
@@ -165,52 +166,197 @@ export const refreshTokenService = async (refreshToken: string) => {
   }
 
   if (tokenInDb.expiresAt < new Date()) {
-    // Supprimer le token expire de la BDD
     await prisma.refreshToken.delete({ where: { token: refreshToken } });
     const error: any = new Error("Session expiree. Reconnectez-vous.");
     error.statusCode = 401;
     throw error;
   }
 
-  // Verifier la signature — leve une exception si falsifie
   const payload = verifyRefreshToken(refreshToken);
 
-  const newAccessToken = generateAccessToken({ userId: payload.userId });
-
-<<<<<<< HEAD
-  return { accessToken };
-
-=======
-  return { accessToken: newAccessToken };
+  return {
+    accessToken: generateAccessToken({ userId: payload.userId }),
+  };
 };
 
 // ── Logout ────────────────────────────────────────────────────────
-export const logoutUser = async (refreshToken: string) => {
-  // Supprimer le refresh token de la BDD — invalide la session cote serveur
-  // Meme si le token n'existe pas, on continue (deconnexion idempotente)
-  await prisma.refreshToken.deleteMany({
-    where: { token: refreshToken },
-  });
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> 90ae145350d2bd1c6f4c3029f591473bfc107e39
-=======
+export const logoutUser = async (
+  refreshToken: string,
+  userId?: number,
+  meta?: { ip?: string; userAgent?: string }
+) => {
+  const operations: any[] = [
+    prisma.refreshToken.deleteMany({ where: { token: refreshToken } }),
+  ];
 
-  // Logger LOGOUT — userId optionnel car verifyToken peut echouer avant logout
   if (userId) {
-    await prisma.loginLog.create({
-      data: {
-        userId,
-        ip:        meta?.ip ?? null,
-        userAgent: meta?.userAgent ?? null,
-        status:    "LOGOUT",
-      },
-    });
+    operations.push(
+      prisma.loginLog.create({
+        data: {
+          userId,
+          ip:        meta?.ip        ?? null,
+          userAgent: meta?.userAgent ?? null,
+          status:    "LOGOUT",
+        },
+      })
+    );
   }
->>>>>>> de514520bddac02492a1af86f64db9d01a7b3d06
-=======
->>>>>>> parent of de51452 (Merge pull request #21 /feature/auth_register)
-=======
->>>>>>> parent of de51452 (Merge pull request #21 /feature/auth_register)
+
+  await prisma.$transaction(operations);
+};
+
+// ── Send Verification Email ───────────────────────────────────────
+export const sendVerificationEmail = async (
+  userId: number,
+  email: string
+) => {
+  if (process.env.SKIP_EMAIL_VERIFICATION === "true") return;
+  const rawToken    = crypto.randomBytes(32).toString("hex");
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(rawToken)
+    .digest("hex");
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      emailVerificationToken:   hashedToken,
+      emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    },
+  });
+
+  const verifyLink = `${process.env.FRONTEND_URL}/verify-email?token=${rawToken}`;
+  const template   = emailTemplates.verifyEmail(verifyLink);
+
+  await sendEmail({ to: email, subject: template.subject, html: template.html });
+};
+
+// ── Resend Verification Email ─────────────────────────────────────
+export const resendVerificationEmail = async (email: string) => {
+  const user = await prisma.user.findUnique({
+    where:  { email },
+    select: { id: true, email: true, isEmailVerified: true },
+  });
+
+  if (!user || user.isEmailVerified) return;
+
+  await sendVerificationEmail(user.id, user.email);
+};
+
+// ── Verify Email ──────────────────────────────────────────────────
+export const verifyEmailService = async (rawToken: string) => {
+  if (!rawToken || rawToken.length !== 64) {
+    const error: any = new Error("Token invalide ou expiré");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(rawToken)
+    .digest("hex");
+
+  const user = await prisma.user.findFirst({
+    where: {
+      emailVerificationToken:   hashedToken,
+      emailVerificationExpires: { gt: new Date() },
+      isEmailVerified:          false,
+    },
+    select: { id: true },
+  });
+
+  if (!user) {
+    const error: any = new Error("Token invalide ou expiré");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      isEmailVerified:          true,
+      emailVerificationToken:   null,
+      emailVerificationExpires: null,
+    },
+  });
+};
+
+// ── Forgot Password ───────────────────────────────────────────────
+export const forgotPasswordService = async (email: string) => {
+  const user = await prisma.user.findUnique({
+    where:  { email },
+    select: { id: true, email: true },
+  });
+
+  if (!user) return;
+
+  // Invalider tous les tokens de reset existants pour cet utilisateur
+  // avant d'en créer un nouveau — un seul token valide à la fois
+  await prisma.passwordResetToken.updateMany({
+    where: { userId: user.id, used: false },
+    data:  { used: true },
+  });
+
+  const rawToken    = crypto.randomBytes(32).toString("hex");
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(rawToken)
+    .digest("hex");
+
+  await prisma.passwordResetToken.create({
+    data: {
+      token:     hashedToken,
+      userId:    user.id,
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+    },
+  });
+
+  const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${rawToken}`;
+  const template  = emailTemplates.resetPassword(resetLink);
+
+  await sendEmail({ to: user.email, subject: template.subject, html: template.html });
+};
+
+// ── Reset Password ────────────────────────────────────────────────
+export const resetPasswordService = async (
+  rawToken: string,
+  newPassword: string
+) => {
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(rawToken)
+    .digest("hex");
+
+  const tokenInDb = await prisma.passwordResetToken.findFirst({
+    where: {
+      token:     hashedToken,
+      used:      false,
+      expiresAt: { gt: new Date() },
+    },
+    select: { id: true, userId: true },
+  });
+
+  if (!tokenInDb) {
+    const error: any = new Error("Token invalide ou expiré");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: tokenInDb.userId },
+      data:  { password: hashedPassword },
+    }),
+    prisma.passwordResetToken.update({
+      where: { id: tokenInDb.id },
+      data:  { used: true },
+    }),
+    // Invalider toutes les sessions actives après reset
+    // Force la reconnexion sur tous les appareils
+    prisma.refreshToken.deleteMany({
+      where: { userId: tokenInDb.userId },
+    }),
+  ]);
 };

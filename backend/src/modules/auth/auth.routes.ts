@@ -1,25 +1,23 @@
 import { Router } from "express";
-<<<<<<< HEAD
 
-import { registerController, loginController } from "./auth.controller.js";
-
-
-const router = Router();
-
-router.post("/register", registerController);
-router.post("/login" , loginController);
-//router.post("/refresh", refreshController);
-=======
 import rateLimit from "express-rate-limit";
 import {
   registerController,
   loginController,
   refreshController,
   logoutController,
+  verifyEmailController,
+  resendVerificationController,
+  forgotPasswordController,
+  resetPasswordController,
 } from "./auth.controller.js";
 import { verifyToken } from "../../middlewares/auth.middleware.js";
 
+
 const router = Router();
+
+const isTest = process.env.NODE_ENV === "test";
+const isK6 = process.env.K6 === "true";
 
 const registerLimiter = rateLimit({
   windowMs:        15 * 60 * 1000,
@@ -28,7 +26,7 @@ const registerLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders:   false,
 });
->>>>>>> 90ae145350d2bd1c6f4c3029f591473bfc107e39
+
 
 const loginLimiter = rateLimit({
   windowMs:        15 * 60 * 1000,
@@ -46,9 +44,74 @@ const refreshLimiter = rateLimit({
   legacyHeaders:   false,
 });
 
-router.post("/register", registerLimiter, registerController);
-router.post("/login",    loginLimiter,    loginController);
-router.post("/refresh",  refreshLimiter,  refreshController);
+
+
+  const verifyEmailLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 heure
+  max:      10,
+  message:  { message: "Trop de tentatives. Réessayez dans 1 heure." },
+  standardHeaders: true,
+  legacyHeaders:   false,
+});
+
+
+const resendVerificationLimiter = rateLimit({
+  windowMs:        60 * 60 * 1000,
+  max:             3,
+  message:         { message: "Trop de demandes. Réessayez dans 1 heure." },
+  standardHeaders: true,
+  legacyHeaders:   false,
+});
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs:        60 * 60 * 1000,
+  max:             5,
+  message:         { message: "Trop de tentatives. Réessayez dans 1 heure." },
+  standardHeaders: true,
+  legacyHeaders:   false,
+});
+
+
+const resetPasswordLimiter = rateLimit({
+  windowMs:        60 * 60 * 1000,
+  max:             5,
+  message:         { message: "Trop de tentatives. Réessayez dans 1 heure." },
+  standardHeaders: true,
+  legacyHeaders:   false,
+});
+
+const registerMiddlewares = (isTest || isK6)
+  ? [registerController]
+  : [registerLimiter, registerController];
+
+const loginMiddlewares = (isTest || isK6)
+  ? [loginController]
+  : [loginLimiter, loginController];
+
+const refreshMiddlewares = (isTest || isK6)
+  ? [refreshController]
+  : [refreshLimiter, refreshController];
+
+
+router.post("/register", ...registerMiddlewares);
+router.post("/login", ...loginMiddlewares);
+router.post("/refresh", ...refreshMiddlewares);
+
+// router.post("/register", registerLimiter, registerController);
+// router.post("/login",    loginLimiter,    loginController);
+// router.post("/refresh",  refreshLimiter,  refreshController);
+
 router.post("/logout",   verifyToken,     logoutController);
+router.get("/verify-email", verifyEmailLimiter, verifyEmailController);
+router.post("/forgot-password", forgotPasswordLimiter, forgotPasswordController);
+router.post("/reset-password",  resetPasswordLimiter,  resetPasswordController);
+// router.post("/register",            registerLimiter,           registerController);
+// router.post("/login",               loginLimiter,              loginController);
+// router.post("/refresh",             refreshLimiter,            refreshController);
+// router.post("/logout",              verifyToken,               logoutController);
+// router.get("/verify-email",         verifyEmailLimiter,        verifyEmailController);
+router.post("/resend-verification", resendVerificationLimiter, resendVerificationController);
+// router.post("/forgot-password",     forgotPasswordLimiter,     forgotPasswordController);
+// router.post("/reset-password",      resetPasswordLimiter,      resetPasswordController);
 
 export default router;

@@ -10,5 +10,6 @@
     "skipLibCheck": true,
     "types": ["jest", "node"]
   },
-  "exclude": ["node_modules", "dist", "tests"]   // ← ajoutez cette ligne
+  //"exclude": ["node_modules", "dist", "tests"]   // ← ajoutez cette ligne
+   "exclude": ["node_modules", "dist"]
 }
