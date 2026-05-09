@@ -1,5 +1,6 @@
 import request from "supertest";
 import app from "../../src/index";
+// import { cleanDatabase } from '../helpers/db.helper';
 
 describe("POST /api/auth/register", () => {
 

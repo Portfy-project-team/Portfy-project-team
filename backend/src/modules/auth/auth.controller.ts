@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import {
   registerSchema,
   loginSchema,
-  forgotPasswordSchema,   
+  forgotPasswordSchema,
   resetPasswordSchema,
 } from "./auth.validation.js";
 import {
@@ -12,16 +12,16 @@ import {
   logoutUser,
   verifyEmailService,
   sendVerificationEmail,
-  forgotPasswordService,    
+  resendVerificationEmail,
+  forgotPasswordService,
   resetPasswordService,
 } from "./auth.service.js";
 
-// Options communes pour les cookies httpOnly
 const ACCESS_COOKIE_OPTIONS = {
   httpOnly: true,
   secure:   process.env.NODE_ENV === "production",
   sameSite: "strict" as const,
-  maxAge:   15 * 60 * 1000,        // 15 minutes
+  maxAge:   15 * 60 * 1000,
   path:     "/",
 };
 
@@ -29,22 +29,18 @@ const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
   secure:   process.env.NODE_ENV === "production",
   sameSite: "strict" as const,
-  maxAge:   7 * 24 * 60 * 60 * 1000, // 7 jours
-  path:     "/",      // path restreint au seul endpoint qui en a besoin
+  maxAge:   7 * 24 * 60 * 60 * 1000,
+  path:     "/",
 };
 
-// Erreurs metier prevues — status associe
-// Seuls ces messages sont retournes au client — les autres → 500 generique
 const KNOWN_ERRORS: Record<string, number> = {
-  "Inscription impossible": 409,
-  "Identifiants incorrects": 401,
-  "Token invalide": 401,
-  "Session expiree. Reconnectez-vous.": 401,
+  "Inscription impossible":                                409,
+  "Identifiants incorrects":                               401,
+  "Token invalide":                                        401,
+  "Session expiree. Reconnectez-vous.":                    401,
   "Compte en attente de validation par un administrateur": 403,
-
-  // EMAIL VERIFICATION
   "Veuillez vérifier votre email avant de vous connecter": 403,
-  "Token invalide ou expiré": 400,
+  "Token invalide ou expiré":                              400,
 };
 
 function handleError(error: unknown, res: Response, context: string): void {
@@ -55,8 +51,6 @@ function handleError(error: unknown, res: Response, context: string): void {
       return;
     }
   }
-  // Erreur inattendue — log serveur, message generique client
-  // Ne jamais exposer error.message directement (peut contenir des infos Prisma)
   console.error(`[${context}]`, error);
   res.status(500).json({ message: "Une erreur est survenue" });
 }
@@ -66,35 +60,30 @@ export const registerController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  // safeParse au lieu de parse — controle explicite sans throw
   const parsed = registerSchema.safeParse(req.body);
 
   if (!parsed.success) {
     res.status(400).json({
       message: "Donnees invalides",
       errors:  parsed.error.flatten().fieldErrors,
-      // fieldErrors structure par champ : { email: [...], password: [...] }
-      // Le frontend affiche l'erreur sous le bon input
     });
     return;
   }
 
   try {
-  const user = await registerUser(parsed.data);
+    const user = await registerUser(parsed.data);
 
-  try {
-    await sendVerificationEmail(user.id, user.email);
-  } catch (err) {
-    console.error("Email verification failed:", err);
+    sendVerificationEmail(user.id, user.email).catch((err) => {
+      console.error("[registerController] Echec envoi email:", err);
+    });
+
+    res.status(201).json({
+      message: "Compte créé avec succès. Vérifiez votre email pour activer votre compte.",
+      user,
+    });
+  } catch (error) {
+    handleError(error, res, "registerController");
   }
-
-  res.status(201).json({
-    message: "Compte cree avec succes",
-    user,
-  });
-} catch (error) {
-  handleError(error, res, "registerController");
-}
 };
 
 // ── Login ─────────────────────────────────────────────────────────
@@ -102,8 +91,6 @@ export const loginController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  // Message generique sur echec de validation login — ne pas detailler
-  // Dire "format email invalide" aide a confirmer que l'email n'existe pas
   const parsed = loginSchema.safeParse(req.body);
 
   if (!parsed.success) {
@@ -115,18 +102,14 @@ export const loginController = async (
     const { user, accessToken, refreshToken } = await loginUser(parsed.data, {
       ip:        req.ip,
       userAgent: req.headers["user-agent"] as string,
-});
+    });
 
-    // Tokens en cookies httpOnly — JAMAIS dans le body de la reponse
-    // Un cookie httpOnly est inaccessible au JavaScript frontend
-    // → si XSS, les tokens restent proteges
     res.cookie("access_token",  accessToken,  ACCESS_COOKIE_OPTIONS);
     res.cookie("refresh_token", refreshToken, REFRESH_COOKIE_OPTIONS);
 
-    // Le body retourne uniquement les infos utilisateur
     res.status(200).json({
       message: "Connexion reussie",
-      user,    // { id, email, role } — sans aucun token
+      user,
     });
   } catch (error) {
     handleError(error, res, "loginController");
@@ -138,8 +121,6 @@ export const refreshController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  // Le refresh token vient du cookie httpOnly — pas du body
-  // Le dev avait mis refreshSchema.parse(req.body) — incorrect
   const refreshToken = req.cookies?.refresh_token;
 
   if (!refreshToken) {
@@ -149,12 +130,8 @@ export const refreshController = async (
 
   try {
     const { accessToken } = await refreshTokenService(refreshToken);
-
-    // Renouveler uniquement le access token
     res.cookie("access_token", accessToken, ACCESS_COOKIE_OPTIONS);
-
     res.status(200).json({ message: "Token renouvele avec succes" });
-    // Le nouveau token est en cookie — pas dans le body
   } catch (error) {
     handleError(error, res, "refreshController");
   }
@@ -168,25 +145,22 @@ export const logoutController = async (
   const refreshToken = req.cookies?.refresh_token;
 
   if (refreshToken) {
-    await logoutUser(
-      refreshToken,
-      req.user?.id,                              // userId depuis le middleware verifyToken
-      {
-        ip:        req.ip,
-        userAgent: req.headers["user-agent"] as string,
-      }
-    ).catch((err) => {
-      console.error("[logoutController] Erreur suppression token:", err);
+    await logoutUser(refreshToken, req.user?.id, {
+      ip:        req.ip,
+      userAgent: req.headers["user-agent"] as string,
+    }).catch((err) => {
+      console.error("[logoutController] Erreur:", err);
     });
   }
 
-  res.clearCookie("access_token",  { path: "/",                 sameSite: "strict", httpOnly: true });
-  res.clearCookie("refresh_token", { path: "/", sameSite: "strict", httpOnly: true });
+  res.clearCookie("access_token",  { httpOnly: true, sameSite: "strict", path: "/" });
+  res.clearCookie("refresh_token", { httpOnly: true, sameSite: "strict", path: "/" });
 
   res.status(200).json({ message: "Deconnexion reussie" });
 };
 
-  export const verifyEmailController = async (
+// ── Verify Email ──────────────────────────────────────────────────
+export const verifyEmailController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
@@ -199,9 +173,33 @@ export const logoutController = async (
 
   try {
     await verifyEmailService(token);
-    res.status(200).json({ message: "Email vérifié avec succès" });
+    res.status(200).json({
+      message: "Email vérifié avec succès. Vous pouvez maintenant vous connecter.",
+    });
   } catch (error) {
     handleError(error, res, "verifyEmailController");
+  }
+};
+
+// ── Resend Verification ───────────────────────────────────────────
+export const resendVerificationController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { email } = req.body;
+
+  if (!email || typeof email !== "string") {
+    res.status(400).json({ message: "Email requis" });
+    return;
+  }
+
+  try {
+    await resendVerificationEmail(email.trim().toLowerCase());
+    res.status(200).json({
+      message: "Si cet email est enregistré et non vérifié, un nouveau lien vous a été envoyé.",
+    });
+  } catch (error) {
+    handleError(error, res, "resendVerificationController");
   }
 };
 
@@ -212,21 +210,19 @@ export const forgotPasswordController = async (
 ): Promise<void> => {
   const parsed = forgotPasswordSchema.safeParse(req.body);
 
+  // Réponse identique que la validation échoue ou non
+  // Ne pas révéler si l'email est enregistré
   if (!parsed.success) {
-    // Réponse générique — ne pas confirmer si l'email existe
     res.status(200).json({
-      message: "Si cet email existe, un lien de réinitialisation a été envoyé",
+      message: "Si cet email est enregistré, un lien de réinitialisation a été envoyé.",
     });
     return;
   }
 
   try {
     await forgotPasswordService(parsed.data.email);
-
-    // Toujours répondre 200 — même si l'email n'existe pas
-    // Évite l'énumération des emails enregistrés
     res.status(200).json({
-      message: "Si cet email existe, un lien de réinitialisation a été envoyé",
+      message: "Si cet email est enregistré, un lien de réinitialisation a été envoyé.",
     });
   } catch (error) {
     handleError(error, res, "forgotPasswordController");
@@ -250,7 +246,6 @@ export const resetPasswordController = async (
 
   try {
     await resetPasswordService(parsed.data.token, parsed.data.password);
-
     res.status(200).json({
       message: "Mot de passe réinitialisé avec succès. Veuillez vous reconnecter.",
     });
