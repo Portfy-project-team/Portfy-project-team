@@ -1,21 +1,17 @@
-version: '3.8'
-
 services:
 
   # ── BASE DE DONNÉES ──────────────────────────────
- 
   db:
     image: postgres:16.8-alpine
     container_name: portfy_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}        
+      POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
-      # Données persistantes : survivent aux redémarrages
       - postgres_data:/var/lib/postgresql/data
     networks:
       - portfy_network
@@ -33,37 +29,27 @@ services:
     container_name: portfy_backend
     restart: unless-stopped
     ports:
-    - "3000:3000"
-    - "5555:5555" 
+      - "3000:3000"
+      - "5555:5555"
     environment:
       NODE_ENV: ${NODE_ENV}
       PORT: ${PORT}
-
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
-
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-
       FRONTEND_URL: ${FRONTEND_URL}
-
       MAIL_HOST: ${MAIL_HOST}
       MAIL_PORT: ${MAIL_PORT}
       MAIL_USER: ${MAIL_USER}
       MAIL_PASS: ${MAIL_PASS}
       MAIL_FROM: ${MAIL_FROM}
-
     depends_on:
       db:
         condition: service_healthy
-
     networks:
       - portfy_network
-
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
 
   # ── FRONTEND ─────────────────────────────────────
   frontend:
