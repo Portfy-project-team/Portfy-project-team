@@ -21,7 +21,7 @@ const isK6 = process.env.K6 === "true";
 
 const registerLimiter = rateLimit({
   windowMs:        15 * 60 * 1000,
-  max:             50,
+  max:             5,
   message:         { message: "Trop de tentatives. Reessayez dans 15 minutes." },
   standardHeaders: true,
   legacyHeaders:   false,

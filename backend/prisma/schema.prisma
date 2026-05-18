@@ -7,10 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 enum UserStatus{
-  active
-  pending
-  blocked
-  rejected
+  ACTIVE
+  PENDING
+  BLOCKED
+  REJECTED
 }
 
 model User {
@@ -30,7 +30,7 @@ model User {
   loginLogs           LoginLog[]           
   passwordResetTokens PasswordResetToken[]
   student       Student?
-  status UserStatus
+  status UserStatus @default(PENDING)
 }
 
 model RefreshToken {

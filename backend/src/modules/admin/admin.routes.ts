@@ -21,7 +21,6 @@ router.patch('/users/:id',verifyToken,requireRole('ADMIN'), updateUser);
 router.delete('/users/:id',verifyToken,requireRole('ADMIN'), deleteUser);           
 router.patch('/users/:id/status',verifyToken, requireRole('ADMIN'), updateUserStatus);
 
-
 router.post('/accept-invite/:id',verifyToken,requireRole('ADMIN'), approveUser);
 router.post('/reject-invite/:id',verifyToken,requireRole('ADMIN'), rejectUser);
 

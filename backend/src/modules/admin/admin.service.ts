@@ -19,7 +19,7 @@ export const AdminServices = {
         email: data.email,
         password: hashed,
         role: data.role,
-        status: "active",
+        status: UserStatus.ACTIVE,
       },
     });
     return user;
@@ -73,12 +73,12 @@ export const AdminServices = {
     throw new Error("User not found");
   }
 
-  if (existingUser.status !== "pending") {
+  if (existingUser.status !== UserStatus.PENDING) {
     throw new Error("Only pending users can be approved");
   }
     const user = await prisma.user.update({
-      where: { id, status: "pending" },
-      data: { status: "active" }
+      where: { id, status: UserStatus.PENDING },
+      data: { status: UserStatus.ACTIVE }
     });
   if (!existingUser.email ) {
     throw new Error("User email not found");
@@ -90,8 +90,8 @@ export const AdminServices = {
 
   async rejectUser(id: number, reason?: string) {
     const user = await prisma.user.update({
-      where: { id, status: "pending" },
-      data: { status: "rejected" },
+      where: { id, status:UserStatus.PENDING},
+      data: { status: UserStatus.REJECTED },
       select: { email: true, name: true },
     });
      if (!user.email ) {

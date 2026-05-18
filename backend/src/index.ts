@@ -5,6 +5,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import authRoutes from "./modules/auth/auth.routes.js";
+import userRoutes from "./modules/user/user.routes.js";
 
 const app = express();
 
@@ -60,6 +61,8 @@ if (!isTest && !isK6) {
 }
 
 app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
+
 
 // Healthcheck améliorée pour le debug
 app.get("/health", (req, res) => {

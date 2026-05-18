@@ -13,17 +13,17 @@ export const updateUserSchema = z.object({
      name: z.string().min(2).optional(),
   email: z.string().email('Invalid email format').optional(),
   role: z.enum(['ADMIN', 'PRO','STUDENT','PROF']).optional(),
-  status: z.enum(['pending', 'active', 'rejected', 'blocked']).optional(),
+  status: z.enum(['PENDING', 'ACTIVE', 'REJECTED', 'BLOCKED']).optional(),
 })
 export const updateStatusSchema = z.object({
-  status: z.enum(['pending', 'active', 'rejected', 'blocked']).optional(),
+  status: z.enum(['PENDING', 'ACTIVE', 'REJECTED', 'BLOCKED']).optional(),
 })
 export const RejectUserSchema = z.object({
   reason: z.string().optional(),
 });
 export const listUsersQuerySchema = z.object({
   role: z.enum(['ADMIN', 'PRO','STUDENT','PROF']).optional(),
-  status: z.enum(['pending', 'active', 'rejected', 'blocked']).optional(),
+  status: z.enum(['PENDING', 'ACTIVE', 'REJECTED', 'BLOCKED']).optional(),
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;

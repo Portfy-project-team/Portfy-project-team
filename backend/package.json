@@ -5,10 +5,13 @@
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "nodemon --exec tsx src/server.ts",
+"dev": "nodemon --exec tsx src/server.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "echo \"No automated tests configured yet\""
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "keywords": [],
   "author": "",

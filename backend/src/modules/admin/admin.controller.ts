@@ -119,7 +119,7 @@ export const approveUser = async (req: Request, res: Response, next: NextFunctio
       return;
     }
 
-    if (user.status !== 'pending') {
+    if (user.status !== UserStatus.PENDING) {
       res.status(409).json({ message: 'Only pending users can be approved' });
       return;
     }
@@ -144,7 +144,7 @@ export const rejectUser = async (req: Request, res: Response, next: NextFunction
       return;
     }
 
-    if (user.status !== 'pending') {
+    if (user.status !== UserStatus.PENDING) {
       res.status(409).json({ message: 'Only pending users can be rejected' });
       return;
     }
