@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../../utils/prisma.js";
-import { Prisma } from "@prisma/client";
+import { Prisma } from '@prisma/client';
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -40,6 +40,7 @@ export const registerUser = async (data: RegisterInput) => {
         role,
         ...(role === "STUDENT" && { student:      { create: {} } }),
         ...(role === "PRO"     && { professionnel: { create: {} } }),
+          status:"pending"
       },
       select: {
         id:        true,
