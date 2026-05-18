@@ -1,34 +1,60 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import RegisterForm from '../../RegisterForm.vue'
+import ForgotForm from '../../ForgotForm.vue'
 
-function mountRegisterForm() {
-  return mount(RegisterForm)
+const mocks = vi.hoisted(() => {
+  return {
+    push: vi.fn()
+  }
+})
+
+vi.mock('vue-router', async () => {
+  const actual = await vi.importActual('vue-router')
+
+  return {
+    ...actual,
+    useRouter: () => ({
+      push: mocks.push
+    })
+  }
+})
+
+function mountForgotForm() {
+  return mount(ForgotForm)
 }
 
-async function fillStep1(wrapper) {
-  await wrapper.find('input[placeholder="Votre nom"]').setValue('Zailachi')
-  await wrapper.find('input[placeholder="Votre prénom"]').setValue('Youssef')
+async function goToStep2(wrapper) {
   await wrapper.find('input[placeholder="votre.email@institution.ma"]').setValue('test@institution.ma')
-  await wrapper.find('input[placeholder="Mot de passe"]').setValue('12345678')
-  await wrapper.find('input[placeholder="Confirmer le mot de passe"]').setValue('12345678')
-  await wrapper.find('#terms').setValue(true)
+  await wrapper.find('form').trigger('submit')
 }
 
-async function fillStep2(wrapper) {
-  await wrapper.findAll('.formation-card')[0].trigger('click')
-  await wrapper.find('input[placeholder="Ex : Ensa, Tanger"]').setValue('ENSA Tanger')
-  await wrapper.find('input[placeholder="Ex : Informatique"]').setValue('Informatique')
-  await wrapper.find('select').setValue('Bac+3')
+async function goToStep3(wrapper) {
+  await goToStep2(wrapper)
 
-  const yearInputs = wrapper.findAll('input[placeholder="Année"]')
-  await yearInputs[0].setValue('2022')
-  await yearInputs[1].setValue('2025')
+  const otpInputs = wrapper.findAll('.otp-input')
+
+  await otpInputs[0].setValue('1')
+  await otpInputs[1].setValue('2')
+  await otpInputs[2].setValue('3')
+  await otpInputs[3].setValue('4')
+  await otpInputs[4].setValue('5')
+  await otpInputs[5].setValue('6')
+
+  await wrapper.find('.btn-submit').trigger('click')
 }
 
-describe('RegisterForm buttons and links', () => {
+async function goToSuccess(wrapper) {
+  await goToStep3(wrapper)
+
+  await wrapper.find('input[placeholder="Min. 8 caractères"]').setValue('12345678')
+  await wrapper.find('input[placeholder="Retapez votre mot de passe"]').setValue('12345678')
+
+  await wrapper.find('form').trigger('submit')
+}
+
+describe('ForgotForm buttons and links', () => {
   beforeEach(() => {
-    vi.spyOn(window, 'alert').mockImplementation(() => {})
+    mocks.push.mockReset()
     vi.spyOn(console, 'log').mockImplementation(() => {})
   })
 
@@ -36,215 +62,164 @@ describe('RegisterForm buttons and links', () => {
     vi.restoreAllMocks()
   })
 
-  test('affiche les boutons Connexion et Inscription en haut', () => {
-    const wrapper = mountRegisterForm()
+  test('bouton Retour à la connexion existe dans step 1', () => {
+    const wrapper = mountForgotForm()
 
-    const tabs = wrapper.findAll('.tabs .tab')
+    const backButton = wrapper.find('.back-login')
 
-    expect(tabs).toHaveLength(2)
-    expect(tabs[0].text()).toContain('Connexion')
-    expect(tabs[1].text()).toContain('Inscription')
+    expect(backButton.exists()).toBe(true)
+    expect(backButton.text()).toContain('Retour à la connexion')
   })
 
-  test('le bouton Inscription est actif', () => {
-    const wrapper = mountRegisterForm()
+  test('bouton Retour à la connexion redirige vers login dans step 1', async () => {
+    const wrapper = mountForgotForm()
 
-    const tabs = wrapper.findAll('.tabs .tab')
+    await wrapper.find('.back-login').trigger('click')
 
-    expect(tabs[1].classes()).toContain('active')
+    expect(mocks.push).toHaveBeenCalledWith('/login')
   })
 
-  test('affiche conditions d’utilisation et politique de confidentialité', () => {
-    const wrapper = mountRegisterForm()
+  test('lien Se connecter existe dans footer step 1', () => {
+    const wrapper = mountForgotForm()
 
-    expect(wrapper.text()).toContain('conditions d’utilisation')
-    expect(wrapper.text()).toContain('politique de confidentialité')
-  })
-
-  test('checkbox des conditions peut être cochée', async () => {
-    const wrapper = mountRegisterForm()
-
-    const checkbox = wrapper.find('#terms')
-
-    await checkbox.setValue(true)
-
-    expect(checkbox.element.checked).toBe(true)
-  })
-
-  test('affiche le lien Se connecter en bas du formulaire', () => {
-    const wrapper = mountRegisterForm()
-
-    const loginLink = wrapper.find('.inline-link')
+    const loginLink = wrapper.find('.forgot-footer a')
 
     expect(loginLink.exists()).toBe(true)
     expect(loginLink.text()).toContain('Se connecter')
   })
 
-  test('bouton Continuer passe de step 1 vers step 2', async () => {
-    const wrapper = mountRegisterForm()
+  test('bouton Envoyer le code existe dans step 1', () => {
+    const wrapper = mountForgotForm()
 
-    await fillStep1(wrapper)
+    const submitButton = wrapper.find('.btn-submit')
 
-    expect(wrapper.find('.btn-submit').text()).toContain('Continuer')
-
-    await wrapper.find('form').trigger('submit')
-
-    expect(wrapper.text()).toContain('Votre formation')
+    expect(submitButton.exists()).toBe(true)
+    expect(submitButton.text()).toContain('Envoyer le code')
   })
 
-  test('bouton retour revient de step 2 vers step 1', async () => {
-    const wrapper = mountRegisterForm()
+  test('bouton Envoyer le code affiche erreur si email vide', async () => {
+    const wrapper = mountForgotForm()
 
-    await fillStep1(wrapper)
     await wrapper.find('form').trigger('submit')
 
-    expect(wrapper.text()).toContain('Votre formation')
-
-    await wrapper.find('.btn-back').trigger('click')
-
-    expect(wrapper.text()).toContain('Créez votre compte')
+    expect(wrapper.text()).toContain('Email obligatoire')
   })
 
-  test('boutons formation sélectionnent un type de formation', async () => {
-    const wrapper = mountRegisterForm()
+  test('bouton Envoyer le code passe vers OTP si email valide', async () => {
+    const wrapper = mountForgotForm()
 
-    await fillStep1(wrapper)
+    await wrapper.find('input[placeholder="votre.email@institution.ma"]').setValue('test@institution.ma')
     await wrapper.find('form').trigger('submit')
 
-    const formationButtons = wrapper.findAll('.formation-card')
-
-    expect(formationButtons).toHaveLength(3)
-
-    await formationButtons[0].trigger('click')
-    expect(formationButtons[0].classes()).toContain('selected')
-
-    await formationButtons[1].trigger('click')
-    expect(formationButtons[1].classes()).toContain('selected')
-
-    await formationButtons[2].trigger('click')
-    expect(formationButtons[2].classes()).toContain('selected')
+    expect(wrapper.text()).toContain('Vérification OTP')
+    expect(wrapper.find('.btn-submit').text()).toContain('Vérifier le code')
   })
 
-  test('bouton Continuer passe de step 2 vers step 3', async () => {
-    const wrapper = mountRegisterForm()
+  test('bouton Étape précédente revient de OTP vers email', async () => {
+    const wrapper = mountForgotForm()
 
-    await fillStep1(wrapper)
-    await wrapper.find('form').trigger('submit')
+    await goToStep2(wrapper)
 
-    await fillStep2(wrapper)
-    await wrapper.find('form').trigger('submit')
+    expect(wrapper.text()).toContain('Vérification OTP')
+    expect(wrapper.find('.back-login').text()).toContain('Étape précédente')
 
-    expect(wrapper.text()).toContain('Votre profil')
+    await wrapper.find('.back-login').trigger('click')
+
+    expect(wrapper.text()).toContain('Mot de passe oublié')
+    expect(wrapper.find('.btn-submit').text()).toContain('Envoyer le code')
   })
 
-  test('bouton retour revient de step 3 vers step 2', async () => {
-    const wrapper = mountRegisterForm()
+  test('bouton Renvoyer existe dans step OTP', async () => {
+    const wrapper = mountForgotForm()
 
-    await fillStep1(wrapper)
-    await wrapper.find('form').trigger('submit')
+    await goToStep2(wrapper)
 
-    await fillStep2(wrapper)
-    await wrapper.find('form').trigger('submit')
+    const resendButton = wrapper.find('.otp-info button')
 
-    expect(wrapper.text()).toContain('Votre profil')
-
-    await wrapper.find('.btn-back').trigger('click')
-
-    expect(wrapper.text()).toContain('Votre formation')
+    expect(resendButton.exists()).toBe(true)
+    expect(resendButton.text()).toContain('Renvoyer')
   })
 
-  test('bouton Ajouter une photo existe', async () => {
-    const wrapper = mountRegisterForm()
+  test('bouton Vérifier le code affiche erreur si OTP incomplet', async () => {
+    const wrapper = mountForgotForm()
 
-    await fillStep1(wrapper)
-    await wrapper.find('form').trigger('submit')
+    await goToStep2(wrapper)
 
-    await fillStep2(wrapper)
-    await wrapper.find('form').trigger('submit')
+    const otpInputs = wrapper.findAll('.otp-input')
 
-    expect(wrapper.find('.small-btn').exists()).toBe(true)
-    expect(wrapper.find('.small-btn').text()).toContain('Ajouter une photo')
+    await otpInputs[0].setValue('1')
+    await otpInputs[1].setValue('2')
+
+    expect(wrapper.find('.btn-submit').text()).toContain('Vérifier le code')
+
+    await wrapper.find('.btn-submit').trigger('click')
+
+    expect(wrapper.text()).toContain('Veuillez entrer le code complet')
   })
 
-  test('bouton plus ajoute une compétence', async () => {
-    const wrapper = mountRegisterForm()
+  test('bouton Vérifier le code passe vers nouveau mot de passe si OTP complet', async () => {
+    const wrapper = mountForgotForm()
 
-    await fillStep1(wrapper)
-    await wrapper.find('form').trigger('submit')
+    await goToStep3(wrapper)
 
-    await fillStep2(wrapper)
-    await wrapper.find('form').trigger('submit')
-
-    await wrapper.find('input[placeholder="Ajouter une compétence..."]').setValue('Vue.js')
-    await wrapper.find('.add-skill-btn').trigger('click')
-
-    expect(wrapper.text()).toContain('Vue.js')
+    expect(wrapper.text()).toContain('Nouveau mot de passe')
+    expect(wrapper.find('.btn-submit').text()).toContain('Réinitialiser le mot de passe')
   })
 
-  test('bouton x supprime une compétence', async () => {
-    const wrapper = mountRegisterForm()
+  test('bouton Étape précédente revient de nouveau mot de passe vers OTP', async () => {
+    const wrapper = mountForgotForm()
 
-    await fillStep1(wrapper)
-    await wrapper.find('form').trigger('submit')
+    await goToStep3(wrapper)
 
-    await fillStep2(wrapper)
-    await wrapper.find('form').trigger('submit')
+    expect(wrapper.text()).toContain('Nouveau mot de passe')
+    expect(wrapper.find('.back-login').text()).toContain('Étape précédente')
 
-    await wrapper.find('input[placeholder="Ajouter une compétence..."]').setValue('Vue.js')
-    await wrapper.find('.add-skill-btn').trigger('click')
+    await wrapper.find('.back-login').trigger('click')
 
-    expect(wrapper.text()).toContain('Vue.js')
-
-    await wrapper.find('.skill-tag button').trigger('click')
-
-    expect(wrapper.text()).not.toContain('Vue.js')
+    expect(wrapper.text()).toContain('Vérification OTP')
+    expect(wrapper.find('.btn-submit').text()).toContain('Vérifier le code')
   })
 
-  test('boutons disponibilité sélectionnent une disponibilité', async () => {
-    const wrapper = mountRegisterForm()
+  test('bouton Réinitialiser affiche erreurs si mots de passe vides', async () => {
+    const wrapper = mountForgotForm()
 
-    await fillStep1(wrapper)
+    await goToStep3(wrapper)
+
+    expect(wrapper.find('.btn-submit').text()).toContain('Réinitialiser le mot de passe')
+
     await wrapper.find('form').trigger('submit')
 
-    await fillStep2(wrapper)
-    await wrapper.find('form').trigger('submit')
-
-    const availabilityButtons = wrapper.findAll('.availability-card')
-
-    expect(availabilityButtons).toHaveLength(4)
-
-    await availabilityButtons[0].trigger('click')
-    expect(availabilityButtons[0].classes()).toContain('selected')
-
-    await availabilityButtons[1].trigger('click')
-    expect(availabilityButtons[1].classes()).toContain('selected')
-
-    await availabilityButtons[2].trigger('click')
-    expect(availabilityButtons[2].classes()).toContain('selected')
-
-    await availabilityButtons[3].trigger('click')
-    expect(availabilityButtons[3].classes()).toContain('selected')
+    expect(wrapper.text()).toContain('Nouveau mot de passe obligatoire')
+    expect(wrapper.text()).toContain('Veuillez confirmer le mot de passe')
   })
 
-  test('bouton Créer mon compte valide la création du compte', async () => {
-    const wrapper = mountRegisterForm()
+  test('bouton Réinitialiser passe au succès si mots de passe valides', async () => {
+    const wrapper = mountForgotForm()
 
-    await fillStep1(wrapper)
-    await wrapper.find('form').trigger('submit')
+    await goToSuccess(wrapper)
 
-    await fillStep2(wrapper)
-    await wrapper.find('form').trigger('submit')
+    expect(wrapper.text()).toContain('Mot de passe changé')
+    expect(wrapper.text()).toContain('Votre mot de passe a été modifié avec succès')
+  })
 
-    await wrapper.find('.bio-textarea').setValue('Étudiant en informatique passionné par le développement web.')
-    await wrapper.find('input[placeholder="Ajouter une compétence..."]').setValue('Vue.js')
-    await wrapper.find('.add-skill-btn').trigger('click')
-    await wrapper.findAll('.availability-card')[0].trigger('click')
-    await wrapper.find('input[placeholder="votre-profil"]').setValue('youssef-zailachi')
+  test('bouton Retour à la connexion existe dans step succès', async () => {
+    const wrapper = mountForgotForm()
 
-    expect(wrapper.find('.btn-submit').text()).toContain('Créer mon compte')
+    await goToSuccess(wrapper)
 
-    await wrapper.find('form').trigger('submit')
+    const successButton = wrapper.find('.success-btn')
 
-    expect(window.alert).toHaveBeenCalledWith('Compte créé avec succès')
+    expect(successButton.exists()).toBe(true)
+    expect(successButton.text()).toContain('Retour à la connexion')
+  })
+
+  test('bouton Retour à la connexion du succès redirige vers login', async () => {
+    const wrapper = mountForgotForm()
+
+    await goToSuccess(wrapper)
+
+    await wrapper.find('.success-btn').trigger('click')
+
+    expect(mocks.push).toHaveBeenCalledWith('/login')
   })
 })

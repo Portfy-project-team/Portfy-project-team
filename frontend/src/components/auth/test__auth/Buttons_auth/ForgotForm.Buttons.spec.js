@@ -2,6 +2,23 @@ import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import ForgotForm from '../../ForgotForm.vue'
 
+const mocks = vi.hoisted(() => {
+  return {
+    push: vi.fn()
+  }
+})
+
+vi.mock('vue-router', async () => {
+  const actual = await vi.importActual('vue-router')
+
+  return {
+    ...actual,
+    useRouter: () => ({
+      push: mocks.push
+    })
+  }
+})
+
 function mountForgotForm() {
   return mount(ForgotForm)
 }
@@ -37,6 +54,7 @@ async function goToSuccess(wrapper) {
 
 describe('ForgotForm buttons and links', () => {
   beforeEach(() => {
+    mocks.push.mockReset()
     vi.spyOn(console, 'log').mockImplementation(() => {})
   })
 
@@ -53,12 +71,12 @@ describe('ForgotForm buttons and links', () => {
     expect(backButton.text()).toContain('Retour à la connexion')
   })
 
-  test('bouton Retour à la connexion déclenche goToLogin dans step 1', async () => {
+  test('bouton Retour à la connexion redirige vers login dans step 1', async () => {
     const wrapper = mountForgotForm()
 
     await wrapper.find('.back-login').trigger('click')
 
-    expect(console.log).toHaveBeenCalledWith('Retour à la connexion')
+    expect(mocks.push).toHaveBeenCalledWith('/login')
   })
 
   test('lien Se connecter existe dans footer step 1', () => {
@@ -68,7 +86,6 @@ describe('ForgotForm buttons and links', () => {
 
     expect(loginLink.exists()).toBe(true)
     expect(loginLink.text()).toContain('Se connecter')
-    expect(loginLink.attributes('href')).toBe('#')
   })
 
   test('bouton Envoyer le code existe dans step 1', () => {
@@ -196,13 +213,13 @@ describe('ForgotForm buttons and links', () => {
     expect(successButton.text()).toContain('Retour à la connexion')
   })
 
-  test('bouton Retour à la connexion du succès déclenche goToLogin', async () => {
+  test('bouton Retour à la connexion du succès redirige vers login', async () => {
     const wrapper = mountForgotForm()
 
     await goToSuccess(wrapper)
 
     await wrapper.find('.success-btn').trigger('click')
 
-    expect(console.log).toHaveBeenCalledWith('Retour à la connexion')
+    expect(mocks.push).toHaveBeenCalledWith('/login')
   })
 })
