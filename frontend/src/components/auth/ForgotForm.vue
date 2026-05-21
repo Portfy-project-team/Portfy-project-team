@@ -1,6 +1,6 @@
 <script setup>
-import { ref } from 'vue'
-
+import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 // étape actuelle
 const forgotStep = ref(1)
 
@@ -15,24 +15,45 @@ const otp = ref(['', '', '', '', '', ''])
 const newPassword = ref('')
 const confirmPassword = ref('')
 
+// erreurs
+const errors = reactive({
+  email: '',
+  otp: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
+const clearErrors = () => {
+  Object.keys(errors).forEach((key) => {
+    errors[key] = ''
+  })
+}
+
 // envoyer code
 const sendCode = () => {
-  if (email.value === '') {
-    alert('Email obligatoire')
+  clearErrors()
+  let isValid = true
+
+  if (email.value.trim() === '') {
+    errors.email = 'Email obligatoire'
+    isValid = false
+  } else if (!emailRegex.test(email.value.trim())) {
+    errors.email = 'Veuillez entrer un email valide'
+    isValid = false
+  }
+
+  if (!isValid) {
     return
   }
 
-  if (!emailRegex.test(email.value)) {
-    alert('Veuillez entrer un email valide')
-    return
-  }
-
-  alert('Un code a été envoyé à votre adresse e-mail')
+  console.log('Code envoyé à:', email.value)
   forgotStep.value = 2
 }
 
 // retour étape précédente
 const previousStep = () => {
+  clearErrors()
+
   if (forgotStep.value > 1) {
     forgotStep.value--
   }
@@ -40,51 +61,62 @@ const previousStep = () => {
 
 // gestion OTP
 const handleOtpInput = (index, event) => {
-  const value = event.target.value
+  let value = event.target.value
+
+  value = value.replace(/\D/g, '')
 
   if (value.length > 1) {
-    otp.value[index] = value.slice(0, 1)
+    value = value.slice(0, 1)
   }
+
+  otp.value[index] = value
 
   const inputs = document.querySelectorAll('.otp-input')
 
   if (value && index < inputs.length - 1) {
     inputs[index + 1].focus()
   }
+
+  errors.otp = ''
 }
 
 // vérifier le code
 const verifyCode = () => {
+  clearErrors()
+
   const code = otp.value.join('')
 
   if (code.length < 6) {
-    alert('Veuillez entrer le code complet')
+    errors.otp = 'Veuillez entrer le code complet'
     return
   }
 
-  alert('Code vérifié avec succès')
+  console.log('Code vérifié:', code)
   forgotStep.value = 3
 }
 
 // réinitialiser le mot de passe
 const resetPassword = () => {
-  if (newPassword.value === '') {
-    alert('Nouveau mot de passe obligatoire')
-    return
+  clearErrors()
+  let isValid = true
+
+  if (newPassword.value.trim() === '') {
+    errors.newPassword = 'Nouveau mot de passe obligatoire'
+    isValid = false
+  } else if (newPassword.value.length < 8) {
+    errors.newPassword = 'Le mot de passe doit contenir au moins 8 caractères'
+    isValid = false
   }
 
-  if (newPassword.value.length < 8) {
-    alert('Le mot de passe doit contenir au moins 8 caractères')
-    return
+  if (confirmPassword.value.trim() === '') {
+    errors.confirmPassword = 'Veuillez confirmer le mot de passe'
+    isValid = false
+  } else if (newPassword.value !== confirmPassword.value) {
+    errors.confirmPassword = 'Les mots de passe ne sont pas identiques'
+    isValid = false
   }
 
-  if (confirmPassword.value === '') {
-    alert('Veuillez confirmer le mot de passe')
-    return
-  }
-
-  if (newPassword.value !== confirmPassword.value) {
-    alert('Les mots de passe ne sont pas identiques')
+  if (!isValid) {
     return
   }
 
@@ -92,20 +124,19 @@ const resetPassword = () => {
   console.log('Nouveau mot de passe:', newPassword.value)
 
   forgotStep.value = 4
-
-  alert('Mot de passe réinitialisé avec succès')
-}
-const goToLogin = () => {
-  alert('Retour à la connexion')
 }
 
+const router = useRouter()
+function goToLogin() {
+  router.push('/login')
+}
 </script>
 
 <template>
   <div class="forgot-page">
 
     <!-- LEFT PANEL -->
-<section class="left-panel">
+    <section class="left-panel">
       <div class="left-top">
         <div class="logo">
           <div class="logo-icon">P</div>
@@ -162,16 +193,17 @@ const goToLogin = () => {
           v-else
           type="button"
           class="back-login"
+          @click="goToLogin"
         >
           ‹ Retour à la connexion
         </button>
 
         <!-- progress -->
         <div v-if="forgotStep < 4" class="forgot-progress">
-  <span :class="{ active: forgotStep >= 1, dark: forgotStep >= 1 }"></span>
-  <span :class="{ active: forgotStep >= 2, dark: forgotStep >= 2 }"></span>
-  <span :class="{ active: forgotStep >= 3, gold: forgotStep >= 3 }"></span>
-</div>
+          <span :class="{ active: forgotStep >= 1, dark: forgotStep >= 1 }"></span>
+          <span :class="{ active: forgotStep >= 2, dark: forgotStep >= 2 }"></span>
+          <span :class="{ active: forgotStep >= 3, gold: forgotStep >= 3 }"></span>
+        </div>
 
         <!-- STEP 1 -->
         <div v-if="forgotStep === 1">
@@ -185,7 +217,7 @@ const goToLogin = () => {
 
           <form class="forgot-form" @submit.prevent="sendCode">
             <div class="field-group">
-              <label>Adresse e-mail</label>
+              <label>Adresse e-mail <span class="required-star">*</span></label>
               <div class="input-wrapper">
                 <input
                   v-model="email"
@@ -193,6 +225,10 @@ const goToLogin = () => {
                   placeholder="votre.email@institution.ma"
                 >
               </div>
+
+              <span v-if="errors.email" class="field-error">
+                {{ errors.email }}
+              </span>
             </div>
 
             <button class="btn-submit" type="submit">
@@ -203,7 +239,7 @@ const goToLogin = () => {
           <div class="forgot-footer">
             <p>
               Vous vous souvenez du mot de passe ?
-              <a href="#">Se connecter</a>
+              <a href="#" class="inline-link" @click="goToLogin">Se connecter</a>
             </p>
 
             <div class="secure-line">
@@ -231,10 +267,15 @@ const goToLogin = () => {
               v-model="otp[index]"
               class="otp-input"
               type="text"
+              inputmode="numeric"
               maxlength="1"
               @input="handleOtpInput(index, $event)"
             >
           </div>
+
+          <span v-if="errors.otp" class="field-error otp-error">
+            {{ errors.otp }}
+          </span>
 
           <div class="otp-info">
             <p>Code expire dans <strong>02:00</strong></p>
@@ -269,7 +310,7 @@ const goToLogin = () => {
 
           <form class="forgot-form" @submit.prevent="resetPassword">
             <div class="field-group">
-              <label>Nouveau mot de passe</label>
+              <label>Nouveau mot de passe <span class="required-star">*</span></label>
               <div class="input-wrapper password-wrapper">
                 <span class="password-icon">🔒</span>
                 <input
@@ -278,10 +319,14 @@ const goToLogin = () => {
                   placeholder="Min. 8 caractères"
                 >
               </div>
+
+              <span v-if="errors.newPassword" class="field-error">
+                {{ errors.newPassword }}
+              </span>
             </div>
 
             <div class="field-group">
-              <label>Confirmer le mot de passe</label>
+              <label>Confirmer le mot de passe <span class="required-star">*</span></label>
               <div class="input-wrapper password-wrapper">
                 <span class="password-icon">🔒</span>
                 <input
@@ -290,6 +335,10 @@ const goToLogin = () => {
                   placeholder="Retapez votre mot de passe"
                 >
               </div>
+
+              <span v-if="errors.confirmPassword" class="field-error">
+                {{ errors.confirmPassword }}
+              </span>
             </div>
 
             <button class="btn-submit btn-gold" type="submit">
@@ -305,24 +354,45 @@ const goToLogin = () => {
             </div>
           </div>
         </div>
+
         <!-- STEP 4 -->
-<div v-if="forgotStep === 4" class="success-step">
-  <div class="success-icon">
-    ✓
-  </div>
+        <div v-if="forgotStep === 4" class="success-step">
+          <div class="success-icon">
+            ✓
+          </div>
 
-  <h2>Mot de passe changé !</h2>
+          <h2>Mot de passe changé !</h2>
 
-  <p>
-    Votre mot de passe a été modifié avec succès.
-  </p>
+          <p>
+            Votre mot de passe a été modifié avec succès.
+          </p>
 
-  <button class="success-btn" type="button" @click="goToLogin">
-    Retour à la connexion
-  </button>
-</div>
+          <button class="success-btn" type="button" @click="goToLogin">
+            Retour à la connexion
+          </button>
+        </div>
 
       </div>
     </section>
   </div>
 </template>
+
+<style scoped>
+.field-error {
+  display: block;
+  margin-top: 6px;
+  color: #e05252;
+  font-size: 0.875rem;
+}
+
+.otp-error {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.required-star {
+  color: #e05252;
+  margin-left: 3px;
+  font-weight: 700;
+}
+</style>

@@ -30,6 +30,10 @@ const routes = [
     name: 'dashboard',
     // Dashboard rāh khārej l-dossier auth kima bāyen f l-image
     component: () => import('../pages/Dashboard.vue')
+  },
+  {
+  path: '/:pathMatch(.*)*',
+  redirect: '/login'
   }
 ]
 
