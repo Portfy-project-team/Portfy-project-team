@@ -14,7 +14,7 @@ export const UserService = {
       select: {
         id: true,
         email: true,
-        name: true,
+        // name: true,
         role: true,
         status: true,
         createdAt: true,

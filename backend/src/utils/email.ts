@@ -1,12 +1,19 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const isTest = process.env.NODE_ENV === "test";
+
+// const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = !isTest
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
 const FROM_EMAIL = 'onboarding@resend.dev';
 
 export const sendInviteEmail = async (email: string, inviteToken: string, role: string) => {
+  if (isTest) return;
   const inviteUrl = `${process.env.CLIENT_URL}/accept-invite?token=${inviteToken}`;
-  await resend.emails.send({
+  // await resend.emails.send({
+   await resend!.emails.send({
     from: FROM_EMAIL,
     to: email,
     subject: `You've been invited as ${role}`,
@@ -15,9 +22,11 @@ export const sendInviteEmail = async (email: string, inviteToken: string, role: 
 };
 
 export const sendApprovalEmail = async (email: string, name: string) => {
+if (isTest) return;  
 const loginUrl = `${process.env.CLIENT_URL}/login`;
 
-await resend.emails.send({
+// await resend.emails.send({
+await resend!.emails.send({
   from: FROM_EMAIL,
   to: email,
   subject: 'Your account has been approved',
@@ -35,7 +44,9 @@ await resend.emails.send({
 };
 
 export const sendRejectionEmail = async (email: string, name: string, reason?: string) => {
-  await resend.emails.send({
+   if (isTest) return;
+  // await resend.emails.send({
+  await resend!.emails.send({
     from: FROM_EMAIL,
     to: email,
     subject: 'Account status update',

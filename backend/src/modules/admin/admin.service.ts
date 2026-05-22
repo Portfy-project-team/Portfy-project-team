@@ -6,7 +6,7 @@ import { CreateUserInput, UpdateUserInput } from "./admin.validation.js";
 interface RegisterData {
   email: string;
   password: string;
-  name: string;
+  // name: string;
   role: Role;
 }
 export const AdminServices = {
@@ -15,7 +15,7 @@ export const AdminServices = {
 
     const user = await prisma.user.create({
       data: {
-        name: data.name,
+        // name: data.name,
         email: data.email,
         password: hashed,
         role: data.role,
@@ -31,7 +31,7 @@ export const AdminServices = {
       select: {
         id: true,
         email: true,
-        name: true,
+        // name: true,
         role: true,
         status: true,
         createdAt: true,
@@ -56,7 +56,7 @@ export const AdminServices = {
       select: {
         id: true,
         email: true,
-        name: true,
+        // name: true,
         role: true,
         status: true,
       },
@@ -66,7 +66,8 @@ export const AdminServices = {
   async approveUser(id: number) {
       const existingUser = await prisma.user.findUnique({
     where: { id },
-    select: { email: true, name: true, status: true },
+    // select: { email: true, name: true, status: true },
+     select: { email: true, status: true },
   });
 
   if (!existingUser) {
@@ -83,8 +84,8 @@ export const AdminServices = {
   if (!existingUser.email ) {
     throw new Error("User email not found");
   }
-
-  await sendApprovalEmail(existingUser.email, existingUser.name?? 'User');
+   await sendApprovalEmail(existingUser.email, "User");
+  // await sendApprovalEmail(existingUser.email, existingUser.name?? 'User');
     return user;
   },
 
@@ -92,12 +93,14 @@ export const AdminServices = {
     const user = await prisma.user.update({
       where: { id, status:UserStatus.PENDING},
       data: { status: UserStatus.REJECTED },
-      select: { email: true, name: true },
+      // select: { email: true, name: true },
+      select: { email: true },
     });
      if (!user.email ) {
     throw new Error("User email not found");
   }
-    await sendRejectionEmail(user.email, user.name??'User', reason);
+    // await sendRejectionEmail(user.email, user.name??'User', reason);
+     await sendRejectionEmail(user.email, "User", reason);
     return user;
   },
 };
