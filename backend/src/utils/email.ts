@@ -32,7 +32,7 @@ await resend!.emails.send({
   subject: 'Your account has been approved',
   html: `
     <div style="font-family: Arial">
-      <h2>Hello ${email} </h2>
+      <h2>Hello ${name} </h2>
       <p>Your account has been approved.</p>
       <p>
          Click here to login:

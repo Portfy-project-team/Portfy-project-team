@@ -84,7 +84,7 @@ export const AdminServices = {
   if (!existingUser.email ) {
     throw new Error("User email not found");
   }
-   await sendApprovalEmail(existingUser.email, "User");
+   await sendApprovalEmail(existingUser.email, existingUser.email);
   // await sendApprovalEmail(existingUser.email, existingUser.name?? 'User');
     return user;
   },
@@ -100,7 +100,7 @@ export const AdminServices = {
     throw new Error("User email not found");
   }
     // await sendRejectionEmail(user.email, user.name??'User', reason);
-     await sendRejectionEmail(user.email, "User", reason);
+     await sendRejectionEmail(user.email, user.email, reason);
     return user;
   },
 };
