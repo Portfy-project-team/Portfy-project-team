@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 
 // Step 1
 const name = ref('')
@@ -19,17 +20,49 @@ const diplomePrevu = ref('')
 
 // Step 3
 const bio = ref('')
-const skills = ref(['React', 'Python', 'UX Design'])
+const skills = ref([])
 const newSkill = ref('')
-const disponibilite = ref('stage')
+const disponibilite = ref('')
 const linkedin = ref('')
 const photoPreview = ref('')
 
 // Current step
 const currentStep = ref(1)
 
-// Email validation
+const router = useRouter()
+function goToLogin() {
+  router.push('/login')
+}
+// Errors
+const errors = reactive({
+  name: '',
+  prenom: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+  accepted: '',
+  formationType: '',
+  etablissement: '',
+  filiere: '',
+  niveau: '',
+  anneeEntree: '',
+  diplomePrevu: '',
+  bio: '',
+  skills: '',
+  disponibilite: '',
+  linkedin: ''
+})
+
+const clearErrors = () => {
+  Object.keys(errors).forEach((key) => {
+    errors[key] = ''
+  })
+}
+
+// Validations
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const yearRegex = /^[0-9]{4}$/
+const linkedinRegex = /^[a-zA-Z0-9-]+$/
 
 const addSkill = () => {
   if (newSkill.value.trim() === '') {
@@ -38,6 +71,7 @@ const addSkill = () => {
 
   skills.value.push(newSkill.value.trim())
   newSkill.value = ''
+  errors.skills = ''
 }
 
 const removeSkill = (index) => {
@@ -53,63 +87,90 @@ const handlePhoto = (event) => {
 }
 
 const nextStep = () => {
+  clearErrors()
+  let isValid = true
+
   if (currentStep.value === 1) {
-    if (name.value === '') {
-      alert('Nom obligatoire')
-      return
+    if (name.value.trim() === '') {
+      errors.name = 'Nom obligatoire'
+      isValid = false
     }
 
-    if (prenom.value === '') {
-      alert('Prénom obligatoire')
-      return
+    if (prenom.value.trim() === '') {
+      errors.prenom = 'Prénom obligatoire'
+      isValid = false
     }
 
-    if (email.value === '') {
-      alert('Email obligatoire')
-      return
+    if (email.value.trim() === '') {
+      errors.email = 'Email obligatoire'
+      isValid = false
+    } else if (!emailRegex.test(email.value.trim())) {
+      errors.email = 'Veuillez entrer un email valide'
+      isValid = false
     }
 
-    if (!emailRegex.test(email.value)) {
-      alert('Veuillez entrer un email valide')
-      return
+    if (password.value.trim() === '') {
+      errors.password = 'Mot de passe obligatoire'
+      isValid = false
+    } else if (password.value.length < 8) {
+      errors.password = 'Le mot de passe doit contenir au moins 8 caractères'
+      isValid = false
     }
 
-    if (password.value.length < 8) {
-      alert('Le mot de passe doit contenir au moins 8 caractères')
-      return
-    }
-
-    if (password.value !== confirmPassword.value) {
-      alert('Les mots de passe ne sont pas identiques')
-      return
+    if (confirmPassword.value.trim() === '') {
+      errors.confirmPassword = 'Confirmation obligatoire'
+      isValid = false
+    } else if (password.value !== confirmPassword.value) {
+      errors.confirmPassword = 'Les mots de passe ne sont pas identiques'
+      isValid = false
     }
 
     if (!accepted.value) {
-      alert('Vous devez accepter les conditions')
-      return
+      errors.accepted = 'Vous devez accepter les conditions'
+      isValid = false
     }
   }
 
   if (currentStep.value === 2) {
     if (formationType.value === '') {
-      alert('Veuillez choisir le type de formation')
-      return
+      errors.formationType = 'Type de formation obligatoire'
+      isValid = false
     }
 
-    if (etablissement.value === '') {
-      alert('Établissement obligatoire')
-      return
+    if (etablissement.value.trim() === '') {
+      errors.etablissement = 'Établissement obligatoire'
+      isValid = false
     }
 
-    if (filiere.value === '') {
-      alert('Filière obligatoire')
-      return
+    if (filiere.value.trim() === '') {
+      errors.filiere = 'Filière obligatoire'
+      isValid = false
     }
 
     if (niveau.value === '') {
-      alert('Niveau d’études obligatoire')
-      return
+      errors.niveau = 'Niveau d’études obligatoire'
+      isValid = false
     }
+
+    if (anneeEntree.value.trim() === '') {
+      errors.anneeEntree = 'Année d’entrée obligatoire'
+      isValid = false
+    } else if (!yearRegex.test(anneeEntree.value.trim())) {
+      errors.anneeEntree = 'L’année doit contenir uniquement 4 chiffres'
+      isValid = false
+    }
+
+    if (diplomePrevu.value.trim() === '') {
+      errors.diplomePrevu = 'Diplôme prévu obligatoire'
+      isValid = false
+    } else if (!yearRegex.test(diplomePrevu.value.trim())) {
+      errors.diplomePrevu = 'L’année doit contenir uniquement 4 chiffres'
+      isValid = false
+    }
+  }
+
+  if (!isValid) {
+    return
   }
 
   if (currentStep.value < 3) {
@@ -118,6 +179,8 @@ const nextStep = () => {
 }
 
 const previousStep = () => {
+  clearErrors()
+
   if (currentStep.value > 1) {
     currentStep.value--
   }
@@ -129,6 +192,33 @@ const register = () => {
     return
   }
 
+  clearErrors()
+  let isValid = true
+
+  if (bio.value.trim() === '') {
+    errors.bio = 'Bio obligatoire'
+    isValid = false
+  }
+
+  if (skills.value.length === 0) {
+    errors.skills = 'Ajoutez au moins une compétence'
+    isValid = false
+  }
+
+  if (disponibilite.value === '') {
+    errors.disponibilite = 'Disponibilité obligatoire'
+    isValid = false
+  }
+
+  if (linkedin.value.trim() !== '' && !linkedinRegex.test(linkedin.value.trim())) {
+    errors.linkedin = 'Profil LinkedIn invalide'
+    isValid = false
+  }
+
+  if (!isValid) {
+    return
+  }
+
   console.log('Nom:', name.value)
   console.log('Prénom:', prenom.value)
   console.log('Email:', email.value)
@@ -136,12 +226,14 @@ const register = () => {
   console.log('Établissement:', etablissement.value)
   console.log('Filière:', filiere.value)
   console.log('Niveau:', niveau.value)
+  console.log('Année d’entrée:', anneeEntree.value)
+  console.log('Diplôme prévu:', diplomePrevu.value)
   console.log('Bio:', bio.value)
   console.log('Skills:', skills.value)
   console.log('Disponibilité:', disponibilite.value)
   console.log('LinkedIn:', linkedin.value)
 
-  alert('Inscription réussie !')
+  alert('Compte créé avec succès')
 }
 </script>
 
@@ -190,10 +282,15 @@ const register = () => {
     <section class="right-panel">
       <div class="form-container">
 
-        <div class="tabs">
-          <button type="button" class="tab">Connexion</button>
-          <button type="button" class="tab active">Inscription</button>
-        </div>
+<div class="tabs">
+  <button type="button" class="tab" @click="goToLogin">
+    Connexion
+  </button>
+
+  <button type="button" class="tab active">
+    Inscription
+  </button>
+</div>
 
         <div class="form-header">
           <template v-if="currentStep === 1">
@@ -252,38 +349,45 @@ const register = () => {
           <!-- STEP 1 -->
           <div v-if="currentStep === 1">
             <div class="field-group">
-              <label>Nom</label>
+              <label>Nom <span class="required-star">*</span></label>
               <div class="input-wrapper">
                 <input v-model="name" type="text" placeholder="Votre nom">
               </div>
+              <span v-if="errors.name" class="field-error">{{ errors.name }}</span>
             </div>
 
             <div class="field-group">
-              <label>Prénom</label>
+              <label>Prénom <span class="required-star">*</span></label>
               <div class="input-wrapper">
                 <input v-model="prenom" type="text" placeholder="Votre prénom">
               </div>
+              <span v-if="errors.prenom" class="field-error">{{ errors.prenom }}</span>
             </div>
 
             <div class="field-group">
-              <label>Adresse e-mail</label>
+              <label>Adresse e-mail <span class="required-star">*</span></label>
               <div class="input-wrapper">
                 <input v-model="email" type="email" placeholder="votre.email@institution.ma">
               </div>
+              <span v-if="errors.email" class="field-error">{{ errors.email }}</span>
             </div>
 
             <div class="field-group">
-              <label>Mot de passe</label>
+              <label>Mot de passe <span class="required-star">*</span></label>
               <div class="input-wrapper">
                 <input v-model="password" type="password" placeholder="Mot de passe">
               </div>
+              <span v-if="errors.password" class="field-error">{{ errors.password }}</span>
             </div>
 
             <div class="field-group">
-              <label>Confirmer le mot de passe</label>
+              <label>Confirmer le mot de passe <span class="required-star">*</span></label>
               <div class="input-wrapper">
                 <input v-model="confirmPassword" type="password" placeholder="Confirmer le mot de passe">
               </div>
+              <span v-if="errors.confirmPassword" class="field-error">
+                {{ errors.confirmPassword }}
+              </span>
             </div>
 
             <div class="checkbox">
@@ -293,216 +397,259 @@ const register = () => {
                 et la <strong>politique de confidentialité</strong>.
               </label>
             </div>
+            <span v-if="errors.accepted" class="field-error">{{ errors.accepted }}</span>
           </div>
 
+          <!-- STEP 2 -->
           <div v-if="currentStep === 2" class="formation-step">
 
-  <div class="field-group">
-    <label>Type de formation</label>
+            <div class="field-group">
+              <label>Type de formation <span class="required-star">*</span></label>
 
-    <div class="formation-types">
-      <button
-        type="button"
-        class="formation-card"
-        :class="{ selected: formationType === 'faculte' }"
-        @click="formationType = 'faculte'"
-      >
-        <span class="formation-icon">🎓</span>
-        <strong>Faculté</strong>
-        <small>Licence / Master</small>
-      </button>
+              <div class="formation-types">
+                <button
+                  type="button"
+                  class="formation-card"
+                  :class="{ selected: formationType === 'faculte' }"
+                  @click="formationType = 'faculte'"
+                >
+                  <span class="formation-icon">🎓</span>
+                  <strong>Faculté</strong>
+                  <small>Licence / Master</small>
+                </button>
 
-      <button
-        type="button"
-        class="formation-card"
-        :class="{ selected: formationType === 'ecole' }"
-        @click="formationType = 'ecole'"
-      >
-        <span class="formation-icon">🏫</span>
-        <strong>École supérieure</strong>
-        <small>Ingénieur</small>
-      </button>
+                <button
+                  type="button"
+                  class="formation-card"
+                  :class="{ selected: formationType === 'ecole' }"
+                  @click="formationType = 'ecole'"
+                >
+                  <span class="formation-icon">🏫</span>
+                  <strong>École supérieure</strong>
+                  <small>Ingénieur</small>
+                </button>
 
-      <button
-        type="button"
-        class="formation-card"
-        :class="{ selected: formationType === 'institut' }"
-        @click="formationType = 'institut'"
-      >
-        <span class="formation-icon">💼</span>
-        <strong>Institut</strong>
-        <small>Formation courte</small>
-      </button>
-    </div>
-  </div>
+                <button
+                  type="button"
+                  class="formation-card"
+                  :class="{ selected: formationType === 'institut' }"
+                  @click="formationType = 'institut'"
+                >
+                  <span class="formation-icon">💼</span>
+                  <strong>Institut</strong>
+                  <small>Formation courte</small>
+                </button>
+              </div>
 
-  <div class="field-group">
-    <label>Établissement</label>
-    <div class="input-wrapper">
-      <input v-model="etablissement" type="text" placeholder="Ex : Ensa, Tanger">
-    </div>
-  </div>
+              <span v-if="errors.formationType" class="field-error">
+                {{ errors.formationType }}
+              </span>
+            </div>
 
-  <div class="form-row">
-    <div class="field-group">
-      <label>Filière / Spécialité</label>
-      <div class="input-wrapper">
-        <input v-model="filiere" type="text" placeholder="Ex : Informatique">
-      </div>
-    </div>
+            <div class="field-group">
+              <label>Établissement <span class="required-star">*</span></label>
+              <div class="input-wrapper">
+                <input v-model="etablissement" type="text" placeholder="Ex : Ensa, Tanger">
+              </div>
+              <span v-if="errors.etablissement" class="field-error">
+                {{ errors.etablissement }}
+              </span>
+            </div>
 
-    <div class="field-group">
-      <label>Niveau d’études</label>
-      <div class="input-wrapper">
-        <select v-model="niveau">
-          <option value="">Sélectionner</option>
-          <option>Bac+1</option>
-          <option>Bac+2</option>
-          <option>Bac+3</option>
-          <option>Master</option>
-        </select>
-      </div>
-    </div>
-  </div>
+            <div class="form-row">
+              <div class="field-group">
+                <label>Filière / Spécialité <span class="required-star">*</span></label>
+                <div class="input-wrapper">
+                  <input v-model="filiere" type="text" placeholder="Ex : Informatique">
+                </div>
+                <span v-if="errors.filiere" class="field-error">{{ errors.filiere }}</span>
+              </div>
 
-  <div class="form-row">
-    <div class="field-group">
-      <label>Année d’entrée</label>
-      <div class="input-wrapper">
-        <input v-model="anneeEntree" type="text" placeholder="Année">
-      </div>
-    </div>
+              <div class="field-group">
+                <label>Niveau d’études <span class="required-star">*</span></label>
+                <div class="input-wrapper">
+                  <select v-model="niveau">
+                    <option value="">Sélectionner</option>
+                    <option>Bac+1</option>
+                    <option>Bac+2</option>
+                    <option>Bac+3</option>
+                    <option>Master</option>
+                  </select>
+                </div>
+                <span v-if="errors.niveau" class="field-error">{{ errors.niveau }}</span>
+              </div>
+            </div>
 
-    <div class="field-group">
-      <label>Diplôme prévu</label>
-      <div class="input-wrapper">
-        <input v-model="diplomePrevu" type="text" placeholder="Année">
-      </div>
-    </div>
-  </div>
+            <div class="form-row">
+              <div class="field-group">
+                <label>Année d’entrée <span class="required-star">*</span></label>
+                <div class="input-wrapper">
+                  <input
+                    v-model="anneeEntree"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="4"
+                    placeholder="Année"
+                  >
+                </div>
+                <span v-if="errors.anneeEntree" class="field-error">
+                  {{ errors.anneeEntree }}
+                </span>
+              </div>
 
-</div>
+              <div class="field-group">
+                <label>Diplôme prévu <span class="required-star">*</span></label>
+                <div class="input-wrapper">
+                  <input
+                    v-model="diplomePrevu"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="4"
+                    placeholder="Année"
+                  >
+                </div>
+                <span v-if="errors.diplomePrevu" class="field-error">
+                  {{ errors.diplomePrevu }}
+                </span>
+              </div>
+            </div>
 
-<div v-if="currentStep === 3" class="profile-step">
+          </div>
 
-  <!-- PHOTO -->
-  <div class="photo-section">
-    <div class="avatar">
-      <img v-if="photoPreview" :src="photoPreview" alt="Photo de profil">
-      <span v-else>👨‍🎓</span>
-    </div>
+          <!-- STEP 3 -->
+          <div v-if="currentStep === 3" class="profile-step">
 
-    <div class="photo-actions">
-      <label class="small-btn">
-        + Ajouter une photo
-        <input type="file" accept="image/png, image/jpeg" hidden @change="handlePhoto">
-      </label>
+            <div class="photo-section">
+              <div class="avatar">
+                <img v-if="photoPreview" :src="photoPreview" alt="Photo de profil">
+                <span v-else>👨‍🎓</span>
+              </div>
 
-      <p>JPG ou PNG · max 2 Mo</p>
-    </div>
-  </div>
+              <div class="photo-actions">
+                <label class="small-btn">
+                  + Ajouter une photo
+                  <input type="file" accept="image/png, image/jpeg" hidden @change="handlePhoto">
+                </label>
 
-  <!-- BIO -->
-  <div class="field-group">
-    <label>Bio courte</label>
+                <p>JPG ou PNG · max 2 Mo</p>
+              </div>
+            </div>
 
-    <textarea
-      class="bio-textarea"
-      v-model="bio"
-      maxlength="160"
-      placeholder="Ex : Étudiant en informatique passionné par le développement web et l’IA..."
-    ></textarea>
+            <div class="field-group">
+              <label>Bio courte <span class="required-star">*</span></label>
 
-    <small class="counter">{{ bio.length }} / 160</small>
-  </div>
+              <textarea
+                class="bio-textarea"
+                v-model="bio"
+                maxlength="160"
+                placeholder="Ex : Étudiant en informatique passionné par le développement web et l’IA..."
+              ></textarea>
 
-  <!-- COMPETENCES -->
-  <div class="field-group">
-  <label>Compétences clés</label>
+              <small class="counter">{{ bio.length }} / 160</small>
 
-  <div class="skills-box">
-    <div class="skills-list">
-      <span
-        v-for="(skill, index) in skills"
-        :key="index"
-        class="skill-tag"
-      >
-        {{ skill }}
-        <button type="button" @click="removeSkill(index)">×</button>
-      </span>
-    </div>
+              <span v-if="errors.bio" class="field-error">
+                {{ errors.bio }}
+              </span>
+            </div>
 
-    <div class="skill-input-row">
-      <input
-        v-model="newSkill"
-        type="text"
-        placeholder="Ajouter une compétence..."
-        @keyup.enter.prevent="addSkill"
-      >
+            <div class="field-group">
+              <label>Compétences clés <span class="required-star">*</span></label>
 
-      <button type="button" class="add-skill-btn" @click="addSkill">
-        +
-      </button>
-    </div>
-  </div>
-</div>
-  <!-- DISPONIBILITE -->
-  <div class="field-group">
-    <label>Disponibilité</label>
+              <div class="skills-box">
+                <div class="skills-list">
+                  <span
+                    v-for="(skill, index) in skills"
+                    :key="index"
+                    class="skill-tag"
+                  >
+                    {{ skill }}
+                    <button type="button" @click="removeSkill(index)">×</button>
+                  </span>
+                </div>
 
-    <div class="availability">
-      <button
-        type="button"
-        class="availability-card"
-        :class="{ selected: disponibilite === 'stage' }"
-        @click="disponibilite = 'stage'"
-      >
-        <span>🔍</span>
-        <strong>Stage</strong>
-      </button>
+                <div class="skill-input-row">
+                  <input
+                    v-model="newSkill"
+                    type="text"
+                    placeholder="Ajouter une compétence..."
+                    @keyup.enter.prevent="addSkill"
+                  >
 
-      <button
-        type="button"
-        class="availability-card"
-        :class="{ selected: disponibilite === 'alternance' }"
-        @click="disponibilite = 'alternance'"
-      >
-        <span>💼</span>
-        <strong>Alternance</strong>
-      </button>
+                  <button type="button" class="add-skill-btn" @click="addSkill">
+                    +
+                  </button>
+                </div>
+              </div>
 
-      <button
-        type="button"
-        class="availability-card"
-        :class="{ selected: disponibilite === 'emploi' }"
-        @click="disponibilite = 'emploi'"
-      >
-        <span>🚀</span>
-        <strong>Emploi</strong>
-      </button>
+              <span v-if="errors.skills" class="field-error">
+                {{ errors.skills }}
+              </span>
+            </div>
 
-      <button
-        type="button"
-        class="availability-card"
-        :class="{ selected: disponibilite === 'freelance' }"
-        @click="disponibilite = 'freelance'"
-      >
-        <span>🎯</span>
-        <strong>Freelance</strong>
-      </button>
-    </div>
-  </div>
+            <div class="field-group">
+              <label>Disponibilité <span class="required-star">*</span></label>
 
-  <!-- LINKEDIN -->
-  <div class="field-group">
-    <label>Profil LinkedIn <span class="optional">(optionnel)</span></label>
+              <div class="availability">
+                <button
+                  type="button"
+                  class="availability-card"
+                  :class="{ selected: disponibilite === 'stage' }"
+                  @click="disponibilite = 'stage'"
+                >
+                  <span>🔍</span>
+                  <strong>Stage</strong>
+                </button>
 
-    <div class="linkedin-input">
-      <span>linkedin.com/in/</span>
-      <input v-model="linkedin" type="text" placeholder="votre-profil">
-    </div>
-  </div>
-</div>
+                <button
+                  type="button"
+                  class="availability-card"
+                  :class="{ selected: disponibilite === 'alternance' }"
+                  @click="disponibilite = 'alternance'"
+                >
+                  <span>💼</span>
+                  <strong>Alternance</strong>
+                </button>
+
+                <button
+                  type="button"
+                  class="availability-card"
+                  :class="{ selected: disponibilite === 'emploi' }"
+                  @click="disponibilite = 'emploi'"
+                >
+                  <span>🚀</span>
+                  <strong>Emploi</strong>
+                </button>
+
+                <button
+                  type="button"
+                  class="availability-card"
+                  :class="{ selected: disponibilite === 'freelance' }"
+                  @click="disponibilite = 'freelance'"
+                >
+                  <span>🎯</span>
+                  <strong>Freelance</strong>
+                </button>
+              </div>
+
+              <span v-if="errors.disponibilite" class="field-error">
+                {{ errors.disponibilite }}
+              </span>
+            </div>
+
+            <div class="field-group">
+              <label>Profil LinkedIn <span class="optional">(optionnel)</span></label>
+
+              <div class="linkedin-input">
+                <span>linkedin.com/in/</span>
+                <input v-model="linkedin" type="text" placeholder="votre-profil">
+              </div>
+
+              <span v-if="errors.linkedin" class="field-error">
+                {{ errors.linkedin }}
+              </span>
+            </div>
+
+          </div>
 
           <div class="actions">
             <button v-if="currentStep > 1" type="button" class="btn-back" @click="previousStep">
@@ -519,7 +666,7 @@ const register = () => {
         <div class="form-footer">
           <p class="no-account">
             Vous avez déjà un compte ?
-            <a href="#" class="inline-link">Se connecter</a>
+            <a href="#" class="inline-link" @click="goToLogin">Se connecter</a>
           </p>
 
           <p class="security-note">Connexion sécurisée · Données chiffrées</p>
@@ -530,3 +677,22 @@ const register = () => {
 
   </div>
 </template>
+
+<style scoped>
+.field-error {
+  display: block;
+  margin-top: 6px;
+  color: #e05252;
+  font-size: 0.875rem;
+}
+
+.required-star {
+  color: #e05252;
+  margin-left: 3px;
+  font-weight: 700;
+}
+
+.tabs {
+  display: flex;
+}
+</style>
