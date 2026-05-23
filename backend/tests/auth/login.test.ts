@@ -28,7 +28,6 @@ describe("POST /api/auth/login", () => {
     const rawCookies = res.headers["set-cookie"];
     const cookies = Array.isArray(rawCookies) ? rawCookies : [];
 
-    expect(cookies).toBeDefined();
     expect(cookies.some((c: string) => c.includes("access_token"))).toBe(true);
     expect(cookies.some((c: string) => c.includes("refresh_token"))).toBe(true);
   });
@@ -43,7 +42,7 @@ describe("POST /api/auth/login", () => {
   });
 
   it("L-03 : wrong password", async () => {
-    const email = `wrong${Date.now()}@test.com`;
+    const email = `wrongpass${Date.now()}@test.com`;
 
     await request(app).post("/api/auth/register").send({
       email,
@@ -65,6 +64,102 @@ describe("POST /api/auth/login", () => {
   });
 
 });
+
+
+
+
+
+
+
+
+
+// import request from "supertest";
+// import app from "../../src/index";
+// import { prisma } from "../../src/utils/prisma";
+
+// describe("POST /api/auth/login", () => {
+
+//   it("L-01 : valid login", async () => {
+//     const email = `login${Date.now()}@test.com`;
+
+//     await request(app).post("/api/auth/register").send({
+//       email,
+//       password: "Secure123!!!",
+//       role: "STUDENT",
+//     });
+
+//     await prisma.user.update({
+//       where: { email },
+//       data: { isEmailVerified: true },
+//     });
+
+//     const res = await request(app).post("/api/auth/login").send({
+//       email,
+//       password: "Secure123!!!",
+//     });
+
+//     expect(res.status).toBe(200);
+
+//     const rawCookies = res.headers["set-cookie"];
+//     const cookies = Array.isArray(rawCookies) ? rawCookies : [];
+
+//     expect(cookies).toBeDefined();
+//     expect(cookies.some((c: string) => c.includes("access_token"))).toBe(true);
+//     expect(cookies.some((c: string) => c.includes("refresh_token"))).toBe(true);
+//   });
+
+//   it("L-02 : email not found", async () => {
+//     const res = await request(app).post("/api/auth/login").send({
+//       email: "unknown@test.com",
+//       password: "Secure123!!!",
+//     });
+
+//     expect(res.status).toBe(401);
+//   });
+
+//   // it("L-03 : wrong password", async () => {
+//   //   const email = `wrong${Date.now()}@test.com`;
+
+//   //   await request(app).post("/api/auth/register").send({
+//   //     email,
+//   //     password: "Secure123!!!",
+//   //     role: "STUDENT",
+//   //   });
+
+//   //   await prisma.user.update({
+//   //     where: { email },
+//   //     data: { isEmailVerified: true },
+//   //   });
+
+//   //   const res = await request(app).post("/api/auth/login").send({
+//   //     email,
+//   //     password: "WrongPass999!!!",
+//   //   });
+
+//   //   expect(res.status).toBe(401);
+//   // });
+// it("L-03 : wrong password", async () => {
+//   const email = `wrongpass${Date.now()}@test.com`;
+
+//   await request(app).post("/api/auth/register").send({
+//     email,
+//     password: "Secure123!!!",
+//     role: "STUDENT",
+//   });
+
+//   await prisma.user.update({
+//     where: { email },
+//     data: { isEmailVerified: true },
+//   });
+
+//   const res = await request(app).post("/api/auth/login").send({
+//     email,
+//     password: "WrongPass999!!!",
+//   });
+
+//   expect(res.status).toBe(401);
+// });
+// });
 
 
 
