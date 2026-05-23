@@ -12,10 +12,17 @@ model User {
   email         String         @unique
   password      String
   role          Role
+  isEmailVerified          Boolean   @default(false)
+  emailVerificationToken   String?
+  emailVerificationExpires DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt DateTime @updatedAt  
   admin         Admin?
   prof          Prof?
   professionnel Professionnel?
   refreshTokens RefreshToken[]
+  loginLogs           LoginLog[]           
+  passwordResetTokens PasswordResetToken[]
   student       Student?
 }
 
@@ -25,6 +32,36 @@ model RefreshToken {
   createdAt DateTime @default(now())
   userId    Int
   id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model LoginLog {
+  id        Int         @id @default(autoincrement())
+  userId    Int
+  ip        String?
+  userAgent String?
+  status    LoginStatus @default(SUCCESS)
+  createdAt DateTime    @default(now())
+  user      User        @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+enum LoginStatus {
+  SUCCESS
+  FAILED
+  LOGOUT
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
