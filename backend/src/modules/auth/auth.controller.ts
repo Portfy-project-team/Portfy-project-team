@@ -60,7 +60,9 @@ export const registerController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const parsed = registerSchema.safeParse(req.body);
+  const data = req.body
+  console.log(data)
+  const parsed = registerSchema.safeParse(data.data);
 
   if (!parsed.success) {
     res.status(400).json({
@@ -72,12 +74,14 @@ export const registerController = async (
 
   try {
     const user = await registerUser(parsed.data);
+    console.log(user)
 
     sendVerificationEmail(user.id, user.email).catch((err) => {
       console.error("[registerController] Echec envoi email:", err);
     });
 
     res.status(201).json({
+      success : true,
       message: "Compte créé avec succès. Vérifiez votre email pour activer votre compte.",
       user,
     });

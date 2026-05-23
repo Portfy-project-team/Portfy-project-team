@@ -44,8 +44,6 @@ const refreshLimiter = rateLimit({
   legacyHeaders:   false,
 });
 
-
-
   const verifyEmailLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 heure
   max:      10,
@@ -53,7 +51,6 @@ const refreshLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders:   false,
 });
-
 
 const resendVerificationLimiter = rateLimit({
   windowMs:        60 * 60 * 1000,
@@ -70,7 +67,6 @@ const forgotPasswordLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders:   false,
 });
-
 
 const resetPasswordLimiter = rateLimit({
   windowMs:        60 * 60 * 1000,
