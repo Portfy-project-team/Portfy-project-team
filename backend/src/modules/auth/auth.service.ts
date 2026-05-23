@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../../utils/prisma.js";
-import { Prisma } from "@prisma/client";
+import { Prisma, UserStatus } from '@prisma/client';
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -32,25 +32,41 @@ export const registerUser = async (data: RegisterInput) => {
     throw error;
   }
 
-  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+return await prisma.$transaction(
+  async (tx: Prisma.TransactionClient) => {
+
+    const status =
+      role === "STUDENT"
+        ? UserStatus.ACTIVE
+        : UserStatus.PENDING;
+
     return await tx.user.create({
       data: {
         email,
         password: hashedPassword,
         role,
-        ...(role === "STUDENT" && { student:      { create: {} } }),
-        ...(role === "PRO"     && { professionnel: { create: {} } }),
+
+        ...(role === "STUDENT" && {
+          student: { create: {} },
+        }),
+
+        ...(role === "PRO" && {
+          professionnel: { create: {} },
+        }),
+
+        status
       },
+
       select: {
-        id:        true,
-        email:     true,
-        role:      true,
+        id: true,
+        email: true,
+        role: true,
         createdAt: true,
       },
     });
-  });
-};
 
+  }
+);}
 // ── Login ─────────────────────────────────────────────────────────
 export const loginUser = async (
   data: LoginInput,

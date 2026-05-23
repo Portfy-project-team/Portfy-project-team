@@ -7,9 +7,16 @@
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
+    "isolatedModules": true,
     "skipLibCheck": true,
     "types": ["jest", "node"]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "tests"]
+  // "include": ["src/**/*", "src/types/**/*.d.ts"],
+  "include": [
+    "src/**/*",
+    "src/types/**/*.d.ts",
+    "tests/**/*"
+  ],
+  // "exclude": ["node_modules", "dist","tests"]
+  "exclude": ["node_modules", "dist"]
 }
