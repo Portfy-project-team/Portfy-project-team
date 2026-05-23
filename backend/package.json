@@ -8,8 +8,8 @@
     "dev": "nodemon --exec tsx src/server.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "jest",
-    "test:unit": "jest tests/unit"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

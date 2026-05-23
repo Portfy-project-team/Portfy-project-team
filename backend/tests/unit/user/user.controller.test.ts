@@ -1,3 +1,4 @@
+import { jest } from "@jest/globals";
 import { getSkills } from "../../../src/modules/user/user.controller";
 
 describe("User Controller", () => {
