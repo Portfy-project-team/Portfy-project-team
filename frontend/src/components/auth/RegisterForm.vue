@@ -812,7 +812,7 @@ const register = () => {
 
 </div>
 
-          <!-- STEP 3 -->
+          <!-- STEP 3 etu -->
           <div v-if="currentStep === 3 && (role === 'STUDENT')" class="profile-step">
 
             <div class="photo-section">
@@ -947,106 +947,57 @@ const register = () => {
 
           </div>
           <!-- STEP 3 PRO -->
-<div
-  v-if="currentStep === 3 && role === 'PRO'"
-  class="profile-step"
->
+          <div v-if="currentStep === 3 && role === 'PRO'" class="profile-step">
 
-  <div class="photo-section">
-    <div class="avatar">
-      <img
-        v-if="photoPreview"
-        :src="photoPreview"
-        alt="Logo entreprise"
-      >
+            <div class="photo-section">
+              <div class="avatar">
+              <img
+                v-if="photoPreview" :src="photoPreview" alt="Logo entreprise">
+              <span v-else>🏢</span>
+              </div>
 
-      <span v-else>🏢</span>
-    </div>
+              <div class="photo-actions">
+              <label class="small-btn"> + Ajouter une photo
+              <input type="file" accept="image/png, image/jpeg" hidden @change="handlePhoto">
+              </label>
+              <p>JPG ou PNG · max 2 Mo</p>
+              </div>
+            </div>
 
-    <div class="photo-actions">
-      <label class="small-btn">
-        + Ajouter un logo
+            <div class="field-group">
+              <label> Description entreprise
+              <span class="required-star">*</span>
+              </label>
 
-        <input
-          type="file"
-          accept="image/png, image/jpeg"
-          hidden
-          @change="handlePhoto"
-        >
-      </label>
+              <textarea class="bio-textarea" v-model="descriptionEntreprise" maxlength="200" placeholder="Présentez votre entreprise..."></textarea>
 
-      <p>JPG ou PNG · max 2 Mo</p>
-    </div>
-  </div>
+              <span v-if="errors.descriptionEntreprise" class="field-error">
+                {{ errors.descriptionEntreprise }}
+              </span>
+            </div>
 
-  <div class="field-group">
-    <label>
-      Description entreprise
-      <span class="required-star">*</span>
-    </label>
+            <div class="field-group">
+            <label> Site web <span class="required-star">*</span></label>
+            <div class="input-wrapper">
+            <input v-model="siteEntreprise" type="text" placeholder="https://entreprise.com">
+            </div>
 
-    <textarea
-      class="bio-textarea"
-      v-model="descriptionEntreprise"
-      maxlength="200"
-      placeholder="Présentez votre entreprise..."
-    ></textarea>
+            <span v-if="errors.siteEntreprise" class="field-error">
+            {{ errors.siteEntreprise }}
+            </span>
+            </div>
+            <div class="field-group">
+              <label> Localisation de l'entreprise <span class="required-star">*</span></label>
+            <div class="input-wrapper">
+            <input v-model="localisation" type="text" placeholder="Ex : 25 Rue Mohammed V, Tanger 90000, Maroc">
+            </div>
 
-    <span
-      v-if="errors.descriptionEntreprise"
-      class="field-error"
-    >
-      {{ errors.descriptionEntreprise }}
-    </span>
-  </div>
-
-  <div class="field-group">
-    <label>
-      Site web
-      <span class="required-star">*</span>
-    </label>
-
-    <div class="input-wrapper">
-      <input
-        v-model="siteEntreprise"
-        type="text"
-        placeholder="https://entreprise.com"
-      >
-    </div>
-
-    <span
-      v-if="errors.siteEntreprise"
-      class="field-error"
-    >
-      {{ errors.siteEntreprise }}
-    </span>
-  </div>
-  <div class="field-group">
-  <label>
-    Localisation de l'entreprise
-    <span class="required-star">*</span>
-  </label>
-
-  <div class="input-wrapper">
-    <input
-      v-model="localisation"
-      type="text"
-      placeholder="Ex : 25 Rue Mohammed V, Tanger 90000, Maroc"
-    >
-  </div>
-
-  <span
-    v-if="errors.localisation"
-    class="field-error"
-  >
-    {{ errors.localisation }}
-  </span>
-</div>
-<!-- STEP 3 PROF -->
-<div
-  v-if="currentStep === 3 && role === 'PROF'"
-  class="profile-step"
->
+            <span v-if="errors.localisation" class="field-error">
+            {{ errors.localisation }}
+            </span>
+          </div>
+          <!-- STEP 3 PROF -->
+          <div v-if="currentStep === 3 && role === 'PROF'" class="profile-step">
 
   <!-- PHOTO -->
   <div class="photo-section">
