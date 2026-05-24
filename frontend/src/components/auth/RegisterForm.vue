@@ -996,6 +996,7 @@ const register = () => {
             {{ errors.localisation }}
             </span>
           </div>
+        </div>
           <!-- STEP 3 PROF -->
           <div v-if="currentStep === 3 && role === 'PROF'" class="profile-step">
 
@@ -1121,29 +1122,6 @@ const register = () => {
     </span>
   </div>
 
-  <!-- BUREAU -->
-  <div class="field-group">
-    <label>
-      Bureau / Localisation
-      <span class="required-star">*</span>
-    </label>
-
-    <div class="input-wrapper">
-      <input
-        v-model="bureau"
-        type="text"
-        placeholder="Ex : Bureau B-204, ENSA Tanger, Route Ziaten"
-      >
-    </div>
-
-    <span
-      v-if="errors.bureau"
-      class="field-error"
-    >
-      {{ errors.bureau }}
-    </span>
-  </div>
-
   <!-- LINKEDIN -->
   <div class="field-group">
     <label>
@@ -1168,7 +1146,7 @@ const register = () => {
     </span>
   </div>
 
-  <!-- SITE -->
+    <!-- SITE -->
   <div class="field-group">
     <label>Site personnel</label>
 
@@ -1182,19 +1160,23 @@ const register = () => {
   </div>
 
 </div>
+
+<div class="actions">
+  <button
+    v-if="currentStep > 1"
+    type="button"
+    class="btn-back"
+    @click="previousStep"
+  >
+    ←
+  </button>
+
+  <button class="btn-submit" type="submit">
+    {{ currentStep === 3 ? 'Créer mon compte ✓' : 'Continuer →' }}
+  </button>
 </div>
 
-          <div class="actions">
-            <button v-if="currentStep > 1" type="button" class="btn-back" @click="previousStep">
-              ←
-            </button>
-
-            <button class="btn-submit" type="submit">
-              {{ currentStep === 3 ? 'Créer mon compte ✓' : 'Continuer →' }}
-            </button>
-          </div>
-
-        </form>
+</form>
 
         <div class="form-footer">
           <p class="no-account">
