@@ -2,15 +2,26 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 
-// Step 1
+// ================= ROUTER =================
+const router = useRouter()
+
+function goToLogin() {
+  router.push('/login')
+}
+
+// ================= STEP =================
+const currentStep = ref(1)
+
+// ================= STEP 1 =================
 const name = ref('')
 const prenom = ref('')
+const role = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const accepted = ref(false)
 
-// Step 2
+// ================= STEP 2 ETUDIANT =================
 const formationType = ref('')
 const etablissement = ref('')
 const filiere = ref('')
@@ -18,56 +29,87 @@ const niveau = ref('')
 const anneeEntree = ref('')
 const diplomePrevu = ref('')
 
-// Step 3
+// ================= STEP 2 PROF =================
+const departement = ref('')
+const specialite = ref('')
+
+// ================= STEP 2 PRO =================
+const Entreprise = ref('')
+const Poste = ref('')
+const secteur = ref('')
+const pays = ref('')
+const ville = ref('')
+
+// ================= STEP 3 etu =================
 const bio = ref('')
 const skills = ref([])
 const newSkill = ref('')
 const disponibilite = ref('')
 const linkedin = ref('')
 const photoPreview = ref('')
+// ================= STEP 3 prof =================
+const matieres = ref([])
+const anneeExperience = ref('')
 
-// Current step
-const currentStep = ref(1)
+// ================= STEP 3 PRO =================
+const descriptionEntreprise = ref('')
+const siteEntreprise = ref('')
+const localisation = ref('')
 
-const router = useRouter()
-function goToLogin() {
-  router.push('/login')
-}
-// Errors
+// ================= ERRORS =================
 const errors = reactive({
   name: '',
   prenom: '',
+  role: '',
   email: '',
   password: '',
   confirmPassword: '',
   accepted: '',
+
   formationType: '',
   etablissement: '',
   filiere: '',
   niveau: '',
   anneeEntree: '',
   diplomePrevu: '',
+
+  departement: '',
+  specialite: '',
+
+  Entreprise: '',
+  Poste: '',
+  secteur: '',
+  pays: '',
+  ville: '',
+
   bio: '',
   skills: '',
   disponibilite: '',
-  linkedin: ''
+  linkedin: '',
+
+  descriptionEntreprise: '',
+  siteEntreprise: '',
+  localisation: '',
+  matieres: '',
+  anneeExperience: '',
+
 })
 
+// ================= CLEAR ERRORS =================
 const clearErrors = () => {
   Object.keys(errors).forEach((key) => {
     errors[key] = ''
   })
 }
 
-// Validations
+// ================= REGEX =================
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const yearRegex = /^[0-9]{4}$/
 const linkedinRegex = /^[a-zA-Z0-9-]+$/
 
+// ================= SKILLS =================
 const addSkill = () => {
-  if (newSkill.value.trim() === '') {
-    return
-  }
+  if (newSkill.value.trim() === '') return
 
   skills.value.push(newSkill.value.trim())
   newSkill.value = ''
@@ -78,6 +120,7 @@ const removeSkill = (index) => {
   skills.value.splice(index, 1)
 }
 
+// ================= PHOTO =================
 const handlePhoto = (event) => {
   const file = event.target.files[0]
 
@@ -86,98 +129,163 @@ const handlePhoto = (event) => {
   }
 }
 
+// ================= NEXT STEP =================
 const nextStep = () => {
   clearErrors()
+
   let isValid = true
 
+  // ========= STEP 1 =========
   if (currentStep.value === 1) {
-    if (name.value.trim() === '') {
+
+    if (!name.value.trim()) {
       errors.name = 'Nom obligatoire'
       isValid = false
     }
 
-    if (prenom.value.trim() === '') {
+    if (!prenom.value.trim()) {
       errors.prenom = 'Prénom obligatoire'
       isValid = false
     }
 
-    if (email.value.trim() === '') {
+    if (!email.value.trim()) {
       errors.email = 'Email obligatoire'
       isValid = false
     } else if (!emailRegex.test(email.value.trim())) {
-      errors.email = 'Veuillez entrer un email valide'
+      errors.email = 'Email invalide'
       isValid = false
     }
 
-    if (password.value.trim() === '') {
+    if (!password.value.trim()) {
       errors.password = 'Mot de passe obligatoire'
       isValid = false
     } else if (password.value.length < 8) {
-      errors.password = 'Le mot de passe doit contenir au moins 8 caractères'
+      errors.password = 'Minimum 8 caractères'
       isValid = false
     }
 
-    if (confirmPassword.value.trim() === '') {
+    if (!confirmPassword.value.trim()) {
       errors.confirmPassword = 'Confirmation obligatoire'
       isValid = false
     } else if (password.value !== confirmPassword.value) {
-      errors.confirmPassword = 'Les mots de passe ne sont pas identiques'
+      errors.confirmPassword = 'Les mots de passe ne correspondent pas'
+      isValid = false
+    }
+
+    if (!role.value) {
+      errors.role = 'Choisissez un rôle'
       isValid = false
     }
 
     if (!accepted.value) {
-      errors.accepted = 'Vous devez accepter les conditions'
-      isValid = false
-    }
-  }
-
-  if (currentStep.value === 2) {
-    if (formationType.value === '') {
-      errors.formationType = 'Type de formation obligatoire'
+      errors.accepted = 'Veuillez accepter les conditions'
       isValid = false
     }
 
-    if (etablissement.value.trim() === '') {
-      errors.etablissement = 'Établissement obligatoire'
-      isValid = false
-    }
+    if (!isValid) return
 
-    if (filiere.value.trim() === '') {
-      errors.filiere = 'Filière obligatoire'
-      isValid = false
-    }
-
-    if (niveau.value === '') {
-      errors.niveau = 'Niveau d’études obligatoire'
-      isValid = false
-    }
-
-    if (anneeEntree.value.trim() === '') {
-      errors.anneeEntree = 'Année d’entrée obligatoire'
-      isValid = false
-    } else if (!yearRegex.test(anneeEntree.value.trim())) {
-      errors.anneeEntree = 'L’année doit contenir uniquement 4 chiffres'
-      isValid = false
-    }
-
-    if (diplomePrevu.value.trim() === '') {
-      errors.diplomePrevu = 'Diplôme prévu obligatoire'
-      isValid = false
-    } else if (!yearRegex.test(diplomePrevu.value.trim())) {
-      errors.diplomePrevu = 'L’année doit contenir uniquement 4 chiffres'
-      isValid = false
-    }
-  }
-
-  if (!isValid) {
+    currentStep.value = 2
     return
   }
 
-  if (currentStep.value < 3) {
-    currentStep.value++
+  // ========= STEP 2 STUDENT =========
+  if (currentStep.value === 2 && role.value === 'STUDENT') {
+
+    if (!formationType.value) {
+      errors.formationType = 'Champ obligatoire'
+      isValid = false
+    }
+
+    if (!etablissement.value.trim()) {
+      errors.etablissement = 'Champ obligatoire'
+      isValid = false
+    }
+
+    if (!filiere.value.trim()) {
+      errors.filiere = 'Champ obligatoire'
+      isValid = false
+    }
+
+    if (!niveau.value) {
+      errors.niveau = 'Champ obligatoire'
+      isValid = false
+    }
+
+    if (!yearRegex.test(anneeEntree.value)) {
+      errors.anneeEntree = 'Année invalide'
+      isValid = false
+    }
+
+    if (!diplomePrevu.value.trim()) {
+      errors.diplomePrevu = 'Champ obligatoire'
+      isValid = false
+    }
+
+    if (!isValid) return
+
+    currentStep.value = 3
+    return
+  }
+
+  // ========= STEP 2 PROF =========
+  if (currentStep.value === 2 && role.value === 'PROF') {
+
+    if (!etablissement.value.trim()) {
+      errors.etablissement = 'Champ obligatoire'
+      isValid = false
+    }
+
+    if (!departement.value.trim()) {
+      errors.departement = 'Champ obligatoire'
+      isValid = false
+    }
+
+    if (!specialite.value.trim()) {
+      errors.specialite = 'Champ obligatoire'
+      isValid = false
+    }
+
+    if (!isValid) return
+
+    currentStep.value = 3
+    return
+  }
+
+  // ========= STEP 2 PRO =========
+  if (currentStep.value === 2 && role.value === 'PRO') {
+
+    if (!Entreprise.value.trim()) {
+      errors.Entreprise = 'Champ obligatoire'
+      isValid = false
+    }
+
+    if (!Poste.value.trim()) {
+      errors.Poste = 'Champ obligatoire'
+      isValid = false
+    }
+
+    if (!secteur.value.trim()) {
+      errors.secteur = 'Champ obligatoire'
+      isValid = false
+    }
+
+    if (!pays.value.trim()) {
+      errors.pays = 'Champ obligatoire'
+      isValid = false
+    }
+
+    if (!ville.value.trim()) {
+      errors.ville = 'Champ obligatoire'
+      isValid = false
+    }
+
+    if (!isValid) return
+
+    currentStep.value = 3
   }
 }
 
+// ================= PREVIOUS STEP =================
 const previousStep = () => {
   clearErrors()
 
@@ -186,16 +294,25 @@ const previousStep = () => {
   }
 }
 
+// ================= REGISTER =================
 const register = () => {
+
   if (currentStep.value < 3) {
     nextStep()
     return
   }
 
   clearErrors()
+
   let isValid = true
 
-  if (bio.value.trim() === '') {
+  // ========= VALIDATION COMMUNE =========
+  if (!photoPreview.value) {
+    alert('Veuillez ajouter une photo')
+    isValid = false
+  }
+
+  if (!bio.value.trim()) {
     errors.bio = 'Bio obligatoire'
     isValid = false
   }
@@ -205,20 +322,64 @@ const register = () => {
     isValid = false
   }
 
-  if (disponibilite.value === '') {
-    errors.disponibilite = 'Disponibilité obligatoire'
+  if (!disponibilite.value) {
+    errors.disponibilite = 'Choisissez une disponibilité'
     isValid = false
   }
 
-  if (linkedin.value.trim() !== '' && !linkedinRegex.test(linkedin.value.trim())) {
-    errors.linkedin = 'Profil LinkedIn invalide'
+  if (
+    linkedin.value.trim() !== '' &&
+    !linkedinRegex.test(linkedin.value.trim())
+  ) {
+    errors.linkedin = 'Lien LinkedIn invalide'
     isValid = false
   }
 
-  if (!isValid) {
-    return
+  // ========= VALIDATION PRO =========
+  if (role.value === 'PRO') {
+
+    if (!descriptionEntreprise.value.trim()) {
+      errors.descriptionEntreprise = 'Description obligatoire'
+      isValid = false
+    }
+
+    if (!siteEntreprise.value.trim()) {
+      errors.siteEntreprise = 'Site web obligatoire'
+      isValid = false
+    }
   }
 
+  if (!isValid) return
+
+  // ========= USER DATA =========
+  const userData = {
+    name: name.value,
+    prenom: prenom.value,
+    role: role.value,
+    email: email.value,
+    password: password.value,
+    formationType: formationType.value,
+    etablissement: etablissement.value,
+    filiere: filiere.value,
+    niveau: niveau.value,
+    anneeEntree: anneeEntree.value,
+    diplomePrevu: diplomePrevu.value,
+    departement: departement.value,
+    specialite: specialite.value,
+    Entreprise: Entreprise.value,
+    Poste: Poste.value,
+    secteur: secteur.value,
+    pays: pays.value,
+    ville: ville.value,
+    bio: bio.value,
+    linkedin: linkedin.value,
+    descriptionEntreprise: descriptionEntreprise.value,
+    siteEntreprise: siteEntreprise.value,
+    localisation: localisation.value,
+    matieres: matieres.value,
+    anneeExperience: anneeExperience.value,
+  
+  }
   console.log('Nom:', name.value)
   console.log('Prénom:', prenom.value)
   console.log('Email:', email.value)
@@ -282,15 +443,15 @@ const register = () => {
     <section class="right-panel">
       <div class="form-container">
 
-<div class="tabs">
-  <button type="button" class="tab" @click="goToLogin">
-    Connexion
-  </button>
+        <div class="tabs">
+          <button type="button" class="tab" @click="goToLogin">
+            Connexion
+          </button>
 
-  <button type="button" class="tab active">
-    Inscription
-  </button>
-</div>
+          <button type="button" class="tab active">
+            Inscription
+          </button>
+        </div>
 
         <div class="form-header">
           <template v-if="currentStep === 1">
@@ -389,6 +550,18 @@ const register = () => {
                 {{ errors.confirmPassword }}
               </span>
             </div>
+            <div class="field-group">
+              <label>Rôle <span class="required-star">*</span></label>
+              <div class="input-wrapper">
+                <select v-model="role">
+                  <option value="" disabled>Sélectionnez votre profil</option>
+                  <option value="STUDENT">Étudiant</option>
+                  <option value="PROF">Professeur</option>
+                  <option value="PRO">Professionnel</option>
+                </select>
+              </div>
+              <span v-if="errors.role" class="field-error">{{ errors.role }}</span>
+            </div>
 
             <div class="checkbox">
               <input v-model="accepted" type="checkbox" id="terms">
@@ -400,9 +573,8 @@ const register = () => {
             <span v-if="errors.accepted" class="field-error">{{ errors.accepted }}</span>
           </div>
 
-          <!-- STEP 2 -->
-          <div v-if="currentStep === 2" class="formation-step">
-
+          <!-- STEP 2 etu-->
+          <div v-if="currentStep === 2 && role === 'STUDENT'" class="formation-step">
             <div class="field-group">
               <label>Type de formation <span class="required-star">*</span></label>
 
@@ -515,9 +687,133 @@ const register = () => {
             </div>
 
           </div>
+          <!-- STEP 2 PROFESSEUR -->
+          <div v-if="currentStep === 2 && role === 'PROF'" class="formation-step">
+
+  <div class="field-group">
+    <label>Établissement <span class="required-star">*</span></label>
+
+    <div class="input-wrapper">
+      <input
+        v-model="etablissement"
+        type="text"
+        placeholder="Ex : ENSA Tanger">
+    </div>
+  </div>
+
+  <div class="field-group">
+    <label>Département <span class="required-star">*</span></label>
+
+    <div class="input-wrapper">
+      <input
+        v-model="departement"
+        type="text"
+        placeholder="Ex : Informatique"
+      >
+    </div>
+  </div>
+
+  <div class="field-group">
+    <label>Spécialité <span class="required-star">*</span></label>
+
+    <div class="input-wrapper">
+      <input
+        v-model="specialite"
+        type="text"
+        placeholder="Ex : Intelligence Artificielle">
+    </div>
+  </div>
+
+</div>
+<!-- STEP 2 PROFESSIONNEL -->
+<div
+  v-if="currentStep === 2 && role === 'PRO'"
+  class="formation-step"
+>
+
+  <div class="field-group">
+    <label>Entreprise <span class="required-star">*</span></label>
+
+    <div class="input-wrapper">
+      <input
+        v-model="Entreprise"
+        type="text"
+        placeholder="Ex : OCP Group"
+      >
+    </div>
+
+    <span v-if="errors.Entreprise" class="field-error">
+      {{ errors.entreprise }}
+    </span>
+  </div>
+
+  <div class="field-group">
+    <label>Poste <span class="required-star">*</span></label>
+
+    <div class="input-wrapper">
+      <input
+        v-model="Poste"
+        type="text"
+        placeholder="Ex : Responsable RH"
+      >
+    </div>
+
+    <span v-if="errors.poste" class="field-error">
+      {{ errors.Poste }}
+    </span>
+  </div>
+
+  <div class="field-group">
+    <label>Secteur d’activité <span class="required-star">*</span></label>
+
+    <div class="input-wrapper">
+      <input
+        v-model="secteur"
+        type="text"
+        placeholder="Ex : Informatique"
+      >
+    </div>
+
+    <span v-if="errors.secteur" class="field-error">
+      {{ errors.secteur }}
+    </span>
+  </div>
+  <div class="field-group">
+    <label>Pays <span class="required-star">*</span></label>
+
+    <div class="input-wrapper">
+      <input
+        v-model="pays"
+        type="text"
+        placeholder="Ex : Maroc"
+      >
+    </div>
+
+    <span v-if="errors.pays" class="field-error">
+      {{ errors.pays }}
+    </span>
+  </div>
+
+  <div class="field-group">
+    <label>Ville <span class="required-star">*</span></label>
+
+    <div class="input-wrapper">
+      <input
+        v-model="ville"
+        type="text"
+        placeholder="Ex : Tanger"
+      >
+    </div>
+
+    <span v-if="errors.ville" class="field-error">
+      {{ errors.ville }}
+    </span>
+  </div>
+
+</div>
 
           <!-- STEP 3 -->
-          <div v-if="currentStep === 3" class="profile-step">
+          <div v-if="currentStep === 3 && (role === 'STUDENT')" class="profile-step">
 
             <div class="photo-section">
               <div class="avatar">
@@ -650,6 +946,292 @@ const register = () => {
             </div>
 
           </div>
+          <!-- STEP 3 PRO -->
+<div
+  v-if="currentStep === 3 && role === 'PRO'"
+  class="profile-step"
+>
+
+  <div class="photo-section">
+    <div class="avatar">
+      <img
+        v-if="photoPreview"
+        :src="photoPreview"
+        alt="Logo entreprise"
+      >
+
+      <span v-else>🏢</span>
+    </div>
+
+    <div class="photo-actions">
+      <label class="small-btn">
+        + Ajouter un logo
+
+        <input
+          type="file"
+          accept="image/png, image/jpeg"
+          hidden
+          @change="handlePhoto"
+        >
+      </label>
+
+      <p>JPG ou PNG · max 2 Mo</p>
+    </div>
+  </div>
+
+  <div class="field-group">
+    <label>
+      Description entreprise
+      <span class="required-star">*</span>
+    </label>
+
+    <textarea
+      class="bio-textarea"
+      v-model="descriptionEntreprise"
+      maxlength="200"
+      placeholder="Présentez votre entreprise..."
+    ></textarea>
+
+    <span
+      v-if="errors.descriptionEntreprise"
+      class="field-error"
+    >
+      {{ errors.descriptionEntreprise }}
+    </span>
+  </div>
+
+  <div class="field-group">
+    <label>
+      Site web
+      <span class="required-star">*</span>
+    </label>
+
+    <div class="input-wrapper">
+      <input
+        v-model="siteEntreprise"
+        type="text"
+        placeholder="https://entreprise.com"
+      >
+    </div>
+
+    <span
+      v-if="errors.siteEntreprise"
+      class="field-error"
+    >
+      {{ errors.siteEntreprise }}
+    </span>
+  </div>
+  <div class="field-group">
+  <label>
+    Localisation de l'entreprise
+    <span class="required-star">*</span>
+  </label>
+
+  <div class="input-wrapper">
+    <input
+      v-model="localisation"
+      type="text"
+      placeholder="Ex : 25 Rue Mohammed V, Tanger 90000, Maroc"
+    >
+  </div>
+
+  <span
+    v-if="errors.localisation"
+    class="field-error"
+  >
+    {{ errors.localisation }}
+  </span>
+</div>
+<!-- STEP 3 PROF -->
+<div
+  v-if="currentStep === 3 && role === 'PROF'"
+  class="profile-step"
+>
+
+  <!-- PHOTO -->
+  <div class="photo-section">
+    <div class="avatar">
+      <img
+        v-if="photoPreview"
+        :src="photoPreview"
+        alt="Photo professeur"
+      >
+
+      <span v-else>👨‍🏫</span>
+    </div>
+
+    <div class="photo-actions">
+      <label class="small-btn">
+        + Ajouter une photo
+
+        <input
+          type="file"
+          accept="image/png, image/jpeg"
+          hidden
+          @change="handlePhoto"
+        >
+      </label>
+
+      <p>JPG ou PNG · max 2 Mo</p>
+    </div>
+  </div>
+
+  <!-- BIO -->
+  <div class="field-group">
+    <label>
+      Présentation
+      <span class="required-star">*</span>
+    </label>
+
+    <textarea
+      class="bio-textarea"
+      v-model="bioProf"
+      maxlength="200"
+      placeholder="Ex : Professeur en intelligence artificielle spécialisé en machine learning et data science."
+    ></textarea>
+
+    <span
+      v-if="errors.bioProf"
+      class="field-error"
+    >
+      {{ errors.bioProf }}
+    </span>
+  </div>
+
+  <!-- MATIERES -->
+  <div class="field-group">
+    <label>Matières enseignées</label>
+
+    <div class="skills-box">
+
+      <div class="skills-list">
+        <span
+          v-for="(matiere, index) in matieres"
+          :key="index"
+          class="skill-tag"
+        >
+          {{ matiere }}
+
+          <button
+            type="button"
+            @click="matieres.splice(index, 1)"
+          >
+            ×
+          </button>
+        </span>
+      </div>
+
+      <div class="skill-input-row">
+        <input
+          v-model="newMatiere"
+          type="text"
+          placeholder="Ajouter une matière..."
+          @keyup.enter.prevent="
+            matieres.push(newMatiere);
+            newMatiere = ''
+          "
+        >
+
+        <button
+          type="button"
+          class="add-skill-btn"
+          @click="
+            matieres.push(newMatiere);
+            newMatiere = ''
+          "
+        >
+          +
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- EXPERIENCE -->
+  <div class="field-group">
+    <label>
+      Années d’expérience
+      <span class="required-star">*</span>
+    </label>
+
+    <div class="input-wrapper">
+      <input
+        v-model="experience"
+        type="text"
+        placeholder="Ex : 12 ans"
+      >
+    </div>
+
+    <span
+      v-if="errors.experience"
+      class="field-error"
+    >
+      {{ errors.experience }}
+    </span>
+  </div>
+
+  <!-- BUREAU -->
+  <div class="field-group">
+    <label>
+      Bureau / Localisation
+      <span class="required-star">*</span>
+    </label>
+
+    <div class="input-wrapper">
+      <input
+        v-model="bureau"
+        type="text"
+        placeholder="Ex : Bureau B-204, ENSA Tanger, Route Ziaten"
+      >
+    </div>
+
+    <span
+      v-if="errors.bureau"
+      class="field-error"
+    >
+      {{ errors.bureau }}
+    </span>
+  </div>
+
+  <!-- LINKEDIN -->
+  <div class="field-group">
+    <label>
+      Profil LinkedIn
+    </label>
+
+    <div class="linkedin-input">
+      <span>linkedin.com/in/</span>
+
+      <input
+        v-model="linkedinProf"
+        type="text"
+        placeholder="prenom-nom"
+      >
+    </div>
+
+    <span
+      v-if="errors.linkedinProf"
+      class="field-error"
+    >
+      {{ errors.linkedinProf }}
+    </span>
+  </div>
+
+  <!-- SITE -->
+  <div class="field-group">
+    <label>Site personnel</label>
+
+    <div class="input-wrapper">
+      <input
+        v-model="siteProf"
+        type="text"
+        placeholder="https://monsite.com"
+      >
+    </div>
+  </div>
+
+</div>
+</div>
 
           <div class="actions">
             <button v-if="currentStep > 1" type="button" class="btn-back" @click="previousStep">
@@ -694,5 +1276,25 @@ const register = () => {
 
 .tabs {
   display: flex;
+}
+select {
+  width: 100%;
+  padding: 14px 45px 14px 16px;
+  border: none;
+  border-radius: 12px;
+  background-color: #dfe8ea;
+
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23003344' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+
+  background-repeat: no-repeat;
+
+  /* POSITION DE LA FLÈCHE */
+  background-position: right 16px center;
+
+  background-size: 18px;
 }
 </style>
