@@ -8,6 +8,8 @@ import authRoutes from "./modules/auth/auth.routes.js";
 import userRoutes from "./modules/user/user.routes.js";
 import adminRoutes from "./modules/admin/admin.routes.js";
 import portfolioRoutes from "./modules/portfolio/portfolio.routes.js";
+import projectRoutes from "./modules/projects/project.routes.js";
+
 
 const app = express();
 
@@ -66,9 +68,13 @@ if (!isTest && !isK6) {
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
-
+app.use("/api/projects" , projectRoutes);
 
 // Healthcheck améliorée pour le debug
+
+
+// Route de santé (Healthcheck)
+
 app.get("/health", (req, res) => {
   res.status(200).json({ 
     status: "ok", 
@@ -81,5 +87,13 @@ app.get("/health", (req, res) => {
 app.use((req, res) => {
   res.status(404).json({ message: "Ressource introuvable" });
 });
+
+
+
+// app.listen(PORT, () => {
+//   console.log(` Portfy API sécurisée lancée sur le port ${PORT}`);
+//   if (!isProduction) console.log(` CORS autorisé pour : ${process.env.FRONTEND_URL}`);
+// });
+
 
 export default app;
