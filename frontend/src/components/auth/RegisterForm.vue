@@ -1,10 +1,12 @@
 <script setup>
+import axios from 'axios'
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 
 // Step 1
 const name = ref('')
 const prenom = ref('')
+const role = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
@@ -36,6 +38,7 @@ function goToLogin() {
 // Errors
 const errors = reactive({
   name: '',
+  role: '',
   prenom: '',
   email: '',
   password: '',
@@ -94,7 +97,7 @@ const nextStep = () => {
     if (name.value.trim() === '') {
       errors.name = 'Nom obligatoire'
       isValid = false
-    }
+    } 
 
     if (prenom.value.trim() === '') {
       errors.prenom = 'Prénom obligatoire'
@@ -116,7 +119,13 @@ const nextStep = () => {
       errors.password = 'Le mot de passe doit contenir au moins 8 caractères'
       isValid = false
     }
-
+    
+    // Ajoutez cette validation au début ou avec les autres
+    if (role.value === '') {
+      errors.role = 'Rôle obligatoire'
+      isValid = false
+    }
+    
     if (confirmPassword.value.trim() === '') {
       errors.confirmPassword = 'Confirmation obligatoire'
       isValid = false
@@ -186,7 +195,8 @@ const previousStep = () => {
   }
 }
 
-const register = () => {
+// Updated register function
+const register = async () => {
   if (currentStep.value < 3) {
     nextStep()
     return
@@ -219,24 +229,53 @@ const register = () => {
     return
   }
 
-  console.log('Nom:', name.value)
-  console.log('Prénom:', prenom.value)
-  console.log('Email:', email.value)
-  console.log('Formation:', formationType.value)
-  console.log('Établissement:', etablissement.value)
-  console.log('Filière:', filiere.value)
-  console.log('Niveau:', niveau.value)
-  console.log('Année d’entrée:', anneeEntree.value)
-  console.log('Diplôme prévu:', diplomePrevu.value)
-  console.log('Bio:', bio.value)
-  console.log('Skills:', skills.value)
-  console.log('Disponibilité:', disponibilite.value)
-  console.log('LinkedIn:', linkedin.value)
+  // Gathering all variables into one single payload object
+  const userData = {
+    name: name.value,
+    role: role.value,
+    prenom: prenom.value,
+    email: email.value,
+    password: password.value,
+    formationType: formationType.value,
+    etablissement: etablissement.value,
+    filiere: filiere.value,
+    niveau: niveau.value,
+    anneeEntree: anneeEntree.value,
+    diplomePrevu: diplomePrevu.value,
+    bio: bio.value,
+    skills: skills.value,
+    disponibilite: disponibilite.value,
+    linkedin: linkedin.value
+  }
+  const sentData = {
+    email:email.value,
+    password: password.value,
+    role : role.value
+  }
 
-  alert('Compte créé avec succès')
+  try {
+    const response = await axios.post('http://localhost:3000/api/auth/register', {
+      data : sentData
+    })
+
+    // Check if registration was successful
+    if (response.data && response.data.success === true) {
+      // Show success message
+      const successMessage = response.data.message || 'Compte créé avec succès!'
+      
+      // Redirect to login page
+      router.push('/login')
+    } else {
+      // Handle case where success is false or not present
+      throw new Error(response.data?.message || 'Erreur lors de la création du compte')
+    }
+  } catch (error) {
+    console.error('Registration failed:', error)
+    // Display error message from response if available
+    const errorMessage = error.response?.data?.message || error.message || 'Erreur lors de la création du compte'
+  }
 }
 </script>
-
 <template>
   <div class="register-page">
 
@@ -390,6 +429,19 @@ const register = () => {
               </span>
             </div>
 
+            <div class="field-group">
+              <label>Rôle <span class="required-star">*</span></label>
+              <div class="input-wrapper">
+                <select v-model="role">
+                  <option value="" disabled>Sélectionnez votre profil</option>
+                  <option value="STUDENT">Étudiant</option>
+                  <option value="PROF">Professeur</option>
+                  <option value="PRO">Professionnel</option>
+                  <option value="ADMIN">Administrateur</option>
+                </select>
+              </div>
+              <span v-if="errors.role" class="field-error">{{ errors.role }}</span>
+            </div>
             <div class="checkbox">
               <input v-model="accepted" type="checkbox" id="terms">
               <label for="terms">

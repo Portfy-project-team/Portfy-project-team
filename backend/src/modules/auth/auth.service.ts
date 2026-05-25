@@ -18,7 +18,7 @@ const DUMMY_HASH =
 
 // ── Register ──────────────────────────────────────────────────────
 export const registerUser = async (data: RegisterInput) => {
-  const { email, password, role } = data;
+  const { email, password, role="STUDENT" } = data;
 
 
   // Hash EN PREMIER — temps de reponse constant que l'email existe ou non
@@ -253,8 +253,9 @@ export const sendVerificationEmail = async (
 
   const verifyLink = `${process.env.FRONTEND_URL}/verify-email?token=${rawToken}`;
   const template   = emailTemplates.verifyEmail(verifyLink);
-
-  await sendEmail({ to: email, subject: template.subject, html: template.html });
+  console.log("seding email")
+  const res = await sendEmail({ to: email, subject: template.subject, html: template.html });
+  console.log(res)
 };
 
 // ── Resend Verification Email ─────────────────────────────────────
