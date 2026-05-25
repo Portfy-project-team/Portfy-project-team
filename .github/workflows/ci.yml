@@ -45,10 +45,10 @@ jobs:
 
       # Vérification qualité du code frontend
 
-      #- name: Run frontend lint
-      # run: |
-      #    cd frontend
-      #    npm run lint
+      - name: Run frontend lint
+        run: |
+          cd frontend
+          npm run lint
 
 
       # Construction du projet frontend
