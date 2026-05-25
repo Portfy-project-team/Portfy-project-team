@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../../utils/prisma.js";
 import { Prisma, UserStatus } from '@prisma/client';
+
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -89,7 +90,11 @@ export const loginUser = async (
       isEmailVerified: true,
     },
   });
-
+if (user && !user.password) {
+  const error: any = new Error("Utilisez Google pour vous connecter");
+  error.statusCode = 403;
+  throw error;
+}
   const isValid = await bcrypt.compare(
     password,
     user?.password ?? DUMMY_HASH
@@ -381,3 +386,4 @@ export const resetPasswordService = async (
     }),
   ]);
 };
+

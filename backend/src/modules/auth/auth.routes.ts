@@ -1,5 +1,4 @@
 import { Router } from "express";
-
 import rateLimit from "express-rate-limit";
 import {
   registerController,
@@ -10,6 +9,9 @@ import {
   resendVerificationController,
   forgotPasswordController,
   resetPasswordController,
+  googleCallbackController,
+  googleVerifyController,
+  googleCompleteController
 } from "./auth.controller.js";
 import { verifyToken } from "../../middlewares/auth.middleware.js";
 
@@ -114,4 +116,12 @@ router.post("/resend-verification", resendVerificationLimiter, resendVerificatio
 // router.post("/forgot-password",     forgotPasswordLimiter,     forgotPasswordController);
 // router.post("/reset-password",      resetPasswordLimiter,      resetPasswordController);
 
+// Étape 1 — Vérifier le token Google et checker si l'utilisateur existe
+router.post("/google/verify",               googleVerifyController);
+
+// Étape 2 — Compléter l'inscription avec le rôle choisi
+router.post("/google/complete-registration", googleCompleteController);
+
+
+router.post("/google/callback", googleCallbackController);
 export default router;

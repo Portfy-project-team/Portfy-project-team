@@ -19,8 +19,7 @@ export const verifyToken = async(
 ): Promise<void> => {
   // Token lu depuis le cookie httpOnly — jamais depuis le body ou un header Authorization
   // Le frontend n'a pas acces a ce cookie (httpOnly) — envoye automatiquement par le navigateur
-  const token = req.cookies?.access_token;
-
+  const token = req.cookies?.access_token ;
   if (!token) {
     res.status(401).json({ message: "Non authentifie" });
     return;
@@ -94,3 +93,5 @@ export const requireRole = (...roles: Role[]) =>
 //
 // Gestion utilisateurs — ADMIN uniquement
 // router.get("/admin/users", verifyToken, requireRole("ADMIN"), adminController.listUsers);
+
+
