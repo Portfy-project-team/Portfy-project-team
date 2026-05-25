@@ -6,6 +6,12 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+enum UserStatus{
+  ACTIVE
+  PENDING
+  BLOCKED
+  REJECTED
+}
 
 model User {
   id            Int            @id @default(autoincrement())
@@ -24,6 +30,7 @@ model User {
   loginLogs           LoginLog[]           
   passwordResetTokens PasswordResetToken[]
   student       Student?
+  status UserStatus @default(PENDING)
 }
 
 model RefreshToken {
