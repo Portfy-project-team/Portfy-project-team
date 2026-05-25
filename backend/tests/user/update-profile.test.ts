@@ -64,6 +64,62 @@ describe("PUT /api/user/me/profile", () => {
       : [];
   });
 
+  // afterAll(async () => {
+  //   const testUsers = await prisma.user.findMany({
+  //     where: { email: { contains: "@test.com" } },
+  //     select: { id: true },
+  //   });
+  //   const userIds = testUsers.map((u) => u.id);
+
+  //   const students = await prisma.student.findMany({
+  //     where: { userId: { in: userIds } },
+  //     select: { id: true },
+  //   });
+  //   const studentIds = students.map((s) => s.id);
+
+  //   const portfolios = await prisma.portfolio.findMany({
+  //     where: { studentId: { in: studentIds } },
+  //     select: { id: true },
+  //   });
+  //   const portfolioIds = portfolios.map((p) => p.id);
+
+  //   // Ordre FK correct : enfants avant parents
+  //   await prisma.studentSkill.deleteMany({
+  //     where: { student: { userId: { in: userIds } } },
+  //   });
+  //   await prisma.loginLog.deleteMany({
+  //     where: { userId: { in: userIds } },
+  //   });
+  //   await prisma.passwordResetToken.deleteMany({
+  //     where: { userId: { in: userIds } },
+  //   });
+  //   await prisma.refreshToken.deleteMany({
+  //     where: { userId: { in: userIds } },
+  //   });
+  //   // Stage avant Student
+  //   await prisma.stage.deleteMany({
+  //     where: { studentId: { in: studentIds } },
+  //   });
+  //   // Projet avant Portfolio
+  //   await prisma.projet.deleteMany({
+  //     where: { portfolioId: { in: portfolioIds } },
+  //   });
+  //   // Portfolio avant Student
+  //   await prisma.portfolio.deleteMany({
+  //     where: { studentId: { in: studentIds } },
+  //   });
+  //   await prisma.student.deleteMany({
+  //     where: { userId: { in: userIds } },
+  //   });
+  //   await prisma.skill.deleteMany({
+  //     where: { nom: { contains: "React-" } },
+  //   });
+  //   await prisma.user.deleteMany({
+  //     where: { id: { in: userIds } },
+  //   });
+
+  //   await prisma.$disconnect();
+  // });
   afterAll(async () => {
     const testUsers = await prisma.user.findMany({
       where: { email: { contains: "@test.com" } },
@@ -71,6 +127,19 @@ describe("PUT /api/user/me/profile", () => {
     });
     const userIds = testUsers.map((u) => u.id);
 
+    const students = await prisma.student.findMany({
+      where: { userId: { in: userIds } },
+      select: { id: true },
+    });
+    const studentIds = students.map((s) => s.id);
+
+    const portfolios = await prisma.portfolio.findMany({
+      where: { studentId: { in: studentIds } },
+      select: { id: true },
+    });
+    const portfolioIds = portfolios.map((p) => p.id);
+
+    // Ordre FK correct : enfants avant parents
     await prisma.studentSkill.deleteMany({
       where: { student: { userId: { in: userIds } } },
     });
@@ -83,7 +152,26 @@ describe("PUT /api/user/me/profile", () => {
     await prisma.refreshToken.deleteMany({
       where: { userId: { in: userIds } },
     });
+    await prisma.stage.deleteMany({
+      where: { studentId: { in: studentIds } },
+    });
+    await prisma.projet.deleteMany({
+      where: { portfolioId: { in: portfolioIds } },
+    });
+    await prisma.portfolio.deleteMany({
+      where: { studentId: { in: studentIds } },
+    });
     await prisma.student.deleteMany({
+      where: { userId: { in: userIds } },
+    });
+    // Professionnel avant User
+    await prisma.professionnel.deleteMany({
+      where: { userId: { in: userIds } },
+    });
+    await prisma.prof.deleteMany({
+      where: { userId: { in: userIds } },
+    });
+    await prisma.admin.deleteMany({
       where: { userId: { in: userIds } },
     });
     await prisma.skill.deleteMany({

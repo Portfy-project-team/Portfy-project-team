@@ -7,6 +7,7 @@ import rateLimit from "express-rate-limit";
 import authRoutes from "./modules/auth/auth.routes.js";
 import userRoutes from "./modules/user/user.routes.js";
 import adminRoutes from "./modules/admin/admin.routes.js";
+import portfolioRoutes from "./modules/portfolio/portfolio.routes.js";
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use(cors({
 app.use(express.json({ limit: "10kb" })); // Limite la taille des JSON entrants
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
+app.use("/api/portfolio", portfolioRoutes);
 
 // Rate Limiting Global
 const globalLimiter = rateLimit({
