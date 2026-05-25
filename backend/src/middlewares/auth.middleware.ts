@@ -1,4 +1,4 @@
-
+import { prisma } from "../utils/prisma.js";
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { Prisma } from "@prisma/client";
@@ -23,11 +23,11 @@ declare global {
 
 // ── verifyToken ───────────────────────────────────────────────────
 // A utiliser sur toutes les routes necessitant une authentification
-export const verifyToken = (
+export const verifyToken = async(
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
+): Promise<void> => {
   // Token lu depuis le cookie httpOnly — jamais depuis le body ou un header Authorization
   // Le frontend n'a pas acces a ce cookie (httpOnly) — envoye automatiquement par le navigateur
   const token = req.cookies?.access_token;
@@ -39,16 +39,37 @@ export const verifyToken = (
 
   try {
     const decoded = jwt.verify(token, JWT_ACCESS_SECRET) as {
-      userId: number;
-      role:   Role;
-    };
+  userId: number;
+  role?: Role;
+  };
 
-    req.user = {
-      id:    decoded.userId,
-      role:  decoded.role,
-    };
+if (!decoded.role) {
+const user = await prisma.user.findUnique({
+where: { id: decoded.userId },
+select: {
+id: true,
+role: true,
+},
+});
 
-    next();
+if (!user) {
+res.status(401).json({ message: "Utilisateur introuvable" });
+return;
+}
+
+req.user = {
+id: user.id,
+role: user.role as Role,
+};
+} else {
+req.user = {
+id: decoded.userId,
+role: decoded.role,
+};
+}
+
+next();
+
   } catch {
     // Token expire ou falsifie — nettoyer le cookie corrompu
     res.clearCookie("access_token", { httpOnly: true, sameSite: "strict", path: "/" });

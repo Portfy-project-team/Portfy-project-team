@@ -22,7 +22,7 @@ export const registerUser = async (data: RegisterInput) => {
   const { email, password, role } = data;
 
   // Hash EN PREMIER — temps de reponse constant que l'email existe ou non
-  // Sans ca : reponse immediate (~1ms) si email existe, ~400ms si non
+  // Sans ca : reponse immediate w(~1ms) si email existe, ~400ms si non
   // → un attaquant detecte les emails enregistres par le temps de reponse
   const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 

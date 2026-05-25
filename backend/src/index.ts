@@ -5,6 +5,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import authRoutes from "./modules/auth/auth.routes.js";
+import projectRoutes from "./modules/projects/project.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -39,6 +40,8 @@ app.use(globalLimiter);
 // 5. Routes
 app.use("/api/auth", authRoutes); // Ajout du préfixe /api pour la clarté
 
+app.use("/api/projects" , projectRoutes);
+
 // Route de santé (Healthcheck)
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", env: process.env.NODE_ENV });
@@ -51,9 +54,11 @@ app.use((req, res) => {
   res.status(404).json({ message: "Ressource introuvable" });
 });
 
+
+
 // app.listen(PORT, () => {
-//   console.log(`🚀 Portfy API sécurisée lancée sur le port ${PORT}`);
-//   if (!isProduction) console.log(`📡 CORS autorisé pour : ${process.env.FRONTEND_URL}`);
+//   console.log(` Portfy API sécurisée lancée sur le port ${PORT}`);
+//   if (!isProduction) console.log(` CORS autorisé pour : ${process.env.FRONTEND_URL}`);
 // });
 
 export default app;
