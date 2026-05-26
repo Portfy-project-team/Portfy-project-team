@@ -1,87 +1,10 @@
-
-
-# name: CI Pipeline
-
-# on:
-#   push:
-#     branches: [dev, main,feature/test-backend]
-#   pull_request:
-#     branches: [dev, main,feature/test-backend]
-
-# jobs:
-#   build:
-#     runs-on: ubuntu-latest
-#     postgres:
-#         image: postgres:16
-#         env:
-#           POSTGRES_USER: postgres
-#           POSTGRES_PASSWORD: postgres
-#           POSTGRES_DB: testdb
-#         ports:
-#           - 5432:5432
-#         options: >-
-#           --health-cmd="pg_isready -U postgres"
-#           --health-interval=10s
-#           --health-timeout=5s
-#           --health-retries=5
-#     env:
-#       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
-#       JWT_ACCESS_SECRET: testsecret
-#       JWT_REFRESH_SECRET: refreshsecret
-#       JWT_EXPIRES_IN: 15m
-#       JWT_REFRESH_EXPIRES_IN: 7d
-      
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v3
-
-#       - name: Setup Node
-#         uses: actions/setup-node@v3
-#         with:
-#           node-version: '22'
-
-#       - name: Install frontend
-#         run: |
-#           cd frontend
-#           npm install
-
-#       - name: Build frontend
-#         run: |
-#           cd frontend
-#           chmod +x node_modules/.bin/vite
-#           npm run build 
-
-#       - name: Install backend
-#         run: |
-#           cd backend
-#           npm install
-      
-#       - name: Generate Prisma Client
-#         run: |
-#           cd backend
-#           npx prisma generate
-# # trigger ci
-#       - name: Run backend tests
-#         env:
-#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-#           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-#           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-#           JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
-#           JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
-#           JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
-#           JWT_REFRESH_EXPIRES_IN: ${{ secrets.JWT_REFRESH_EXPIRES_IN }}
-#           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-#           MAIL_FROM: ${{ secrets.MAIL_FROM }}
-#         run: |
-#           cd backend
-#           npm test
 name: CI Pipeline
 
 on:
   push:
-    branches: [dev, main, feature/test-backend]
+    branches: [dev, main]
   pull_request:
-    branches: [dev, main, feature/test-backend]
+    branches: [dev, main]
 
 jobs:
   build:
