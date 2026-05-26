@@ -13,7 +13,7 @@ describe("GET /api/projects/pending", () => {
 
     await request(app).post("/api/auth/register").send({
       email: profEmail,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
       role: "STUDENT",
     });
 
@@ -24,7 +24,7 @@ describe("GET /api/projects/pending", () => {
 
     const profLogin = await request(app).post("/api/auth/login").send({
       email: profEmail,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
     });
 
     profCookies = Array.isArray(profLogin.headers["set-cookie"])
@@ -36,7 +36,7 @@ describe("GET /api/projects/pending", () => {
 
     await request(app).post("/api/auth/register").send({
       email: studentEmail,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
       role: "STUDENT",
     });
 
@@ -47,7 +47,7 @@ describe("GET /api/projects/pending", () => {
 
     const studentLogin = await request(app).post("/api/auth/login").send({
       email: studentEmail,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
     });
 
     studentCookies = Array.isArray(studentLogin.headers["set-cookie"])

@@ -11,7 +11,7 @@ describe("GET /api/portfolio/me", () => {
 
     await request(app).post("/api/auth/register").send({
       email,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
       role: "STUDENT",
     });
 
@@ -22,7 +22,7 @@ describe("GET /api/portfolio/me", () => {
 
     const login = await request(app).post("/api/auth/login").send({
       email,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
     });
 
     studentCookies = Array.isArray(login.headers["set-cookie"])
@@ -50,7 +50,7 @@ describe("GET /api/portfolio/me", () => {
 
     await request(app).post("/api/auth/register").send({
       email,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
       role: "PRO",
     });
 
@@ -64,7 +64,7 @@ describe("GET /api/portfolio/me", () => {
 
     const login = await request(app).post("/api/auth/login").send({
       email,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
     });
 
     const proCookies = Array.isArray(login.headers["set-cookie"])

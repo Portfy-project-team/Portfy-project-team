@@ -16,7 +16,7 @@ describe("POST /api/admin/reject-invite/:id", () => {
       .post("/api/auth/register")
       .send({
         email: adminEmail,
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
         role: "STUDENT",
       });
 
@@ -32,7 +32,7 @@ describe("POST /api/admin/reject-invite/:id", () => {
       .post("/api/auth/login")
       .send({
         email: adminEmail,
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
       });
 
     // adminCookies = login.headers["set-cookie"];

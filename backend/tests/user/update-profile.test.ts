@@ -16,7 +16,7 @@ describe("PUT /api/user/me/profile", () => {
       .post("/api/auth/register")
       .send({
         email: studentEmail,
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
         role: "STUDENT",
       });
 
@@ -29,7 +29,7 @@ describe("PUT /api/user/me/profile", () => {
       .post("/api/auth/login")
       .send({
         email: studentEmail,
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
       });
 
     studentCookies = Array.isArray(studentLogin.headers["set-cookie"])
@@ -43,7 +43,7 @@ describe("PUT /api/user/me/profile", () => {
       .post("/api/auth/register")
       .send({
         email: secondEmail,
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
         role: "STUDENT",
       });
 
@@ -56,7 +56,7 @@ describe("PUT /api/user/me/profile", () => {
       .post("/api/auth/login")
       .send({
         email: secondEmail,
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
       });
 
     secondStudentCookies = Array.isArray(secondLogin.headers["set-cookie"])
@@ -258,7 +258,7 @@ describe("PUT /api/user/me/profile", () => {
 //       .post("/api/auth/register")
 //       .send({
 //         email: studentEmail,
-//         password: "Secure123!!!",
+//         password: "SecurePassword123!!!",
 //         role: "STUDENT",
 //       });
 
@@ -271,7 +271,7 @@ describe("PUT /api/user/me/profile", () => {
 //       .post("/api/auth/login")
 //       .send({
 //         email: studentEmail,
-//         password: "Secure123!!!",
+//         password: "SecurePassword123!!!",
 //       });
 
 //     studentCookies = Array.isArray(studentLogin.headers["set-cookie"])
@@ -285,7 +285,7 @@ describe("PUT /api/user/me/profile", () => {
 //       .post("/api/auth/register")
 //       .send({
 //         email: secondEmail,
-//         password: "Secure123!!!",
+//         password: "SecurePassword123!!!",
 //         role: "STUDENT",
 //       });
 
@@ -298,7 +298,7 @@ describe("PUT /api/user/me/profile", () => {
 //       .post("/api/auth/login")
 //       .send({
 //         email: secondEmail,
-//         password: "Secure123!!!",
+//         password: "SecurePassword123!!!",
 //       });
 
 //     secondStudentCookies = Array.isArray(secondLogin.headers["set-cookie"])
@@ -447,7 +447,7 @@ describe("PUT /api/user/me/profile", () => {
 //       .post("/api/auth/register")
 //       .send({
 //         email: studentEmail,
-//         password: "Secure123!!!",
+//         password: "SecurePassword123!!!",
 //         role: "STUDENT",
 //       });
 
@@ -462,7 +462,7 @@ describe("PUT /api/user/me/profile", () => {
 //       .post("/api/auth/login")
 //       .send({
 //         email: studentEmail,
-//         password: "Secure123!!!",
+//         password: "SecurePassword123!!!",
 //       });
 
 //     studentCookies = Array.isArray(studentLogin.headers["set-cookie"])
@@ -478,7 +478,7 @@ describe("PUT /api/user/me/profile", () => {
 //       .post("/api/auth/register")
 //       .send({
 //         email: secondEmail,
-//         password: "Secure123!!!",
+//         password: "SecurePassword123!!!",
 //         role: "STUDENT",
 //       });
 
@@ -493,7 +493,7 @@ describe("PUT /api/user/me/profile", () => {
 //       .post("/api/auth/login")
 //       .send({
 //         email: secondEmail,
-//         password: "Secure123!!!",
+//         password: "SecurePassword123!!!",
 //       });
 
 //     secondStudentCookies = Array.isArray(secondLogin.headers["set-cookie"])
@@ -627,7 +627,7 @@ describe("PUT /api/user/me/profile", () => {
 //       .post("/api/auth/register")
 //       .send({
 //         email: studentEmail,
-//         password: "Secure123!!!",
+//         password: "SecurePassword123!!!",
 //         role: "STUDENT",
 //       });
 
@@ -643,7 +643,7 @@ describe("PUT /api/user/me/profile", () => {
 //       .post("/api/auth/login")
 //       .send({
 //         email: studentEmail,
-//         password: "Secure123!!!",
+//         password: "SecurePassword123!!!",
 //       });
 
 //     studentCookies = Array.isArray(studentLogin.headers["set-cookie"])
@@ -658,7 +658,7 @@ describe("PUT /api/user/me/profile", () => {
 
 //     const profEmail = `prof${Date.now()}@test.com`;
 
-//     const hashedProfPassword = await bcrypt.hash("Secure123!!!", 12);
+//     const hashedProfPassword = await bcrypt.hash("SecurePassword123!!!", 12);
 
 //     await prisma.user.create({
 //       data: {
@@ -674,7 +674,7 @@ describe("PUT /api/user/me/profile", () => {
 //       .post("/api/auth/login")
 //       .send({
 //         email: profEmail,
-//         password: "Secure123!!!",
+//         password: "SecurePassword123!!!",
 //       });
 
 //     profCookies = Array.isArray(profLogin.headers["set-cookie"])
@@ -689,7 +689,7 @@ describe("PUT /api/user/me/profile", () => {
 
 //     const proEmail = `pro${Date.now()}@test.com`;
 
-//     const hashedProPassword = await bcrypt.hash("Secure123!!!", 12);
+//     const hashedProPassword = await bcrypt.hash("SecurePassword123!!!", 12);
 
 //     await prisma.user.create({
 //       data: {
@@ -705,7 +705,7 @@ describe("PUT /api/user/me/profile", () => {
 //       .post("/api/auth/login")
 //       .send({
 //         email: proEmail,
-//         password: "Secure123!!!",
+//         password: "SecurePassword123!!!",
 //       });
 
 //     proCookies = Array.isArray(proLogin.headers["set-cookie"])

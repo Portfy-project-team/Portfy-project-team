@@ -15,7 +15,7 @@ describe("PUT /api/projects/:id/validate and reject", () => {
 
     await request(app).post("/api/auth/register").send({
       email: studentEmail,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
       role: "STUDENT",
     });
 
@@ -26,7 +26,7 @@ describe("PUT /api/projects/:id/validate and reject", () => {
 
     const studentLogin = await request(app).post("/api/auth/login").send({
       email: studentEmail,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
     });
 
     studentCookies = Array.isArray(studentLogin.headers["set-cookie"])
@@ -38,7 +38,7 @@ describe("PUT /api/projects/:id/validate and reject", () => {
 
     await request(app).post("/api/auth/register").send({
       email: profEmail,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
       role: "STUDENT",
     });
 
@@ -49,7 +49,7 @@ describe("PUT /api/projects/:id/validate and reject", () => {
 
     const profLogin = await request(app).post("/api/auth/login").send({
       email: profEmail,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
     });
 
     profCookies = Array.isArray(profLogin.headers["set-cookie"])

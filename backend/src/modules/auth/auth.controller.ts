@@ -62,9 +62,13 @@ export const registerController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const data = req.body
-  console.log(data)
-  const parsed = registerSchema.safeParse(data.data);
+  // const data = req.body
+  // console.log(data)
+  // // const parsed = registerSchema.safeParse(data.data);
+  // const parsed = registerSchema.safeParse(req.body?.data ?? req.body); // ← CORRECT
+
+   const body = req.body?.data ?? req.body;
+  const parsed = registerSchema.safeParse(body);
 
   if (!parsed.success) {
     res.status(400).json({
