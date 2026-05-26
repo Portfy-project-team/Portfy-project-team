@@ -198,3 +198,35 @@ jobs:
       #   run: |
       #     docker-compose pull
       #     docker-compose up -d
+
+      # ==========================================
+      # SONARQUBE ANALYSIS
+      # ==========================================
+
+      # À activer quand :
+      # - SonarQube installé dans VM GitLab
+      # - sonar-scanner configuré
+      # - SONAR_TOKEN ajouté dans GitHub Secrets
+
+      # - name: SonarQube Scan
+      #   run: |
+      #     sonar-scanner \
+      #       -Dsonar.projectKey=portfolio-project \
+      #       -Dsonar.sources=. \
+      #       -Dsonar.host.url=http://your-sonarqube-url:9000 \
+      #       -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+      
+
+      # ==========================================
+      # OWASP ZAP SECURITY SCAN
+      # ==========================================
+
+      # À activer quand :
+      # - application déployée/testable
+      # - frontend/backend accessibles
+      # - environnement Docker prêt
+
+      # - name: OWASP ZAP Scan
+      #   run: |
+      #     docker run -t zaproxy/zap-stable zap-baseline.py \
+      #     -t http://localhost:5173
