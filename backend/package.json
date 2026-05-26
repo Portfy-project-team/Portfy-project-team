@@ -30,6 +30,7 @@
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^8.0.5",
     "resend": "^6.12.3",
+    "ws": "^8.21.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
