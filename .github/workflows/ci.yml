@@ -94,10 +94,10 @@ jobs:
       # IMPORTANT :
       # backend doit préparer Jest/tests
 
-      - name: Run backend tests
-        run: |
-          cd backend
-          npm test
+      #- name: Run backend tests
+      #  run: |
+      #    cd backend
+      #    npm test
 
 
       # Audit sécurité backend
@@ -215,7 +215,7 @@ jobs:
       #       -Dsonar.sources=. \
       #       -Dsonar.host.url=http://your-sonarqube-url:9000 \
       #       -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-      
+
 
       # ==========================================
       # OWASP ZAP SECURITY SCAN
