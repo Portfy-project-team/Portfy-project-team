@@ -66,11 +66,11 @@
         <!-- Form Header -->
         <div class="form-header">
           <h2>Bon retour</h2>
-          <p>Connectez-vous à votre espace étudiant Portfy.</p>
+          <p>Connectez-vous à votre espace Portfy.</p>
         </div>
  
         <!-- Form -->
-        <form class="auth-form" @submit.prevent="handleLogin" novalidate>
+        <form class="auth-form login-form" @submit.prevent="handleLogin" novalidate>
           <div class="field-group">
             <label for="email">Adresse E-mail</label>
             <div class="input-wrapper">
@@ -142,7 +142,7 @@
         <div class="form-footer">
           <p class="no-account">
             Pas de compte ?
-            <router-link to="/register" class="inline-link">Continuer quand même</router-link>
+            <router-link to="/register" class="inline-link">Créer un compte</router-link>
           </p>
           <p class="security-note">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

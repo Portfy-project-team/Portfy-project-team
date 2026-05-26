@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 // ================= ROUTER =================
@@ -25,13 +25,109 @@ const accepted = ref(false)
 const formationType = ref('')
 const etablissement = ref('')
 const filiere = ref('')
+const filieres = [
+  'Informatique',
+  'Intelligence Artificielle',
+  'Cybersécurité',
+  'Réseaux & Télécommunications',
+  'Autre',
+]
 const niveau = ref('')
+
+// ================= NIVEAUX DISPONIBLES =================
+const niveauxDisponibles = computed(() => {
+  return niveauxParFormation[formationType.value] || []
+})
+const niveauxParFormation = {
+  faculte: [
+    'Licence 1',
+    'Licence 2',
+    'Licence 3',
+    'Master 1',
+    'Master 2'
+  ],
+
+  ecole: [
+    'CP1',
+    'CP2',
+    'Cycle 1',
+    'Cycle 2',
+    'Cycle 3'
+  ],
+
+  institut: [
+    '1ère année',
+    '2ème année',
+    '3ème année'
+  ]
+}
+
 const anneeEntree = ref('')
 const diplomePrevu = ref('')
+// ================= ANNEES ENTREE =================
+const currentYear = new Date().getFullYear()
+
+const anneesEntree = []
+
+const minYearEntree = currentYear - 10
+
+for (let year = currentYear; year >= minYearEntree; year--) {
+  anneesEntree.push(year)
+}
+
+// ================= ANNEES DIPLOME =================
+const anneesDiplome = []
+
+const minYearDiplome = 2018
+const maxYearDiplome = currentYear + 5
+
+for (let year = minYearDiplome; year <= maxYearDiplome; year++) {
+  anneesDiplome.push(year)
+}
 
 // ================= STEP 2 PROF =================
 const departement = ref('')
 const specialite = ref('')
+
+// ================= DEPARTEMENTS =================
+const departements = [
+  'Informatique',
+  'Mathématiques'
+]
+
+// ================= SPECIALITES =================
+const specialitesParDepartement = {
+
+  Informatique: [
+    'Développement Web',
+    'Développement Mobile',
+    'Intelligence Artificielle',
+    'Machine Learning',
+    'Data Science',
+    'Cybersécurité',
+    'Cloud Computing',
+    'Réseaux',
+    'Systèmes embarqués',
+    'Génie logiciel',
+    'DevOps',
+    'QA Testing',
+    'Software Testing',
+    'Blockchain'
+  ],
+
+  Mathématiques: [
+    'Mathématiques appliquées',
+    'Statistiques',
+    'Recherche opérationnelle',
+    'Analyse numérique'
+  ]
+
+}
+
+// ================= SPECIALITES DISPONIBLES =================
+const specialitesDisponibles = computed(() => {
+  return specialitesParDepartement[departement.value] || []
+})
 
 // ================= STEP 2 PRO =================
 const Entreprise = ref('')
@@ -48,13 +144,18 @@ const disponibilite = ref('')
 const linkedin = ref('')
 const photoPreview = ref('')
 // ================= STEP 3 prof =================
-const matieres = ref([])
-const anneeExperience = ref('')
+
 
 // ================= STEP 3 PRO =================
 const descriptionEntreprise = ref('')
 const siteEntreprise = ref('')
 const localisation = ref('')
+// ================= DOCUMENT VERIFICATION =================
+const verificationDocumentProf = ref(null)
+const verificationDocumentNameProf = ref('')
+const verificationDocumentPro = ref(null)
+const verificationDocumentNamePro = ref('')
+const isDragging = ref(false)
 
 // ================= ERRORS =================
 const errors = reactive({
@@ -90,9 +191,8 @@ const errors = reactive({
   descriptionEntreprise: '',
   siteEntreprise: '',
   localisation: '',
-  matieres: '',
-  anneeExperience: '',
-
+  verificationDocument: '',
+  
 })
 
 // ================= CLEAR ERRORS =================
@@ -127,6 +227,52 @@ const handlePhoto = (event) => {
   if (file) {
     photoPreview.value = URL.createObjectURL(file)
   }
+}
+// ================= DOCUMENT =================
+const handleDocument = (event, type) => {
+  const file = event.target.files[0]
+
+  validateDocument(file, type)
+}
+
+const validateDocument = (file, type) => {
+  if (!file) return
+
+  const allowedTypes = [
+    'application/pdf',
+    'image/png',
+    'image/jpeg'
+  ]
+
+  if (!allowedTypes.includes(file.type)) {
+    alert('Format accepté : PDF, JPG, PNG')
+    return
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    alert('Taille max : 5MB')
+    return
+  }
+
+  // ========= PROF =========
+  if (type === 'PROF') {
+    verificationDocumentProf.value = file
+    verificationDocumentNameProf.value = file.name
+  }
+
+  // ========= PRO =========
+  if (type === 'PRO') {
+    verificationDocumentPro.value = file
+    verificationDocumentNamePro.value = file.name
+  }
+}
+
+const onDrop = (event, type) => {
+  isDragging.value = false
+
+  const file = event.dataTransfer.files[0]
+
+  validateDocument(file, type)
 }
 
 // ================= NEXT STEP =================
@@ -269,13 +415,8 @@ const nextStep = () => {
       isValid = false
     }
 
-    if (!pays.value.trim()) {
-      errors.pays = 'Champ obligatoire'
-      isValid = false
-    }
-
-    if (!ville.value.trim()) {
-      errors.ville = 'Champ obligatoire'
+    if (!localisation.value.trim()) {
+      errors.localisation = 'Champ obligatoire'
       isValid = false
     }
 
@@ -307,10 +448,6 @@ const register = () => {
   let isValid = true
 
   // ========= VALIDATION COMMUNE =========
-  if (!photoPreview.value) {
-    alert('Veuillez ajouter une photo')
-    isValid = false
-  }
 
   if (!bio.value.trim()) {
     errors.bio = 'Bio obligatoire'
@@ -342,12 +479,18 @@ const register = () => {
       errors.descriptionEntreprise = 'Description obligatoire'
       isValid = false
     }
-
-    if (!siteEntreprise.value.trim()) {
-      errors.siteEntreprise = 'Site web obligatoire'
-      isValid = false
-    }
   }
+  // ========= DOCUMENT JUSTIFICATIF =========
+if (
+  (role.value === 'PROF' || role.value === 'PRO') &&
+  (role.value === 'PROF' && !verificationDocumentProf.value) ||
+(role.value === 'PRO' && !verificationDocumentPro.value)
+) {
+  errors.verificationDocument =
+    'Veuillez ajouter un document justificatif'
+
+  isValid = false
+}
 
   if (!isValid) return
 
@@ -369,15 +512,11 @@ const register = () => {
     Entreprise: Entreprise.value,
     Poste: Poste.value,
     secteur: secteur.value,
-    pays: pays.value,
-    ville: ville.value,
     bio: bio.value,
     linkedin: linkedin.value,
     descriptionEntreprise: descriptionEntreprise.value,
     siteEntreprise: siteEntreprise.value,
     localisation: localisation.value,
-    matieres: matieres.value,
-    anneeExperience: anneeExperience.value,
   
   }
   console.log('Nom:', name.value)
@@ -456,13 +595,30 @@ const register = () => {
         <div class="form-header">
           <template v-if="currentStep === 1">
             <h2>Créez votre compte</h2>
-            <p>Rejoignez l'espace étudiant Portfy</p>
+            <p>Rejoignez votre espace Portfy</p>
           </template>
-
+  
           <template v-if="currentStep === 2">
-            <h2>Votre formation</h2>
-            <p>Renseignez votre établissement et votre cursus</p>
-          </template>
+
+  <!-- ETUDIANT -->
+  <template v-if="role === 'STUDENT'">
+    <h2>Votre formation</h2>
+    <p>Renseignez votre établissement et votre cursus</p>
+  </template>
+
+  <!-- PROF -->
+  <template v-else-if="role === 'PROF'">
+    <h2>Formation du professeur</h2>
+    <p>Renseignez votre établissement et votre spécialité</p>
+  </template>
+
+  <!-- PROFESSIONNEL -->
+  <template v-else-if="role === 'PRO'">
+    <h2>Informations professionnelles</h2>
+    <p>Renseignez votre entreprise et votre poste</p>
+  </template>
+
+</template>
 
           <template v-if="currentStep === 3">
             <h2>Votre profil</h2>
@@ -499,9 +655,9 @@ const register = () => {
           </div>
 
           <div class="steps-labels">
-            <span :class="{ 'label-active': currentStep === 1 }">Infos perso.</span>
-            <span :class="{ 'label-active': currentStep === 2 }">Formation</span>
-            <span :class="{ 'label-active': currentStep === 3 }">Profil</span>
+            <span :class="{ 'label-active': currentStep === 1 }">Etape 1</span>
+            <span :class="{ 'label-active': currentStep === 2 }">Etape 2</span>
+            <span :class="{ 'label-active': currentStep === 3 }">Etape 3</span>
           </div>
         </div>
 
@@ -571,6 +727,7 @@ const register = () => {
               </label>
             </div>
             <span v-if="errors.accepted" class="field-error">{{ errors.accepted }}</span>
+           
           </div>
 
           <!-- STEP 2 etu-->
@@ -583,7 +740,7 @@ const register = () => {
                   type="button"
                   class="formation-card"
                   :class="{ selected: formationType === 'faculte' }"
-                  @click="formationType = 'faculte'"
+                  @click="formationType = 'faculte'; niveau = ''"
                 >
                   <span class="formation-icon">🎓</span>
                   <strong>Faculté</strong>
@@ -594,7 +751,7 @@ const register = () => {
                   type="button"
                   class="formation-card"
                   :class="{ selected: formationType === 'ecole' }"
-                  @click="formationType = 'ecole'"
+                  @click="formationType = 'ecole'; niveau = ''"
                 >
                   <span class="formation-icon">🏫</span>
                   <strong>École supérieure</strong>
@@ -605,7 +762,7 @@ const register = () => {
                   type="button"
                   class="formation-card"
                   :class="{ selected: formationType === 'institut' }"
-                  @click="formationType = 'institut'"
+                  @click="formationType = 'institut'; niveau = ''"
                 >
                   <span class="formation-icon">💼</span>
                   <strong>Institut</strong>
@@ -621,7 +778,7 @@ const register = () => {
             <div class="field-group">
               <label>Établissement <span class="required-star">*</span></label>
               <div class="input-wrapper">
-                <input v-model="etablissement" type="text" placeholder="Ex : Ensa, Tanger">
+                <input v-model="etablissement" type="text" placeholder="Ex : Ensa Tanger">
               </div>
               <span v-if="errors.etablissement" class="field-error">
                 {{ errors.etablissement }}
@@ -632,7 +789,19 @@ const register = () => {
               <div class="field-group">
                 <label>Filière / Spécialité <span class="required-star">*</span></label>
                 <div class="input-wrapper">
-                  <input v-model="filiere" type="text" placeholder="Ex : Informatique">
+                  <select v-model="filiere">
+  <option value="">
+    Choisir une filière
+  </option>
+
+  <option
+    v-for="fil in filieres"
+    :key="fil"
+    :value="fil"
+  >
+    {{ fil }}
+  </option>
+</select>
                 </div>
                 <span v-if="errors.filiere" class="field-error">{{ errors.filiere }}</span>
               </div>
@@ -640,13 +809,22 @@ const register = () => {
               <div class="field-group">
                 <label>Niveau d’études <span class="required-star">*</span></label>
                 <div class="input-wrapper">
-                  <select v-model="niveau">
-                    <option value="">Sélectionner</option>
-                    <option>Bac+1</option>
-                    <option>Bac+2</option>
-                    <option>Bac+3</option>
-                    <option>Master</option>
-                  </select>
+                  <select
+  v-model="niveau"
+  :disabled="!formationType"
+>
+  <option value="">
+    Sélectionner un niveau
+  </option>
+
+  <option
+    v-for="niv in niveauxDisponibles"
+    :key="niv"
+    :value="niv"
+  >
+    {{ niv }}
+  </option>
+</select>
                 </div>
                 <span v-if="errors.niveau" class="field-error">{{ errors.niveau }}</span>
               </div>
@@ -656,14 +834,20 @@ const register = () => {
               <div class="field-group">
                 <label>Année d’entrée <span class="required-star">*</span></label>
                 <div class="input-wrapper">
-                  <input
-                    v-model="anneeEntree"
-                    type="text"
-                    inputmode="numeric"
-                    maxlength="4"
-                    placeholder="Année"
-                  >
-                </div>
+  <select v-model="anneeEntree">
+    <option value="">
+      Sélectionner une année
+    </option>
+
+    <option
+      v-for="year in anneesEntree"
+      :key="year"
+      :value="year"
+    >
+      {{ year }}
+    </option>
+  </select>
+</div>
                 <span v-if="errors.anneeEntree" class="field-error">
                   {{ errors.anneeEntree }}
                 </span>
@@ -672,14 +856,20 @@ const register = () => {
               <div class="field-group">
                 <label>Diplôme prévu <span class="required-star">*</span></label>
                 <div class="input-wrapper">
-                  <input
-                    v-model="diplomePrevu"
-                    type="text"
-                    inputmode="numeric"
-                    maxlength="4"
-                    placeholder="Année"
-                  >
-                </div>
+  <select v-model="diplomePrevu">
+    <option value="">
+      Sélectionner une année
+    </option>
+
+    <option
+      v-for="year in anneesDiplome"
+      :key="year"
+      :value="year"
+    >
+      {{ year }}
+    </option>
+  </select>
+</div>
                 <span v-if="errors.diplomePrevu" class="field-error">
                   {{ errors.diplomePrevu }}
                 </span>
@@ -705,11 +895,20 @@ const register = () => {
     <label>Département <span class="required-star">*</span></label>
 
     <div class="input-wrapper">
-      <input
-        v-model="departement"
-        type="text"
-        placeholder="Ex : Informatique"
-      >
+      <select
+  v-model="departement"
+  @change="specialite = ''"
+>
+  <option value="">Choisir un département</option>
+
+  <option
+    v-for="dep in departements"
+    :key="dep"
+    :value="dep"
+  >
+    {{ dep }}
+  </option>
+</select>
     </div>
   </div>
 
@@ -717,12 +916,47 @@ const register = () => {
     <label>Spécialité <span class="required-star">*</span></label>
 
     <div class="input-wrapper">
-      <input
-        v-model="specialite"
-        type="text"
-        placeholder="Ex : Intelligence Artificielle">
+      <select
+  v-model="specialite"
+  :disabled="!departement"
+>
+  <option value="">
+    Choisir une spécialité
+  </option>
+
+  <option
+    v-for="spec in specialitesDisponibles"
+    :key="spec"
+    :value="spec"
+  >
+    {{ spec }}
+  </option>
+</select>
     </div>
   </div>
+  <div class="field-group">
+  <label>
+    Profil LinkedIn
+    <span class="optional">(optionnel)</span>
+  </label>
+
+  <div class="linkedin-input">
+    <span>linkedin.com/in/</span>
+
+    <input
+      v-model="linkedin"
+      type="text"
+      placeholder="prenom-nom"
+    >
+  </div>
+
+  <span
+    v-if="errors.linkedin"
+    class="field-error"
+  >
+    {{ errors.linkedin }}
+  </span>
+</div>
 
 </div>
 <!-- STEP 2 PROFESSIONNEL -->
@@ -743,7 +977,7 @@ const register = () => {
     </div>
 
     <span v-if="errors.Entreprise" class="field-error">
-      {{ errors.entreprise }}
+      {{ errors.Entreprise }}
     </span>
   </div>
 
@@ -757,8 +991,7 @@ const register = () => {
         placeholder="Ex : Responsable RH"
       >
     </div>
-
-    <span v-if="errors.poste" class="field-error">
+    <span v-if="errors.Poste" class="field-error">
       {{ errors.Poste }}
     </span>
   </div>
@@ -778,37 +1011,32 @@ const register = () => {
       {{ errors.secteur }}
     </span>
   </div>
+
   <div class="field-group">
-    <label>Pays <span class="required-star">*</span></label>
+    <label> Localisation <span class="required-star">*</span></label>
 
     <div class="input-wrapper">
       <input
-        v-model="pays"
+        v-model="localisation"
         type="text"
-        placeholder="Ex : Maroc"
+        placeholder="Ex : 25 RUE MOHAMED V TANGER, 90000"
       >
     </div>
 
-    <span v-if="errors.pays" class="field-error">
-      {{ errors.pays }}
+    <span v-if="errors.localisation" class="field-error">
+      {{ errors.localisation }}
     </span>
   </div>
-
   <div class="field-group">
-    <label>Ville <span class="required-star">*</span></label>
+            <label> Site web</label>
+            <div class="input-wrapper">
+            <input v-model="siteEntreprise" type="text" placeholder="https://entreprise.com">
+            </div>
 
-    <div class="input-wrapper">
-      <input
-        v-model="ville"
-        type="text"
-        placeholder="Ex : Tanger"
-      >
-    </div>
-
-    <span v-if="errors.ville" class="field-error">
-      {{ errors.ville }}
-    </span>
-  </div>
+            <span v-if="errors.siteEntreprise" class="field-error">
+            {{ errors.siteEntreprise }}
+            </span>
+            </div>
 
 </div>
 
@@ -975,27 +1203,59 @@ const register = () => {
                 {{ errors.descriptionEntreprise }}
               </span>
             </div>
+            <!-- DOCUMENT JUSTIFICATIF -->
+<div class="field-group">
+  <label>
+    Document justificatif
+    <span class="required-star">*</span>
+  </label>
 
-            <div class="field-group">
-            <label> Site web <span class="required-star">*</span></label>
-            <div class="input-wrapper">
-            <input v-model="siteEntreprise" type="text" placeholder="https://entreprise.com">
-            </div>
+  <div
+    class="upload-zone"
+    :class="{ dragging: isDragging }"
+    @dragover.prevent="isDragging = true"
+    @dragleave.prevent="isDragging = false"
+    @drop.prevent="onDrop($event, 'PRO')"
+  >
+    <input
+      type="file"
+      hidden
+      id="verification-upload"
+      accept=".pdf,.png,.jpg,.jpeg"
+      @change="handleDocument($event, 'PRO')"
+    >
 
-            <span v-if="errors.siteEntreprise" class="field-error">
-            {{ errors.siteEntreprise }}
-            </span>
-            </div>
-            <div class="field-group">
-              <label> Localisation de l'entreprise <span class="required-star">*</span></label>
-            <div class="input-wrapper">
-            <input v-model="localisation" type="text" placeholder="Ex : 25 Rue Mohammed V, Tanger 90000, Maroc">
-            </div>
+    <label for="verification-upload" class="upload-label">
+      <div class="upload-content">
+        <span class="upload-icon">📄</span>
 
-            <span v-if="errors.localisation" class="field-error">
-            {{ errors.localisation }}
-            </span>
-          </div>
+        <p>
+          Glissez votre attestation de travail ou tout document officiel équivalent ici
+          ou <strong>cliquez pour importer</strong>
+        </p>
+
+        <small>
+          PDF, JPG ou PNG • max 5 MB
+        </small>
+      </div>
+    </label>
+  </div>
+
+  <div
+    v-if="verificationDocumentNamePro"
+    class="uploaded-file"
+  >
+    ✅ {{ verificationDocumentNamePro }}
+  </div>
+
+  <span
+    v-if="errors.verificationDocument"
+    class="field-error"
+  >
+    {{ errors.verificationDocument }}
+  </span>
+</div>
+
         </div>
           <!-- STEP 3 PROF -->
           <div v-if="currentStep === 3 && role === 'PROF'" class="profile-step">
@@ -1049,115 +1309,58 @@ const register = () => {
       {{ errors.bioProf }}
     </span>
   </div>
+  <!-- DOCUMENT JUSTIFICATIF -->
+<div class="field-group">
+  <label>
+    Document justificatif
+    <span class="required-star">*</span>
+  </label>
 
-  <!-- MATIERES -->
-  <div class="field-group">
-    <label>Matières enseignées</label>
-
-    <div class="skills-box">
-
-      <div class="skills-list">
-        <span
-          v-for="(matiere, index) in matieres"
-          :key="index"
-          class="skill-tag"
-        >
-          {{ matiere }}
-
-          <button
-            type="button"
-            @click="matieres.splice(index, 1)"
-          >
-            ×
-          </button>
-        </span>
-      </div>
-
-      <div class="skill-input-row">
-        <input
-          v-model="newMatiere"
-          type="text"
-          placeholder="Ajouter une matière..."
-          @keyup.enter.prevent="
-            matieres.push(newMatiere);
-            newMatiere = ''
-          "
-        >
-
-        <button
-          type="button"
-          class="add-skill-btn"
-          @click="
-            matieres.push(newMatiere);
-            newMatiere = ''
-          "
-        >
-          +
-        </button>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- EXPERIENCE -->
-  <div class="field-group">
-    <label>
-      Années d’expérience
-      <span class="required-star">*</span>
-    </label>
-
-    <div class="input-wrapper">
-      <input
-        v-model="experience"
-        type="text"
-        placeholder="Ex : 12 ans"
-      >
-    </div>
-
-    <span
-      v-if="errors.experience"
-      class="field-error"
+  <div
+    class="upload-zone"
+    :class="{ dragging: isDragging }"
+    @dragover.prevent="isDragging = true"
+    @dragleave.prevent="isDragging = false"
+    @drop.prevent="onDrop($event, 'PROF')"
+  >
+    <input
+      type="file"
+      hidden
+      id="verification-upload"
+      accept=".pdf,.png,.jpg,.jpeg"
+      @change="handleDocument($event, 'PROF')"
     >
-      {{ errors.experience }}
-    </span>
-  </div>
 
-  <!-- LINKEDIN -->
-  <div class="field-group">
-    <label>
-      Profil LinkedIn
+    <label for="verification-upload" class="upload-label">
+      <div class="upload-content">
+        <span class="upload-icon">📄</span>
+
+        <p>
+          Glissez votre attestation de travail ou tout document officiel équivalent ici
+          ou <strong>cliquez pour importer</strong>
+        </p>
+
+        <small>
+          PDF, JPG ou PNG • max 5 MB
+        </small>
+      </div>
     </label>
-
-    <div class="linkedin-input">
-      <span>linkedin.com/in/</span>
-
-      <input
-        v-model="linkedinProf"
-        type="text"
-        placeholder="prenom-nom"
-      >
-    </div>
-
-    <span
-      v-if="errors.linkedinProf"
-      class="field-error"
-    >
-      {{ errors.linkedinProf }}
-    </span>
   </div>
 
-    <!-- SITE -->
-  <div class="field-group">
-    <label>Site personnel</label>
-
-    <div class="input-wrapper">
-      <input
-        v-model="siteProf"
-        type="text"
-        placeholder="https://monsite.com"
-      >
-    </div>
+  <div
+    v-if="verificationDocumentNameProf"
+    class="uploaded-file"
+  >
+    ✅ {{ verificationDocumentNameProf }}
   </div>
+
+  <span
+    v-if="errors.verificationDocument"
+    class="field-error"
+  >
+    {{ errors.verificationDocument }}
+  </span>
+</div>
 
 </div>
 
@@ -1229,5 +1432,50 @@ select {
   background-position: right 16px center;
 
   background-size: 18px;
+}
+.upload-zone {
+  border: 2px dashed #b7c7cc;
+  border-radius: 16px;
+  padding: 28px;
+  background: #f7fafb;
+  transition: 0.25s;
+  cursor: pointer;
+}
+
+.upload-zone.dragging {
+  border-color: #0f766e;
+  background: #ecfeff;
+}
+
+.upload-label {
+  cursor: pointer;
+  display: block;
+}
+
+.upload-content {
+  text-align: center;
+}
+
+.upload-icon {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.upload-content p {
+  margin: 0;
+  font-weight: 600;
+  color: #003344;
+}
+
+.upload-content small {
+  color: #6b7280;
+}
+
+.uploaded-file {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #0f766e;
+  font-weight: 600;
 }
 </style>
