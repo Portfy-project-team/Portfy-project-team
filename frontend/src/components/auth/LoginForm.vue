@@ -219,7 +219,7 @@ async function handleLogin() {
 
     authStore.login(fakeUser)
 
-    router.push('/dashboard')
+    router.push('/student/dashboard')
 
   } catch (err) {
     serverError.value = "Identifiants incorrects."
