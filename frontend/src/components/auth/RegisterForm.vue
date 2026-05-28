@@ -229,51 +229,63 @@ const register = async () => {
     return
   }
 
-  // Gathering all variables into one single payload object
-  const userData = {
-    name: name.value,
-    role: role.value,
-    prenom: prenom.value,
-    email: email.value,
-    password: password.value,
-    formationType: formationType.value,
-    etablissement: etablissement.value,
-    filiere: filiere.value,
-    niveau: niveau.value,
-    anneeEntree: anneeEntree.value,
-    diplomePrevu: diplomePrevu.value,
-    bio: bio.value,
-    skills: skills.value,
-    disponibilite: disponibilite.value,
-    linkedin: linkedin.value
-  }
-  const sentData = {
-    email:email.value,
-    password: password.value,
-    role : role.value
-  }
+const userData = {
+  name: name.value,
+  role: role.value,
+  prenom: prenom.value,
+  email: email.value,
+  password: password.value,
+  formationType: formationType.value,
+  etablissement: etablissement.value,
+  filiere: filiere.value,
+  niveau: niveau.value,
+  anneeEntree: anneeEntree.value,
+  diplomePrevu: diplomePrevu.value,
+  bio: bio.value,
+  skills: skills.value,
+  disponibilite: disponibilite.value,
+  linkedin: linkedin.value
+}
 
-  try {
-    const response = await axios.post('http://localhost:3000/api/auth/register', {
-      data : sentData
-    })
+const sentData = {
+  email: email.value,
+  password: password.value,
+  role: role.value
+}
 
-    // Check if registration was successful
-    if (response.data && response.data.success === true) {
-      // Show success message
-      const successMessage = response.data.message || 'Compte créé avec succès!'
-      
-      // Redirect to login page
-      router.push('/login')
-    } else {
-      // Handle case where success is false or not present
-      throw new Error(response.data?.message || 'Erreur lors de la création du compte')
+try {
+  const response = await axios.post(
+    'http://localhost:3000/api/auth/register',
+    {
+      data: sentData
     }
-  } catch (error) {
-    console.error('Registration failed:', error)
-    // Display error message from response if available
-    const errorMessage = error.response?.data?.message || error.message || 'Erreur lors de la création du compte'
+  )
+
+  if (response.data && response.data.success === true) {
+
+    alert('Compte créé avec succès')
+
+    router.push('/login')
+
+  } else {
+
+    throw new Error(
+      response.data?.message ||
+      'Erreur lors de la création du compte'
+    )
   }
+
+} catch (error) {
+
+  console.error('Registration failed:', error)
+
+  const errorMessage =
+    error.response?.data?.message ||
+    error.message ||
+    'Erreur lors de la création du compte'
+
+  alert(errorMessage)
+
 }
 </script>
 <template>
