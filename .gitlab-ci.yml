@@ -4,4 +4,7 @@ stages:
 test-job:
   stage: test
   script:
-    - echo "Test OK"
+     - cd backend
+     - npm install
+     - npx prisma generate
+     - npm test

@@ -161,6 +161,7 @@ import { useAuthStore } from '../../store/authStore'
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import '../../styles/auth.css' // 👈 مهم
+import axios from 'axios'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -211,7 +212,14 @@ async function handleLogin() {
   isLoading.value = true
   try {
     // simulate API
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const res = await axios.post("http://localhost:3000/api/auth/login", {
+    email: form.email,
+    password : form.password
+  } )
+
+    const response = res.json();
+    console.log(response)
+
 
     const fakeUser = {
       email: form.email
@@ -219,7 +227,7 @@ async function handleLogin() {
 
     authStore.login(fakeUser)
 
-    router.push('/dashboard')
+    router.push('/student/dashboard')
 
   } catch (err) {
     serverError.value = "Identifiants incorrects."

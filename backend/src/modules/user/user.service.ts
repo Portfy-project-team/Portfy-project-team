@@ -94,6 +94,9 @@ export const UserService = {
     if (!user) {
       throw new Error("user not found");
     }
+    if (!user.password) {
+  throw new Error("Utilisez Google pour vous connecter");
+}
     const isValid = await bcrypt.compare(data.currentPassword, user.password);
     if (!isValid) {
       throw new Error("current password is incorrect");

@@ -63,18 +63,29 @@ interface SendEmailOptions {
 }
 // Fonction principale — appelée par les services qui ont besoin d'envoyer un mail
 export const sendEmail = async (options: SendEmailOptions): Promise<void> => {
-   if (isTest) {
+  if (isTest) {
     return;
   }
- 
-  // await transporter.sendMail({
-  // await transporter!.sendMail({
-   await resend!.emails.send({
-    from:    MAIL_FROM,
-    to:      options.to,
-    subject: options.subject,
-    html:    options.html,
-  });
+  
+  try {
+    const { data, error } = await resend!.emails.send({
+      from:  MAIL_FROM,
+      to:    options.to,
+      subject: options.subject,
+      html:  options.html,
+    });
+
+    // Resend renvoie les erreurs de l'API ici au lieu de 'throw'
+    if (error) {
+      console.error("❌ Erreur API Resend:", error);
+      throw new Error(error.message);
+    }
+
+    console.log("✅ Email envoyé avec succès. ID:", data?.id);
+  } catch (err) {
+    console.error("❌ Erreur critique d'envoi d'email:", err);
+    throw err; // Relancer l'erreur pour que le contrôleur puisse la gérer
+  }
 };
 
 // Templates email — centralisés ici pour faciliter la maintenance
