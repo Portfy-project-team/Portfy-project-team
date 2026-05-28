@@ -6,17 +6,35 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+enum UserStatus{
+  ACTIVE
+  PENDING
+  BLOCKED
+  REJECTED
+}
 
 model User {
   id            Int            @id @default(autoincrement())
   email         String         @unique
-  password      String
+  password      String?
   role          Role
+  name String?
+  isEmailVerified          Boolean   @default(false)
+  emailVerificationToken   String?
+  emailVerificationExpires DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt DateTime @updatedAt  
   admin         Admin?
   prof          Prof?
   professionnel Professionnel?
   refreshTokens RefreshToken[]
+  loginLogs           LoginLog[]           
+  passwordResetTokens PasswordResetToken[]
   student       Student?
+  status UserStatus @default(PENDING)
+  // ── Champs OAuth Google ────────────────────────────
+  googleId        String?  @unique  // ID unique retourné par Google via Supabase
+  avatarUrl       String?           // Photo de profil Google
 }
 
 model RefreshToken {
@@ -25,6 +43,36 @@ model RefreshToken {
   createdAt DateTime @default(now())
   userId    Int
   id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model LoginLog {
+  id        Int         @id @default(autoincrement())
+  userId    Int
+  ip        String?
+  userAgent String?
+  status    LoginStatus @default(SUCCESS)
+  createdAt DateTime    @default(now())
+  user      User        @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+enum LoginStatus {
+  SUCCESS
+  FAILED
+  LOGOUT
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
 
   @@index([userId])

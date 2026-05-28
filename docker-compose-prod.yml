@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+
+  # ── BASE DE DONNÉES ──────────────────────────────
+  db:
+    image: postgres:16.8-alpine
+    container_name: portfy_db_prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - portfy_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── BACKEND ──────────────────────────────────────
+  backend:
+    image: ayadz/portfy-backend:latest
+    container_name: portfy_backend_prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: ${PORT}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      FRONTEND_URL: ${FRONTEND_URL}
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USER: ${MAIL_USER}
+      MAIL_PASS: ${MAIL_PASS}
+      MAIL_FROM: ${MAIL_FROM}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - portfy_network
+
+  # ── FRONTEND ─────────────────────────────────────
+  frontend:
+    image: ayadz/portfy-frontend:latest
+    container_name: portfy_frontend_prod
+    restart: always
+    depends_on:
+      - backend
+    networks:
+      - portfy_network
+
+  # ── REVERSE PROXY ────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: portfy_nginx_prod
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - portfy_network
+
+volumes:
+  postgres_data:
+    name: portfy_postgres_data_prod
+
+networks:
+  portfy_network:
+    driver: bridge
+    name: portfy_network_prod
