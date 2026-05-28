@@ -287,6 +287,7 @@ try {
   alert(errorMessage)
 
 }
+}
 </script>
 <template>
   <div class="register-page">
