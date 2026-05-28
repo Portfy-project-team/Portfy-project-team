@@ -14,8 +14,10 @@ import {
   sendVerificationEmail,
   resendVerificationEmail,
   forgotPasswordService,
-  resetPasswordService,
-} from "./auth.service.js";
+  resetPasswordService} from "./auth.service.js";
+import { generateAccessToken, generateRefreshToken } from "../../utils/jwt.js";
+import { completeGoogleRegistration, loginOrRegisterWithGoogle, verifyAndGetGoogleUser } from "./auth.google.service.js";
+import { prisma } from "../../utils/prisma.js";
 
 const ACCESS_COOKIE_OPTIONS = {
   httpOnly: true,
@@ -60,7 +62,13 @@ export const registerController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const parsed = registerSchema.safeParse(req.body);
+  // const data = req.body
+  // console.log(data)
+  // // const parsed = registerSchema.safeParse(data.data);
+  // const parsed = registerSchema.safeParse(req.body?.data ?? req.body); // ← CORRECT
+
+   const body = req.body?.data ?? req.body;
+  const parsed = registerSchema.safeParse(body);
 
   if (!parsed.success) {
     res.status(400).json({
@@ -72,12 +80,14 @@ export const registerController = async (
 
   try {
     const user = await registerUser(parsed.data);
+    console.log(user)
 
-    sendVerificationEmail(user.id, user.email).catch((err) => {
+  sendVerificationEmail(user.id, user.email).catch((err) => {
       console.error("[registerController] Echec envoi email:", err);
     });
 
     res.status(201).json({
+      success : true,
       message: "Compte créé avec succès. Vérifiez votre email pour activer votre compte.",
       user,
     });
@@ -251,5 +261,152 @@ export const resetPasswordController = async (
     });
   } catch (error) {
     handleError(error, res, "resetPasswordController");
+  }
+};
+
+
+
+// ── Google OAuth Callback ─────────────────────────────────────────
+export const googleCallbackController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { supabaseAccessToken } = req.body;
+
+  if (!supabaseAccessToken || typeof supabaseAccessToken !== "string") {
+    res.status(400).json({ message: "Token Supabase manquant" });
+    return;
+  }
+
+  try {
+    const { user, accessToken, refreshToken } =
+      await loginOrRegisterWithGoogle(supabaseAccessToken, {
+        ip:        req.ip,
+        userAgent: req.headers["user-agent"] as string,
+      });
+
+    res.cookie("access_token",  accessToken,  ACCESS_COOKIE_OPTIONS);
+    res.cookie("refresh_token", refreshToken, REFRESH_COOKIE_OPTIONS);
+
+    res.status(200).json({
+      message: "Connexion Google réussie",
+      user,
+    });
+  } catch (error) {
+    handleError(error, res, "googleCallbackController");
+  }
+};
+
+// ── Étape 1 : Vérifier token Google ──────────────────────────────
+// Vérifie le token Supabase et retourne si c'est un nouvel utilisateur
+export const googleVerifyController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { supabaseAccessToken } = req.body;
+
+  if (!supabaseAccessToken || typeof supabaseAccessToken !== "string") {
+    res.status(400).json({ message: "Token Supabase manquant" });
+    return;
+  }
+
+  try {
+    const googleUser = await verifyAndGetGoogleUser(supabaseAccessToken);
+
+    // Vérifier si l'utilisateur existe déjà en DB
+    const existing = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { googleId: googleUser.googleId },
+          { email:    googleUser.email    },
+        ],
+      },
+      select: { id: true, role: true, status: true },
+    });
+
+    if (existing) {
+      // Utilisateur existant — connexion directe
+      const result = await completeGoogleRegistration(
+        googleUser.googleId,
+        googleUser.email,
+        googleUser.avatarUrl,
+        existing.role as "STUDENT" | "PRO" | "PROF",
+        { ip: req.ip, userAgent: req.headers["user-agent"] as string }
+      );
+
+      if (result.pending) {
+        res.status(200).json({ status: "PENDING", user: result.user });
+        return;
+      }
+
+      res.cookie("access_token",  result.accessToken!,  ACCESS_COOKIE_OPTIONS);
+      res.cookie("refresh_token", result.refreshToken!, REFRESH_COOKIE_OPTIONS);
+      res.status(200).json({ status: "OK", user: result.user });
+      return;
+    }
+
+    // Nouvel utilisateur — retourner les infos pour la page de sélection du rôle
+    res.status(200).json({
+      status:    "NEW_USER",
+      googleId:  googleUser.googleId,
+      email:     googleUser.email,
+      avatarUrl: googleUser.avatarUrl,
+    });
+  } catch (error) {
+    handleError(error, res, "googleVerifyController");
+  }
+};
+
+// ── Étape 2 : Compléter l'inscription ────────────────────────────
+// Reçoit le rôle choisi et crée le compte
+export const googleCompleteController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { googleId, email, avatarUrl, role, supabaseAccessToken } = req.body;
+
+  // Validation du rôle — ADMIN ne peut pas s'inscrire via Google
+  const allowedRoles = ["STUDENT", "PRO", "PROF"];
+  if (!role || !allowedRoles.includes(role)) {
+    res.status(400).json({ message: "Rôle invalide" });
+    return;
+  }
+
+  // Re-vérifier le token Supabase pour sécurité
+  if (!supabaseAccessToken || typeof supabaseAccessToken !== "string") {
+    res.status(400).json({ message: "Token Supabase manquant" });
+    return;
+  }
+
+  try {
+    // Vérification que le token correspond bien au googleId envoyé
+    const googleUser = await verifyAndGetGoogleUser(supabaseAccessToken);
+    if (googleUser.googleId !== googleId || googleUser.email !== email) {
+      res.status(403).json({ message: "Données invalides" });
+      return;
+    }
+
+    const result = await completeGoogleRegistration(
+      googleId,
+      email,
+      avatarUrl,
+      role,
+      { ip: req.ip, userAgent: req.headers["user-agent"] as string }
+    );
+
+    if (result.pending) {
+      res.status(200).json({
+        status:  "PENDING",
+        message: "Compte en attente de validation par un administrateur",
+        user:    result.user,
+      });
+      return;
+    }
+
+    res.cookie("access_token",  result.accessToken!,  ACCESS_COOKIE_OPTIONS);
+    res.cookie("refresh_token", result.refreshToken!, REFRESH_COOKIE_OPTIONS);
+    res.status(200).json({ status: "OK", user: result.user });
+  } catch (error) {
+    handleError(error, res, "googleCompleteController");
   }
 };

@@ -9,7 +9,7 @@ describe("Login Logs", () => {
 
     await request(app).post("/api/auth/register").send({
       email,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
       role: "STUDENT",
     });
 
@@ -22,7 +22,7 @@ describe("Login Logs", () => {
       .post("/api/auth/login")
       .send({
         email,
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
       });
 
     expect(res.status).toBe(200);
@@ -50,7 +50,7 @@ describe("Login Logs", () => {
 
 //     await request(app).post("/api/auth/register").send({
 //       email,
-//       password: "Secure123!!!",
+//       password: "SecurePassword123!!!",
 //       role: "STUDENT",
 //     });
 
@@ -58,7 +58,7 @@ describe("Login Logs", () => {
 //       .post("/api/auth/login")
 //       .send({
 //         email,
-//         password: "Secure123!!!",
+//         password: "SecurePassword123!!!",
 //       });
 
 //     expect(res.status).toBe(200);
