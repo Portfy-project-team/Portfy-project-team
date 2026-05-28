@@ -9,7 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
 
     services:
       postgres:
@@ -115,7 +114,6 @@ jobs:
           cd backend
           npm install
 
-      
       - name: Generate Prisma Client
         run: |
           cd backend
@@ -132,7 +130,7 @@ jobs:
           
 
        #Tests backend
-       #À activer après stabilisation des tests
+       # À activer après stabilisation des tests
 
       - name: Run backend tests
         run: |
@@ -146,7 +144,7 @@ jobs:
           SKIP_EMAIL_VERIFICATION: "true"
           RESEND_API_KEY: test-key
           FRONTEND_URL: http://localhost:5173
-          
+           
            
            
       # Audit sécurité backend
@@ -279,4 +277,3 @@ jobs:
       #   run: |
       #     docker run -t zaproxy/zap-stable zap-baseline.py \
       #     -t http://localhost:5173
-
