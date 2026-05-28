@@ -25,6 +25,29 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+      JWT_ACCESS_SECRET: testsecret
+      JWT_REFRESH_SECRET: refreshsecret
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      NODE_ENV: test
+
     steps:
       # ==========================================
       # Récupération du dépôt GitHub
@@ -42,7 +65,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
 
@@ -51,6 +75,7 @@ jobs:
       # ==========================================
 
       # Installation des dépendances frontend
+
 
       - name: Install frontend
         run: |
@@ -105,32 +130,39 @@ jobs:
           npm install
 
       - name: Generate Prisma Client
-        run: cd backend && npx prisma generate
+      - name: Generate Prisma Client
+        run: |
+          cd backend
+          npx prisma generate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/portfy_test
 
-      - name: Run Prisma migrations
-        run: cd backend && npx prisma migrate deploy
+      - name: Run Prisma Migrations
+        run: |
+          cd backend
+          npx prisma migrate deploy
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/portfy_test
+          
 
-      # Tests backend
-      # IMPORTANT :
-      # backend doit préparer Jest/tests
+       Tests backend
+       À activer après stabilisation des tests
 
-      #- name: Run backend tests
-      #  run: |
-      #    cd backend
-      #    npm test
-      #  env:
-      #    DATABASE_URL: postgresql://postgres:postgres@localhost:5432/portfy_test
-      #    JWT_ACCESS_SECRET: test-secret
-      #    JWT_REFRESH_SECRET: test-refresh-secret
-      #    NODE_ENV: test
-      #    SKIP_EMAIL_VERIFICATION: "true"
-      #    RESEND_API_KEY: test-key
-      #    FRONTEND_URL: http://localhost:5173
-
+       - name: Run backend tests
+         run: |
+           cd backend
+           npm test
+         env:
+           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/portfy_test
+           JWT_ACCESS_SECRET: test-secret
+           JWT_REFRESH_SECRET: test-refresh-secret
+           NODE_ENV: test
+           SKIP_EMAIL_VERIFICATION: "true"
+           RESEND_API_KEY: test-key
+           FRONTEND_URL: http://localhost:5173
+           
+           
+           
       # Audit sécurité backend
 
       #- name: Security audit backend
@@ -261,3 +293,4 @@ jobs:
       #   run: |
       #     docker run -t zaproxy/zap-stable zap-baseline.py \
       #     -t http://localhost:5173
+

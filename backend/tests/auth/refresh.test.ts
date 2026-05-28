@@ -9,7 +9,7 @@ describe("POST /api/auth/refresh", () => {
 
     await request(app).post("/api/auth/register").send({
       email,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
       role: "STUDENT",
     });
 
@@ -20,7 +20,7 @@ describe("POST /api/auth/refresh", () => {
 
     const login = await request(app).post("/api/auth/login").send({
       email,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
     });
 
     const cookies = login.headers["set-cookie"];
@@ -64,13 +64,13 @@ describe("POST /api/auth/refresh", () => {
 
 //     await request(app).post("/api/auth/register").send({
 //       email,
-//       password: "Secure123!!!",
+//       password: "SecurePassword123!!!",
 //       role: "STUDENT",
 //     });
 
 //     const login = await request(app).post("/api/auth/login").send({
 //       email,
-//       password: "Secure123!!!",
+//       password: "SecurePassword123!!!",
 //     });
 
 //     const cookies = login.headers["set-cookie"];

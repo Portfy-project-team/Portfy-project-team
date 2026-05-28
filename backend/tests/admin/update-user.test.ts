@@ -16,7 +16,7 @@ describe("PATCH /api/admin/users/:id", () => {
       .post("/api/auth/register")
       .send({
         email: adminEmail,
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
         role: "STUDENT",
       });
 
@@ -32,7 +32,7 @@ describe("PATCH /api/admin/users/:id", () => {
       .post("/api/auth/login")
       .send({
         email: adminEmail,
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
       });
 
     // adminCookies = login.headers["set-cookie"];
