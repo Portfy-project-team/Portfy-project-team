@@ -1,16 +1,14 @@
 import {z } from 'zod';
 
-export const createUserSchema =z.object({
-    name: z.string().min(2, 'Name must be at least 2 characters'),
+export const AjouterUserSchema =z.object({
   
-  email: z.string().email('Invalid email format'),
+  email: z.string().trim().email('Invalid email format'),
   
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().trim().min(8, 'Password must be at least 8 characters'),
   
   role: z.enum(['ADMIN', 'PRO','STUDENT','PROF']),
 })
 export const updateUserSchema = z.object({
-     name: z.string().min(2).optional(),
   email: z.string().email('Invalid email format').optional(),
   role: z.enum(['ADMIN', 'PRO','STUDENT','PROF']).optional(),
   status: z.enum(['PENDING', 'ACTIVE', 'REJECTED', 'BLOCKED']).optional(),
@@ -19,13 +17,13 @@ export const updateStatusSchema = z.object({
   status: z.enum(['PENDING', 'ACTIVE', 'REJECTED', 'BLOCKED']).optional(),
 })
 export const RejectUserSchema = z.object({
-  reason: z.string().optional(),
+  reason: z.string().trim().optional(),
 });
 export const listUsersQuerySchema = z.object({
   role: z.enum(['ADMIN', 'PRO','STUDENT','PROF']).optional(),
   status: z.enum(['PENDING', 'ACTIVE', 'REJECTED', 'BLOCKED']).optional(),
 });
 
-export type CreateUserInput = z.infer<typeof createUserSchema>;
+export type AjouterUserInput = z.infer<typeof AjouterUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 export type UpdateStatusSchema = z.infer<typeof updateStatusSchema>;

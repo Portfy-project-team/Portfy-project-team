@@ -15,8 +15,7 @@ import {
   resendVerificationEmail,
   forgotPasswordService,
   resetPasswordService} from "./auth.service.js";
-import { generateAccessToken, generateRefreshToken } from "../../utils/jwt.js";
-import { completeGoogleRegistration, loginOrRegisterWithGoogle, verifyAndGetGoogleUser } from "./auth.google.service.js";
+import { completeGoogleRegistration, verifyAndGetGoogleUser } from "./auth.google.service.js";
 import { prisma } from "../../utils/prisma.js";
 
 const ACCESS_COOKIE_OPTIONS = {
@@ -258,36 +257,6 @@ export const resetPasswordController = async (
 
 
 
-// ── Google OAuth Callback ─────────────────────────────────────────
-export const googleCallbackController = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  const { supabaseAccessToken } = req.body;
-
-  if (!supabaseAccessToken || typeof supabaseAccessToken !== "string") {
-    res.status(400).json({ message: "Token Supabase manquant" });
-    return;
-  }
-
-  try {
-    const { user, accessToken, refreshToken } =
-      await loginOrRegisterWithGoogle(supabaseAccessToken, {
-        ip:        req.ip,
-        userAgent: req.headers["user-agent"] as string,
-      });
-
-    res.cookie("access_token",  accessToken,  ACCESS_COOKIE_OPTIONS);
-    res.cookie("refresh_token", refreshToken, REFRESH_COOKIE_OPTIONS);
-
-    res.status(200).json({
-      message: "Connexion Google réussie",
-      user,
-    });
-  } catch (error) {
-    handleError(error, res, "googleCallbackController");
-  }
-};
 
 // ── Étape 1 : Vérifier token Google ──────────────────────────────
 // Vérifie le token Supabase et retourne si c'est un nouvel utilisateur
@@ -317,7 +286,6 @@ export const googleVerifyController = async (
     });
 
     if (existing) {
-      // Utilisateur existant — connexion directe
       const result = await completeGoogleRegistration(
         googleUser.googleId,
         googleUser.email,
@@ -336,8 +304,6 @@ export const googleVerifyController = async (
       res.status(200).json({ status: "OK", user: result.user });
       return;
     }
-
-    // Nouvel utilisateur — retourner les infos pour la page de sélection du rôle
     res.status(200).json({
       status:    "NEW_USER",
       googleId:  googleUser.googleId,

@@ -1,12 +1,12 @@
 import {Request,Response, NextFunction } from "express";
-import { createUserSchema, listUsersQuerySchema, RejectUserSchema, updateStatusSchema, updateUserSchema } from "./admin.validation.js";
+import { AjouterUserSchema, listUsersQuerySchema, RejectUserSchema, updateStatusSchema, updateUserSchema } from "./admin.validation.js";
 import { AdminServices } from "./admin.service.js";
 import {prisma} from "../../utils/prisma.js";
 import { UserStatus } from "@prisma/client";
 
-export const createUser = async (req: Request, res: Response, next: NextFunction) => {
+export const AjouterUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = createUserSchema.parse(req.body);
+    const data = AjouterUserSchema.parse(req.body);
     const existingUser = await prisma.user.findUnique({
       where: { email: data.email },
       select: { id: true },
@@ -15,7 +15,7 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
       res.status(409).json({ message: 'A user with this email already exists.' });
       return;
     }
-    const user = await AdminServices.createUser(data);
+    const user = await AdminServices.AjouterUser(data);
     res.status(201).json({ message: 'User created successfully', user });
   } catch (err) {
    next(err);

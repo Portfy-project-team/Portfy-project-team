@@ -9,7 +9,6 @@ import {
   resendVerificationController,
   forgotPasswordController,
   resetPasswordController,
-  googleCallbackController,
   googleVerifyController,
   googleCompleteController
 } from "./auth.controller.js";
@@ -123,5 +122,4 @@ router.post("/google/verify",               googleVerifyController);
 router.post("/google/complete-registration", googleCompleteController);
 
 
-router.post("/google/callback", googleCallbackController);
 export default router;

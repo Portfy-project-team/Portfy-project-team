@@ -16,9 +16,9 @@ export const registerSchema = z
         /^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])/,
         "Le mot de passe doit contenir au moins une majuscule, un chiffre et un caractère spécial"
       ),
-    role: z.enum(["STUDENT", "PRO"], {
+    role: z.enum(["STUDENT", "PRO","PROF"], {
       errorMap: () => ({
-        message: "Role invalide. Valeurs acceptees : STUDENT, PRO",
+        message: "Role invalide. Valeurs acceptees : STUDENT, PRO,PROF",
       }),
     }),
   })

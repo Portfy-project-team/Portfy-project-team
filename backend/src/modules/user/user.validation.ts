@@ -1,11 +1,10 @@
 import { z } from 'zod';
 
 export const updateStudentSchema = z.object({
-  nom: z.string().optional(),
-  prenom: z.string().optional(),
-  filiere: z.string().optional(),
-      bio:z.string().max(500).optional(),
-
+  nom: z.string().trim().optional(),
+  prenom: z.string().trim().optional(),
+  filiere: z.string().trim().optional(),
+  bio:z.string().max(500).optional(),
   skills: z
     .array(
       z.object({
@@ -17,17 +16,17 @@ export const updateStudentSchema = z.object({
     .optional(),});
 
 export const updateProfSchema = z.object({
-  nom: z.string().optional(),
-  prenom: z.string().optional(),
-  departement: z.string().optional(),
-  specialite: z.string().optional(),
+  nom: z.string().trim().optional(),
+  prenom: z.string().trim().optional(),
+  departement: z.string().trim().optional(),
+  specialite: z.string().trim().optional(),
 });
 
 export const updateProfessionnelSchema = z.object({
-  nom: z.string().optional(),
-  prenom: z.string().optional(),
-  entreprise: z.string().optional(),
-  poste: z.string().optional(),
+  nom: z.string().trim().optional(),
+  prenom: z.string().trim().optional(),
+  entreprise: z.string().trim().optional(),
+  poste: z.string().trim().optional(),
 });
 
 export const changePasswordSchema = z.object({
