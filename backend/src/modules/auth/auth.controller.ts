@@ -80,7 +80,6 @@ export const registerController = async (
 
   try {
     const user = await registerUser(parsed.data);
-    console.log(user)
 
   sendVerificationEmail(user.id, user.email).catch((err) => {
       console.error("[registerController] Echec envoi email:", err);
