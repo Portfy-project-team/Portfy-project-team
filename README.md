@@ -84,6 +84,7 @@ docker exec -it portfy_backend npx prisma studio #Et après, accédez à http://
 docker exec -it portfy_backend npx prisma migrate dev --name nom_de_la_migration
 ```
  
+ 
 ---
  
 ## ❓ Problèmes fréquents
