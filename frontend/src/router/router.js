@@ -3,6 +3,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 // Importations dyal l-Pages (Views)
 // Login hiya l-oūlā li ghadi i-chouf l-user
 import LoginView from '../pages/auth/Login.vue'
+import Conditions from '../pages/Conditions.vue'
+import Politique from '../pages/Politique.vue'
 
 const routes = [
   {
@@ -30,6 +32,16 @@ const routes = [
     name: 'dashboard',
     // Dashboard rāh khārej l-dossier auth kima bāyen f l-image
     component: () => import('../pages/Dashboard.vue')
+  },
+  {
+    path: '/conditions',
+    name: 'conditions',
+    component: () => import('../pages/Conditions.vue')
+  },
+  {
+    path: '/politique',
+    name: 'politique',
+    component: () => import('../pages/Politique.vue')
   },
   {
   path: '/:pathMatch(.*)*',

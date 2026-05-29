@@ -1,6 +1,9 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
+import logo from '../../assets/logo.png'
+import PHOTOPF from '../../assets/PHOTOPF.png'
 
 // ================= ROUTER =================
 const router = useRouter()
@@ -88,6 +91,7 @@ for (let year = minYearDiplome; year <= maxYearDiplome; year++) {
 // ================= STEP 2 PROF =================
 const departement = ref('')
 const specialite = ref('')
+const bioProf = ref('')
 
 // ================= DEPARTEMENTS =================
 const departements = [
@@ -130,11 +134,10 @@ const specialitesDisponibles = computed(() => {
 })
 
 // ================= STEP 2 PRO =================
-const Entreprise = ref('')
-const Poste = ref('')
+const entreprise = ref('')
+const poste = ref('')
 const secteur = ref('')
-const pays = ref('')
-const ville = ref('')
+
 
 // ================= STEP 3 etu =================
 const bio = ref('')
@@ -177,8 +180,8 @@ const errors = reactive({
   departement: '',
   specialite: '',
 
-  Entreprise: '',
-  Poste: '',
+  entreprise: '',
+  poste: '',
   secteur: '',
   pays: '',
   ville: '',
@@ -187,6 +190,7 @@ const errors = reactive({
   skills: '',
   disponibilite: '',
   linkedin: '',
+  bioProf: '',
 
   descriptionEntreprise: '',
   siteEntreprise: '',
@@ -205,7 +209,9 @@ const clearErrors = () => {
 // ================= REGEX =================
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const yearRegex = /^[0-9]{4}$/
-const linkedinRegex = /^[a-zA-Z0-9-]+$/
+const linkedinRegex = /^[a-zA-Z0-9._/-]+$/
+const passwordRegex = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,72}$/
+
 
 // ================= SKILLS =================
 const addSkill = () => {
@@ -302,13 +308,18 @@ const nextStep = () => {
       isValid = false
     }
 
-    if (!password.value.trim()) {
-      errors.password = 'Mot de passe obligatoire'
-      isValid = false
-    } else if (password.value.length < 8) {
-      errors.password = 'Minimum 8 caractères'
-      isValid = false
-    }
+   if (!password.value.trim()) {
+
+  errors.password = 'Mot de passe obligatoire'
+  isValid = false
+
+} else if (!passwordRegex.test(password.value)) {
+
+  errors.password =
+    '8-72 caractères avec une majuscule, un chiffre et un caractère spécial'
+
+  isValid = false
+}
 
     if (!confirmPassword.value.trim()) {
       errors.confirmPassword = 'Confirmation obligatoire'
@@ -357,12 +368,12 @@ const nextStep = () => {
       isValid = false
     }
 
-    if (!yearRegex.test(anneeEntree.value)) {
-      errors.anneeEntree = 'Année invalide'
+    if (!anneeEntree.value) {
+      errors.anneeEntree = 'Champ obligatoire'
       isValid = false
     }
 
-    if (!diplomePrevu.value.trim()) {
+    if (!diplomePrevu.value) {
       errors.diplomePrevu = 'Champ obligatoire'
       isValid = false
     }
@@ -400,13 +411,13 @@ const nextStep = () => {
   // ========= STEP 2 PRO =========
   if (currentStep.value === 2 && role.value === 'PRO') {
 
-    if (!Entreprise.value.trim()) {
-      errors.Entreprise = 'Champ obligatoire'
+    if (!entreprise.value.trim()) {
+      errors.entreprise = 'Champ obligatoire'
       isValid = false
     }
 
-    if (!Poste.value.trim()) {
-      errors.Poste = 'Champ obligatoire'
+    if (!poste.value.trim()) {
+      errors.poste = 'Champ obligatoire'
       isValid = false
     }
 
@@ -436,7 +447,7 @@ const previousStep = () => {
 }
 
 // ================= REGISTER =================
-const register = () => {
+const register = async () => {
 
   if (currentStep.value < 3) {
     nextStep()
@@ -448,7 +459,15 @@ const register = () => {
   let isValid = true
 
   // ========= VALIDATION COMMUNE =========
+  if (
+  role.value === 'PROF' &&
+  !bioProf.value.trim()
+) {
 
+  errors.bioProf = 'Présentation obligatoire'
+  isValid = false
+}
+if (role.value === 'STUDENT') {
   if (!bio.value.trim()) {
     errors.bio = 'Bio obligatoire'
     isValid = false
@@ -463,6 +482,7 @@ const register = () => {
     errors.disponibilite = 'Choisissez une disponibilité'
     isValid = false
   }
+}
 
   if (
     linkedin.value.trim() !== '' &&
@@ -473,19 +493,17 @@ const register = () => {
   }
 
   // ========= VALIDATION PRO =========
-  if (role.value === 'PRO') {
-
-    if (!descriptionEntreprise.value.trim()) {
-      errors.descriptionEntreprise = 'Description obligatoire'
-      isValid = false
-    }
+  if (role.value === 'PRO' && !descriptionEntreprise.value.trim()) {
+    errors.descriptionEntreprise = 'Description obligatoire'
+    isValid = false
   }
+
   // ========= DOCUMENT JUSTIFICATIF =========
 if (
-  (role.value === 'PROF' || role.value === 'PRO') &&
-  (role.value === 'PROF' && !verificationDocumentProf.value) ||
-(role.value === 'PRO' && !verificationDocumentPro.value)
-) {
+    (role.value === 'PROF' && !verificationDocumentProf.value) ||
+    (role.value === 'PRO'  && !verificationDocumentPro.value)
+  ) {
+
   errors.verificationDocument =
     'Veuillez ajouter un document justificatif'
 
@@ -509,8 +527,8 @@ if (
     diplomePrevu: diplomePrevu.value,
     departement: departement.value,
     specialite: specialite.value,
-    Entreprise: Entreprise.value,
-    Poste: Poste.value,
+    entreprise: entreprise.value,
+    poste: poste.value,
     secteur: secteur.value,
     bio: bio.value,
     linkedin: linkedin.value,
@@ -519,21 +537,87 @@ if (
     localisation: localisation.value,
   
   }
-  console.log('Nom:', name.value)
-  console.log('Prénom:', prenom.value)
-  console.log('Email:', email.value)
-  console.log('Formation:', formationType.value)
-  console.log('Établissement:', etablissement.value)
-  console.log('Filière:', filiere.value)
-  console.log('Niveau:', niveau.value)
-  console.log('Année d’entrée:', anneeEntree.value)
-  console.log('Diplôme prévu:', diplomePrevu.value)
-  console.log('Bio:', bio.value)
-  console.log('Skills:', skills.value)
-  console.log('Disponibilité:', disponibilite.value)
-  console.log('LinkedIn:', linkedin.value)
+  // ========= CONSTRUCTION FORMDATA =========
+  const sentData = new FormData()
 
-  alert('Compte créé avec succès')
+  sentData.append('name',    name.value)
+  sentData.append('prenom',  prenom.value)
+  sentData.append('email',   email.value)
+  sentData.append('password', password.value)
+  sentData.append('role',    role.value)
+
+  sentData.append('formationType', formationType.value)
+  sentData.append('etablissement', etablissement.value)
+  sentData.append('filiere',       filiere.value)
+  sentData.append('niveau',        niveau.value)
+  sentData.append('anneeEntree',   anneeEntree.value)
+  sentData.append('diplomePrevu',  diplomePrevu.value)
+
+  sentData.append('departement', departement.value)
+  sentData.append('specialite',  specialite.value)
+  sentData.append('bioProf',     bioProf.value)
+
+  sentData.append('entreprise',  entreprise.value)
+  sentData.append('poste',       poste.value)
+  sentData.append('secteur',     secteur.value)
+  sentData.append('localisation', localisation.value)
+  sentData.append('descriptionEntreprise', descriptionEntreprise.value)
+  sentData.append('siteEntreprise',        siteEntreprise.value)
+
+  sentData.append('bio',          bio.value)
+  sentData.append('disponibilite', disponibilite.value)
+  sentData.append('linkedin',     linkedin.value)
+  sentData.append('skills',       JSON.stringify(skills.value))
+
+
+// ===== DOCUMENT PROF =====
+if (
+  role.value === 'PROF' &&
+  verificationDocumentProf.value
+) {
+
+  sentData.append(
+    'verificationDocument',
+    verificationDocumentProf.value
+  )
+}
+
+// ===== DOCUMENT PRO =====
+if (
+  role.value === 'PRO' &&
+  verificationDocumentPro.value
+) {
+
+  sentData.append(
+    'verificationDocument',
+    verificationDocumentPro.value
+  )
+}
+try {
+    const response = await axios.post(
+  'http://localhost:3000/api/auth/register',
+  sentData,
+  {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  }
+)
+
+    // Check if registration was successful
+    if (response.status === 201) {
+      alert(response.data.message || 'Compte créé avec succès !')
+      router.push('/login')
+    }
+
+  } catch (error) {
+    console.error('Registration failed:', error)
+    alert(
+      error.response?.data?.message ||
+      error.message ||
+      'Erreur lors de la création du compte'
+    )
+  }
 }
 </script>
 
@@ -542,8 +626,8 @@ if (
 
     <section class="left-panel">
       <div class="left-top">
-        <div class="logo">
-          <div class="logo-icon">P</div>
+       <div class="logo">
+          <img :src="logo" alt="Portfy" class="logo-img">
           <span class="logo-name">Portfy</span>
         </div>
 
@@ -554,12 +638,15 @@ if (
       </div>
 
       <div class="headline">
-        <h1>
-          <span class="line-white">Votre profil.</span>
-          <span class="line-gold">Validé.</span>
-          <span class="line-white">Certifié.</span>
-        </h1>
-      </div>
+        <div class="headline-content">
+          <h1>
+            <span class="line-white">Votre profil.</span>
+            <span class="line-gold">Validé.</span>
+            <span class="line-white">Certifié.</span>
+          </h1>
+          <img :src="PHOTOPF" alt="Portfolio illustration" class="hero-img">
+        </div>
+      </div> 
 
       <div class="stats-footer">
         <div class="stat">
@@ -722,8 +809,14 @@ if (
             <div class="checkbox">
               <input v-model="accepted" type="checkbox" id="terms">
               <label for="terms">
-                J’accepte les <strong>conditions d’utilisation</strong>
-                et la <strong>politique de confidentialité</strong>.
+                J’accepte les 
+                  <router-link to="/conditions" class="inline-link">
+                  conditions d’utilisation
+                  </router-link>
+                  et la 
+                  <router-link to="/politique" class="inline-link">
+                  politique de confidentialité
+                  </router-link>.
               </label>
             </div>
             <span v-if="errors.accepted" class="field-error">{{ errors.accepted }}</span>
@@ -834,7 +927,7 @@ if (
               <div class="field-group">
                 <label>Année d’entrée <span class="required-star">*</span></label>
                 <div class="input-wrapper">
-  <select v-model="anneeEntree">
+  <select v-model.number="anneeEntree">
     <option value="">
       Sélectionner une année
     </option>
@@ -856,7 +949,7 @@ if (
               <div class="field-group">
                 <label>Diplôme prévu <span class="required-star">*</span></label>
                 <div class="input-wrapper">
-  <select v-model="diplomePrevu">
+  <select v-model.number="diplomePrevu">
     <option value="">
       Sélectionner une année
     </option>
@@ -970,14 +1063,14 @@ if (
 
     <div class="input-wrapper">
       <input
-        v-model="Entreprise"
+        v-model="entreprise"
         type="text"
         placeholder="Ex : OCP Group"
       >
     </div>
 
-    <span v-if="errors.Entreprise" class="field-error">
-      {{ errors.Entreprise }}
+    <span v-if="errors.entreprise" class="field-error">
+      {{ errors.entreprise }}
     </span>
   </div>
 
@@ -986,13 +1079,13 @@ if (
 
     <div class="input-wrapper">
       <input
-        v-model="Poste"
+        v-model="poste"
         type="text"
         placeholder="Ex : Responsable RH"
       >
     </div>
-    <span v-if="errors.Poste" class="field-error">
-      {{ errors.Poste }}
+    <span v-if="errors.poste" class="field-error">
+      {{ errors.poste }}
     </span>
   </div>
 
@@ -1220,12 +1313,12 @@ if (
     <input
       type="file"
       hidden
-      id="verification-upload"
+      id="verification-uploadPRO"
       accept=".pdf,.png,.jpg,.jpeg"
       @change="handleDocument($event, 'PRO')"
     >
 
-    <label for="verification-upload" class="upload-label">
+    <label for="verification-uploadPRO" class="upload-label">
       <div class="upload-content">
         <span class="upload-icon">📄</span>
 
@@ -1326,12 +1419,12 @@ if (
     <input
       type="file"
       hidden
-      id="verification-upload"
+      id="verification-uploadPROF"
       accept=".pdf,.png,.jpg,.jpeg"
       @change="handleDocument($event, 'PROF')"
     >
 
-    <label for="verification-upload" class="upload-label">
+    <label for="verification-uploadPROF" class="upload-label">
       <div class="upload-content">
         <span class="upload-icon">📄</span>
 

@@ -4,7 +4,7 @@
     <aside class="left-panel">
       <div class="left-top">
         <div class="logo">
-          <span class="logo-icon">P</span>
+          <img :src="logo" alt="Portfy" class="logo-img">
           <span class="logo-name">Portfy</span>
         </div>
  
@@ -15,13 +15,16 @@
       </div>
  
       <div class="headline">
-        <h1>
-          <span class="line-white">Votre profil.</span>
-          <span class="line-gold">Validé.</span>
-          <span class="line-white">Certifié.</span>
-        </h1>
+       <div class="headline-content">
+          <h1>
+            <span class="line-white">Votre profil.</span>
+            <span class="line-gold">Validé.</span>
+            <span class="line-white">Certifié.</span>
+          </h1>
+          <img :src="PHOTOPF" alt="Portfolio illustration" class="hero-img">
+        </div>
       </div>
- 
+
       <footer class="stats-footer">
         <div class="stat">
           <span class="stat-value">2 400+</span>
@@ -161,6 +164,9 @@ import { useAuthStore } from '../../store/authStore'
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import '../../styles/auth.css' // 👈 مهم
+import logo from '../../assets/logo.png'
+import axios from 'axios'
+import PHOTOPF from '../../assets/PHOTOPF.png'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -211,14 +217,13 @@ async function handleLogin() {
   isLoading.value = true
   try {
     // simulate API
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const response = await axios.post(
+      'http://localhost:3000/api/auth/login',
+      { email: form.email, password: form.password },
+      { withCredentials: true }
+    )
 
-    const fakeUser = {
-      email: form.email
-    }
-
-    authStore.login(fakeUser)
-
+    authStore.login(response.data.user)
     router.push('/dashboard')
 
   } catch (err) {
