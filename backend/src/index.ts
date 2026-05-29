@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import authRoutes from "./modules/auth/auth.routes.js";
 import projectRoutes from "./modules/projects/project.routes.js";
+import letterRoutes from "./modules/letters/letter.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,6 +42,8 @@ app.use(globalLimiter);
 app.use("/api/auth", authRoutes); // Ajout du préfixe /api pour la clarté
 
 app.use("/api/projects" , projectRoutes);
+
+app.use("/api/letters", letterRoutes);
 
 // Route de santé (Healthcheck)
 app.get("/health", (req, res) => {
