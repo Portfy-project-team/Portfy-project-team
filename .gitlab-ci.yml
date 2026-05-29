@@ -58,6 +58,9 @@ frontend-lint:
 backend-test:
   stage: test
 
+  variables:
+  NODE_ENV: test
+  
   script:
     - cd backend
     - npm install

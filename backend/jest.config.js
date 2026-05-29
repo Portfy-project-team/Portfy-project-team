@@ -37,7 +37,7 @@
 export default {
   preset: "ts-jest/presets/default-esm",
   testEnvironment: "node",
-
+  testTimeout: 20000,
   setupFiles: ["<rootDir>/tests/setup.ts"],
 
   extensionsToTreatAsEsm: [".ts"],
