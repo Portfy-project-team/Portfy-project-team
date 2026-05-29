@@ -138,78 +138,72 @@ secret-scan:
 # DOCKER BUILD
 # ==========================================
 
-# À activer quand :
-# - Dockerfiles finalisés
-# - docker-compose prêt
-# - images stables
+docker-build-backend:
+  stage: security
 
-# docker-build-backend:
-#   stage: security
-#
-#   image: docker:latest
-#
-#   services:
-#     - docker:dind
-#
-#   script:
-#     - docker build -t portfy-backend ./backend
-#
-#   only:
-#     - dev
-#     - main
+  image: docker:latest
 
-# docker-build-frontend:
-#   stage: security
-#
-#   image: docker:latest
-#
-#   services:
-#     - docker:dind
-#
-#   script:
-#     - docker build -t portfy-frontend ./frontend
-#
-#   only:
-#     - dev
-#     - main
+  services:
+    - docker:dind
+
+  script:
+    - docker build -t portfy-backend ./backend
+
+  only:
+    - dev
+    - main
+
+docker-build-frontend:
+  stage: security
+
+  image: docker:latest
+
+  services:
+    - docker:dind
+
+  script:
+    - docker build -t portfy-frontend ./frontend
+
+  only:
+    - dev
+    - main
 
 # ==========================================
 # TRIVY IMAGE SCAN
 # ==========================================
 
-# À activer après docker build
 
-# trivy-backend-image:
-#   stage: security
-#
-#   image:
-#     name: aquasec/trivy:latest
-#     entrypoint: [""]
-#
-#   script:
-#     - trivy image --severity HIGH,CRITICAL portfy-backend
-#
-#   allow_failure: true
-#
-#   only:
-#     - dev
-#     - main
+trivy-backend-image:
+  stage: security
 
-# trivy-frontend-image:
-#   stage: security
-#
-#   image:
-#     name: aquasec/trivy:latest
-#     entrypoint: [""]
-#
-#   script:
-#     - trivy image --severity HIGH,CRITICAL portfy-frontend
-#
-#   allow_failure: true
-#
-#   only:
-#     - dev
-#     - main
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+
+  script:
+    - trivy image --severity HIGH,CRITICAL portfy-backend
+
+  allow_failure: true
+
+  only:
+    - dev
+    - main
+
+trivy-frontend-image:
+  stage: security
+
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+
+  script:
+    - trivy image --severity HIGH,CRITICAL portfy-frontend
+
+  allow_failure: true
+
+  only:
+    - dev
+    - main
 
 # ==========================================
 # ADVANCED SECURITY REPORTS
