@@ -16,7 +16,7 @@ const DUMMY_HASH =
   "$2a$12$LQv3c1yqBWVHxkd0LQ1Ns.sGKJnbHzGj0WkSTrMBxU7q5F3e1A/S2";
 
 // ── Register ──────────────────────────────────────────────────────
-export const registerUser = async (data: RegisterInput) => {
+export const registerUser = async (data: RegisterInput, verificationDocumentUrl: string | null = null) => {
   const { email, password, role } = data;
 
   const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
@@ -34,27 +34,76 @@ export const registerUser = async (data: RegisterInput) => {
 
 return await prisma.$transaction(
   async (tx: Prisma.TransactionClient) => {
+    // STUDENT → ACTIVE (pas besoin de validation admin)
+    // PROF / PRO → PENDING (validation admin requise)
 
     const status =
       role === "STUDENT"
         ? UserStatus.ACTIVE
         : UserStatus.PENDING;
+        const anneeEntree =
+  data.anneeEntree != null
+    ? Number(data.anneeEntree)
+    : null;
+
+const diplomePrevu =
+  data.diplomePrevu != null
+    ? Number(data.diplomePrevu)
+    : null;
 
     return await tx.user.create({
       data: {
         email,
         password: hashedPassword,
         role,
-
+        status,
+// ── STUDENT
         ...(role === "STUDENT" && {
-          student: { create: {} },
+          student: { create: {
+            nom:           data.name,
+              prenom:        data.prenom,
+              filiere:       data.filiere       ?? null,
+              formationType: data.formationType ?? null,
+              niveau:        data.niveau        ?? null,
+              anneeEntree,
+              diplomePrevu,
+              bio:           data.bio           ?? null,
+              disponibilite: data.disponibilite ?? null,
+              linkedin:      data.linkedin      ?? null,
+              etablissement: data.etablissement ?? null,
+              skillsTexte: data.skills && data.skills.length > 0
+                            ? data.skills.join(',')
+                            : null, 
+          },
+        },
+        }),
+        // ── PROF
+        ...(role === "PROF" && {
+          prof: {
+            create: {
+              nom:           data.name,
+              prenom:        data.prenom,
+              departement:   data.departement   ?? null,
+              specialite:    data.specialite    ?? null,
+              bio:           data.bioProf       ?? null,  // bioProf → bio dans Prisma
+              linkedin:      data.linkedin      ?? null,
+              etablissement: data.etablissement ?? null,
+            },
+          },
         }),
 
         ...(role === "PRO" && {
-          professionnel: { create: {} },
+          professionnel: { create: {
+            nom:                   data.name,
+            prenom:                data.prenom,
+            entreprise:            data.entreprise            ?? null,
+            poste:                 data.poste                 ?? null,
+            secteur:               data.secteur               ?? null,
+            localisation:          data.localisation          ?? null,
+            descriptionEntreprise: data.descriptionEntreprise ?? null,
+            siteEntreprise:        data.siteEntreprise        ?? null,
+          } },
         }),
-
-        status
       },
 
       select: {

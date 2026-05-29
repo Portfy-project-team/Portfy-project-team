@@ -79,6 +79,15 @@ model Student {
   prenom           String?
   dateC            DateTime?
   filiere          String?
+  formationType String?
+  niveau        String?
+  anneeEntree   Int?
+  diplomePrevu  Int?
+  bio           String?
+  disponibilite String?
+  linkedin      String?
+  etablissement String?
+  skillsTexte String?
   userId           Int                @unique
   id               Int                @id @default(autoincrement())
   Commentaire      Commentaire[]
@@ -96,6 +105,9 @@ model Student {
 model Prof {
   departement          String?
   specialite           String?
+  bio           String?   // stocke bioProf
+  linkedin      String?
+  etablissement String?
   prenom               String?
   nom                  String?
   userId               Int                    @unique
@@ -115,6 +127,10 @@ model Professionnel {
   nom            String?
   prenom         String?
   statusV        StatutValidation @default(PENDING)
+  secteur               String?
+  localisation          String?
+  descriptionEntreprise String?
+  siteEntreprise        String?
   userId         Int              @unique
   id             Int              @id @default(autoincrement())
   Commentaire    Commentaire[]
@@ -173,7 +189,7 @@ model Projet {
 
 model Skill {
   categorie  String?
-  nom        String
+  nom        String           @unique
   id         Int              @id @default(autoincrement())
   portfolios PortfolioSkill[]
   projets    ProjetSkill[]
