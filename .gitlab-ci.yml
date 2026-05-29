@@ -177,7 +177,7 @@ trivy-backend-image:
   stage: security
 
   image:
-    name: aquasec/trivy:latest
+    name: aquasec/trivy:lates
     entrypoint: [""]
 
   script:
