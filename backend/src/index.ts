@@ -9,6 +9,7 @@ import userRoutes from "./modules/user/user.routes.js";
 import adminRoutes from "./modules/admin/admin.routes.js";
 import portfolioRoutes from "./modules/portfolio/portfolio.routes.js";
 import projectRoutes from "./modules/projects/project.routes.js";
+import letterRoutes from "./modules/letters/letter.routes.js";
 
 
 const app = express();
@@ -69,8 +70,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/projects" , projectRoutes);
-
 // Healthcheck améliorée pour le debug
+app.use("/api/letters", letterRoutes);
 
 
 // Route de santé (Healthcheck)
