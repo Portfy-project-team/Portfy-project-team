@@ -1,4 +1,6 @@
 import type { Request, Response } from "express";
+import fs from "fs";
+import path from "path";
 import {
   registerSchema,
   loginSchema,
@@ -62,25 +64,59 @@ export const registerController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
+
   // const data = req.body
   // console.log(data)
   // // const parsed = registerSchema.safeParse(data.data);
   // const parsed = registerSchema.safeParse(req.body?.data ?? req.body); // ← CORRECT
 
-   const body = req.body?.data ?? req.body;
-  const parsed = registerSchema.safeParse(body);
+  //  const body = req.body?.data ?? req.body;
+  // const parsed = registerSchema.safeParse(body);
+
+if (req.body.skills) {
+  try {
+    req.body.skills = JSON.parse(req.body.skills);
+  } catch {
+    req.body.skills = [];
+  }
+}
+console.log('=== BODY REÇU ===', JSON.stringify(req.body, null, 2))
+  const parsed = registerSchema.safeParse(req.body);
+
 
   if (!parsed.success) {
+    console.log('=== ERREURS ZOD ===', JSON.stringify(parsed.error.issues, null, 2))
     res.status(400).json({
       message: "Donnees invalides",
       errors:  parsed.error.flatten().fieldErrors,
     });
     return;
   }
-
+let verificationDocumentUrl: string | null = null
+if (req.file) {
   try {
-    const user = await registerUser(parsed.data);
-    console.log(user)
+
+    // const user = await registerUser(parsed.data);
+    // console.log(user)
+
+  const uploadDir = path.join(process.cwd(), "uploads", "verification")
+      fs.mkdirSync(uploadDir, { recursive: true })
+
+      const ext      = path.extname(req.file.originalname)
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
+      const filepath = path.join(uploadDir, filename)
+
+      fs.writeFileSync(filepath, req.file.buffer)
+
+      verificationDocumentUrl = `/uploads/verification/${filename}`
+      console.log('=== FICHIER SAUVEGARDÉ ===', verificationDocumentUrl)
+    } catch (err) {
+      console.error("[registerController] Erreur sauvegarde fichier:", err)
+    }
+}
+  try {
+    const user = await registerUser(parsed.data, verificationDocumentUrl);
+
 
   sendVerificationEmail(user.id, user.email).catch((err) => {
       console.error("[registerController] Echec envoi email:", err);
@@ -266,6 +302,7 @@ export const resetPasswordController = async (
 
 
 
+
 // ── Google OAuth Callback ─────────────────────────────────────────
 export const googleCallbackController = async (
   req: Request,
@@ -410,3 +447,4 @@ export const googleCompleteController = async (
     handleError(error, res, "googleCompleteController");
   }
 };
+
