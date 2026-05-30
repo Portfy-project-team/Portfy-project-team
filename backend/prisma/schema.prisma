@@ -18,7 +18,6 @@ model User {
   email         String         @unique
   password      String?
   role          Role
-  name String?
   isEmailVerified          Boolean   @default(false)
   emailVerificationToken   String?
   emailVerificationExpires DateTime?
@@ -83,6 +82,7 @@ model Student {
   prenom           String?
   dateC            DateTime?
   filiere          String?
+
   formationType String?
   niveau        String?
   anneeEntree   Int?
@@ -92,6 +92,7 @@ model Student {
   linkedin      String?
   etablissement String?
   skillsTexte String?
+
   userId           Int                @unique
   id               Int                @id @default(autoincrement())
   Commentaire      Commentaire[]
@@ -194,6 +195,7 @@ model Projet {
 model Skill {
   categorie  String?
   nom        String           @unique
+
   id         Int              @id @default(autoincrement())
   portfolios PortfolioSkill[]
   projets    ProjetSkill[]
@@ -270,13 +272,16 @@ model Commentaire {
 }
 
 model Formation {
-  etablissement    String?
-  diplome          String?
-  specialite       String?
-  dateDebut        DateTime?
-  dateFin          DateTime?
-  id               Int                @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
+  etablissement String
+  diplome       String
+  specialite    String
+  dateDebut     DateTime?
+  dateFin       DateTime?
+
   StudentFormation StudentFormation[]
+
+  @@unique([etablissement, diplome, specialite])
 }
 
 model LettreRecommandation {
@@ -358,19 +363,22 @@ model Recommendation {
 }
 
 model Stage {
+  id         Int              @id @default(autoincrement())
   mission    String?
-  entreprise String?
-  dateDebut  DateTime?
-  dateFin    DateTime?
+  technologies String[]
+  entreprise String           
+  dateDebut  DateTime         
+  dateFin    DateTime        
   rapportUrl String?
   statutV    StatutValidation @default(PENDING)
-  id         Int              @id @default(autoincrement())
   duree      Int?
   studentId  Int
-  profId     Int?
-  Prof       Prof?            @relation(fields: [profId], references: [id])
-  Student    Student          @relation(fields: [studentId], references: [id])
+  encadrantId     Int?
+  rejectionReason String?      
+  Prof    Prof?   @relation(fields: [encadrantId], references: [id])
+  Student Student @relation(fields: [studentId], references: [id])
 }
+
 
 model StudentActivite {
   studentId            Int
@@ -401,6 +409,7 @@ enum StatutValidation {
   PENDING
   VALIDATED
   REJECTED
+  SUBMITTED 
 }
 
 enum NiveauSkill {

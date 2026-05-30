@@ -7,10 +7,13 @@ import rateLimit from "express-rate-limit";
 import authRoutes from "./modules/auth/auth.routes.js";
 import userRoutes from "./modules/user/user.routes.js";
 import adminRoutes from "./modules/admin/admin.routes.js";
+
 import portfolioRoutes from "./modules/portfolio/portfolio.routes.js";
 import projectRoutes from "./modules/projects/project.routes.js";
 import letterRoutes from "./modules/letters/letter.routes.js";
 
+import stageRoutes from "./modules/stages/stage.routes.js";
+import notificationRoutes from "./modules/notifications/notification.routes.js"
 
 const app = express();
 
@@ -42,7 +45,7 @@ const ALLOWED_ORIGIN = process.env.FRONTEND_URL || "http://localhost:5173";
 app.use(cors({
   origin:      ALLOWED_ORIGIN,
   credentials: true, // Crucial pour les cookies HttpOnly (JWT)
-  methods:     ["GET", "POST", "PUT", "DELETE"],
+  methods:     ["GET", "POST", "PUT", "DELETE","PATCH"],
   allowedHeaders: ["Content-Type", "Authorization"], 
 }));
 
@@ -69,7 +72,13 @@ if (!isTest && !isK6) {
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
+
 app.use("/api/projects" , projectRoutes);
+
+app.use("/api/stages", stageRoutes);
+app.use("/api/notifications", notificationRoutes);
+
+
 // Healthcheck améliorée pour le debug
 app.use("/api/letters", letterRoutes);
 

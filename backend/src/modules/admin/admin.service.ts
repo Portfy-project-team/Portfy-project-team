@@ -2,7 +2,7 @@ import { Role, UserStatus } from "@prisma/client";
 import { sendApprovalEmail, sendRejectionEmail } from "../../utils/email.js"
 import {prisma} from "../../utils/prisma.js";
 import bcrypt from "bcryptjs";
-import { CreateUserInput, UpdateUserInput } from "./admin.validation.js";
+import { AjouterUserInput, UpdateUserInput } from "./admin.validation.js";
 interface RegisterData {
   email: string;
   password: string;
@@ -10,14 +10,12 @@ interface RegisterData {
   role: Role;
 }
 export const AdminServices = {
-  async createUser(data: CreateUserInput) {
+  async AjouterUser(data: AjouterUserInput) {
     const hashed = await bcrypt.hash(data.password, 12);
 
     const user = await prisma.user.create({
       data: {
-        // name: data.name,
         email: data.email,
-        password: hashed,
         role: data.role,
         status: UserStatus.ACTIVE,
       },
@@ -31,7 +29,6 @@ export const AdminServices = {
       select: {
         id: true,
         email: true,
-        // name: true,
         role: true,
         status: true,
         createdAt: true,
@@ -66,10 +63,8 @@ export const AdminServices = {
   async approveUser(id: number) {
       const existingUser = await prisma.user.findUnique({
     where: { id },
-    // select: { email: true, name: true, status: true },
      select: { email: true, status: true },
   });
-
   if (!existingUser) {
     throw new Error("User not found");
   }
@@ -85,7 +80,8 @@ export const AdminServices = {
     throw new Error("User email not found");
   }
    await sendApprovalEmail(existingUser.email, existingUser.email);
-  // await sendApprovalEmail(existingUser.email, existingUser.name?? 'User');
+ 
+  
     return user;
   },
 
@@ -93,13 +89,11 @@ export const AdminServices = {
     const user = await prisma.user.update({
       where: { id, status:UserStatus.PENDING},
       data: { status: UserStatus.REJECTED },
-      // select: { email: true, name: true },
       select: { email: true },
     });
      if (!user.email ) {
     throw new Error("User email not found");
   }
-    // await sendRejectionEmail(user.email, user.name??'User', reason);
      await sendRejectionEmail(user.email, user.email, reason);
     return user;
   },

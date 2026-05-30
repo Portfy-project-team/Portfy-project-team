@@ -9,8 +9,9 @@
     "esModuleInterop": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "types": ["jest", "node"]
+    "types": ["node", "jest"]
   },
+
 // "include": ["src/**/*", "src/types/**/*.d.ts"],
   "include": [
     "src/**/*",
@@ -23,5 +24,8 @@
   // "include": ["src/**/*", "src/types/**/*.d.ts"],
   // "exclude": ["node_modules", "dist","tests",
   //   "**/*.test.ts"]
+
+  // "include": ["src/**/*"],mouad
+  // "exclude": ["node_modules", "dist", "tests", "**/*.test.ts"]mouad 
 
 }
