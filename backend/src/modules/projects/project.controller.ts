@@ -1,12 +1,3 @@
-/*
-le controlller est comme receptionniste 
-il ne fait pas la logique metier complique il fait que :
-1- recevoir requete 
-2- verifier les donneees 
-3- appeler service 
-4- renvoyer reponse 
-5- gerer error 
-*/
 import type { Request, Response } from "express";
 import {
   createProjectSchema,
@@ -24,39 +15,32 @@ import {
   validateProject,
   rejectProject,
 } from "./project.service.js";
-//cette fct securise les IDs
-// recuperer et valider l'ID du projet 
+
 const parseProjectId = (req: Request): number | null => {
-  // conversion number 
   const id = Number(req.params.id);
-  //verification verifie entier et positif sinon return null 
   return Number.isInteger(id) && id > 0 ? id : null;
 };
 
-//centraliser la gestion des erreurs 
 const handleError = (error: unknown, res: Response, context: string): void => {
   if (error instanceof Error && "statusCode" in error) {
     const statusCode = Number((error as { statusCode: number }).statusCode);
     res.status(statusCode).json({ message: error.message });
     return;
   }
-
   console.error(`[${context}]`, error);
   res.status(500).json({ message: "Une erreur est survenue" });
 };
-// creer projetg via API
 
 export const createProjectController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  //validation ZOD 
   const parsed = createProjectSchema.safeParse(req.body);
 
   if (!parsed.success) {
     res.status(400).json({
       message: "Données invalides",
-      errors: parsed.error.flatten().fieldErrors,
+      errors:  parsed.error.flatten().fieldErrors,
     });
     return;
   }
@@ -88,9 +72,7 @@ export const getProjectByIdController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-    // verifier ID 
-  
-    const projectId = parseProjectId(req);
+  const projectId = parseProjectId(req);
 
   if (!projectId) {
     res.status(400).json({ message: "Id projet invalide" });
@@ -121,7 +103,7 @@ export const updateProjectController = async (
   if (!parsed.success) {
     res.status(400).json({
       message: "Données invalides",
-      errors: parsed.error.flatten().fieldErrors,
+      errors:  parsed.error.flatten().fieldErrors,
     });
     return;
   }
@@ -149,7 +131,7 @@ export const deleteProjectController = async (
   }
 
   try {
-    await deleteProject(req.user!.id, projectId);
+    await deleteProject(req.user!, projectId);
     res.status(200).json({ message: "Projet supprimé avec succès" });
   } catch (error) {
     handleError(error, res, "deleteProjectController");
@@ -206,7 +188,7 @@ export const validateProjectController = async (
   if (!parsed.success) {
     res.status(400).json({
       message: "Données invalides",
-      errors: parsed.error.flatten().fieldErrors,
+      errors:  parsed.error.flatten().fieldErrors,
     });
     return;
   }
@@ -238,7 +220,7 @@ export const rejectProjectController = async (
   if (!parsed.success) {
     res.status(400).json({
       message: "Données invalides",
-      errors: parsed.error.flatten().fieldErrors,
+      errors:  parsed.error.flatten().fieldErrors,
     });
     return;
   }
