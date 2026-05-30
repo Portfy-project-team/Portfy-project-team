@@ -12,13 +12,13 @@ class LetterError extends Error {
 }
 
 interface AuthUser {
-  id: number;
+  id:   number;
   role: Role;
 }
 
 const getStudentByUserId = async (userId: number) => {
   const student = await prisma.student.findUnique({
-    where: { userId },
+    where:  { userId },
     select: { id: true },
   });
 
@@ -31,7 +31,7 @@ const getStudentByUserId = async (userId: number) => {
 
 const getProfByUserId = async (userId: number) => {
   const prof = await prisma.prof.findUnique({
-    where: { userId },
+    where:  { userId },
     select: { id: true },
   });
 
@@ -42,6 +42,7 @@ const getProfByUserId = async (userId: number) => {
   return prof;
 };
 
+// ── Create ────────────────────────────────────────────────────────
 export const createLetter = async (
   professorUserId: number,
   data: CreateLetterInput
@@ -49,7 +50,7 @@ export const createLetter = async (
   const prof = await getProfByUserId(professorUserId);
 
   const targetStudent = await prisma.student.findUnique({
-    where: { id: data.studentId },
+    where:  { id: data.studentId },
     select: { id: true },
   });
 
@@ -59,33 +60,37 @@ export const createLetter = async (
 
   return prisma.lettreRecommandation.create({
     data: {
-      type: data.type,
-      contenu: data.contenu,
-      profId: prof.id,
-      visibilite: "PRIVATE",
+      type:       data.type,
+      contenu:    data.contenu,
+      profId:     prof.id,
+      visibilite: "PRIVATE", // toujours PRIVATE à la création
       LettreStudent: {
-        create: {
-          studentId: targetStudent.id,
-        },
+        create: { studentId: targetStudent.id },
       },
     },
-    include: {
+    // select explicite — ne retourner que ce qui est nécessaire
+    select: {
+      id:         true,
+      type:       true,
+      contenu:    true,
+      visibilite: true,
+      date:       true,
       Prof: {
         select: {
-          id: true,
-          nom: true,
-          prenom: true,
+          id:          true,
+          nom:         true,
+          prenom:      true,
           departement: true,
-          specialite: true,
+          specialite:  true,
         },
       },
       LettreStudent: {
-        include: {
+        select: {
           Student: {
             select: {
-              id: true,
-              nom: true,
-              prenom: true,
+              id:      true,
+              nom:     true,
+              prenom:  true,
               filiere: true,
             },
           },
@@ -95,35 +100,39 @@ export const createLetter = async (
   });
 };
 
+// ── Get my letters (student) ──────────────────────────────────────
 export const getMyLetters = async (studentUserId: number) => {
   const student = await getStudentByUserId(studentUserId);
 
   return prisma.lettreRecommandation.findMany({
     where: {
       LettreStudent: {
-        some: {
-          studentId: student.id,
-        },
+        some: { studentId: student.id },
       },
     },
     orderBy: { date: "desc" },
-    include: {
+    select: {
+      id:         true,
+      type:       true,
+      contenu:    true,
+      visibilite: true,
+      date:       true,
       Prof: {
         select: {
-          id: true,
-          nom: true,
-          prenom: true,
+          id:          true,
+          nom:         true,
+          prenom:      true,
           departement: true,
-          specialite: true,
+          specialite:  true,
         },
       },
       LettreStudent: {
-        include: {
+        select: {
           Student: {
             select: {
-              id: true,
-              nom: true,
-              prenom: true,
+              id:      true,
+              nom:     true,
+              prenom:  true,
               filiere: true,
             },
           },
@@ -133,27 +142,29 @@ export const getMyLetters = async (studentUserId: number) => {
   });
 };
 
+// ── Get letters created by prof ───────────────────────────────────
 export const getLettersCreatedByMe = async (professorUserId: number) => {
   const prof = await getProfByUserId(professorUserId);
 
   return prisma.lettreRecommandation.findMany({
-    where: {
-      profId: prof.id,
-    },
+    where:   { profId: prof.id },
     orderBy: { date: "desc" },
-    include: {
+    select: {
+      id:         true,
+      type:       true,
+      contenu:    true,
+      visibilite: true,
+      date:       true,
       LettreStudent: {
-        include: {
+        select: {
           Student: {
             select: {
-              id: true,
-              nom: true,
-              prenom: true,
+              id:      true,
+              nom:     true,
+              prenom:  true,
               filiere: true,
               user: {
-                select: {
-                  email: true,
-                },
+                select: { email: true },
               },
             },
           },
@@ -163,6 +174,7 @@ export const getLettersCreatedByMe = async (professorUserId: number) => {
   });
 };
 
+// ── Update visibility ─────────────────────────────────────────────
 export const updateLetterVisibility = async (
   studentUserId: number,
   letterId: number,
@@ -173,45 +185,38 @@ export const updateLetterVisibility = async (
   const ownership = await prisma.lettreStudent.findUnique({
     where: {
       lettreId_studentId: {
-        lettreId: letterId,
+        lettreId:  letterId,
         studentId: student.id,
       },
     },
-    select: {
-      lettreId: true,
-      studentId: true,
-    },
+    select: { lettreId: true, studentId: true },
   });
 
   if (!ownership) {
-    throw new LetterError("Accès refusé", 403);
+    // 404 et non 403 — ne pas confirmer que la lettre existe
+    throw new LetterError("Lettre introuvable", 404);
   }
 
   return prisma.lettreRecommandation.update({
     where: { id: letterId },
-    data: {
-      visibilite: data.visibilite,
-    },
-    include: {
+    data:  { visibilite: data.visibilite },
+    select: {
+      id:         true,
+      type:       true,
+      visibilite: true,
+      date:       true,
       Prof: {
-        select: {
-          id: true,
-          nom: true,
-          prenom: true,
-        },
+        select: { id: true, nom: true, prenom: true },
       },
-      LettreStudent: true,
     },
   });
 };
 
+// ── Delete ────────────────────────────────────────────────────────
 export const deleteLetter = async (authUser: AuthUser, letterId: number) => {
   const letter = await prisma.lettreRecommandation.findUnique({
-    where: { id: letterId },
-    select: {
-      id: true,
-      profId: true,
-    },
+    where:  { id: letterId },
+    select: { id: true, profId: true },
   });
 
   if (!letter) {
@@ -222,7 +227,8 @@ export const deleteLetter = async (authUser: AuthUser, letterId: number) => {
     const prof = await getProfByUserId(authUser.id);
 
     if (letter.profId !== prof.id) {
-      throw new LetterError("Accès refusé", 403);
+      // 404 et non 403 — ne pas confirmer que la lettre existe
+      throw new LetterError("Lettre introuvable", 404);
     }
   }
 
