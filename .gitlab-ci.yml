@@ -1,10 +1,311 @@
 stages:
+  - install
   - test
+  - security
 
-test-job:
-  stage: test
+variables:
+  NODE_ENV: test
+  DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/portfy_test"
+
+# ==========================================
+# POSTGRES SERVICE
+# ==========================================
+
+default:
+  image: node:22
+
+services:
+  - postgres:16
+
+before_script:
+  - node -v
+  - npm -v
+
+# ==========================================
+# FRONTEND
+# ==========================================
+
+frontend-build:
+  stage: install
+
   script:
-     - cd backend
-     - npm install
-     - npx prisma generate
-     - npm test
+    - cd frontend
+    - npm install
+    - npm run build
+
+  only:
+    - dev
+    - main
+    - merge_requests
+
+frontend-lint:
+  stage: test
+
+  script:
+    - cd frontend
+    - npm install
+    - npm run lint
+
+  only:
+    - dev
+    - main
+    - merge_requests
+
+# ==========================================
+# BACKEND
+# ==========================================
+
+backend-test:
+  stage: test
+
+  variables:
+    NODE_ENV: test
+  
+  script:
+    - cd backend
+    - npm install
+    - npx prisma generate
+    - npx prisma migrate deploy
+    - npm test
+
+  only:
+    - dev
+    - main
+    - merge_requests
+
+# ==========================================
+# TRIVY BACKEND
+# ==========================================
+
+trivy-backend:
+  stage: security
+
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+
+  script:
+    - trivy fs --severity HIGH,CRITICAL backend/
+
+  allow_failure: true
+
+  only:
+    - dev
+    - main
+    - merge_requests
+
+# ==========================================
+# TRIVY FRONTEND
+# ==========================================
+
+trivy-frontend:
+  stage: security
+
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+
+  script:
+    - trivy fs --severity HIGH,CRITICAL frontend/
+
+  allow_failure: true
+
+  only:
+    - dev
+    - main
+    - merge_requests
+
+# ==========================================
+# TRUFFLEHOG SECRET SCAN
+# ==========================================
+
+secret-scan:
+  stage: security
+
+  image: trufflesecurity/trufflehog:latest
+
+  script:
+    - trufflehog filesystem . || true
+
+  allow_failure: true
+
+  only:
+    - dev
+    - main
+    - merge_requests
+
+# ==========================================
+# DOCKER BUILD
+# ==========================================
+
+docker-build-backend:
+  stage: security
+
+  image: docker:latest
+
+  services:
+    - docker:dind
+
+  script:
+    - docker build -t portfy-backend ./backend
+
+  only:
+    - dev
+    - main
+
+docker-build-frontend:
+  stage: security
+
+  image: docker:latest
+
+  services:
+    - docker:dind
+
+  script:
+    - docker build -t portfy-frontend ./frontend
+
+  only:
+    - dev
+    - main
+
+# ==========================================
+# TRIVY IMAGE SCAN
+# ==========================================
+
+
+trivy-backend-image:
+  stage: security
+
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+
+  script:
+    - trivy image --severity HIGH,CRITICAL portfy-backend
+
+  allow_failure: true
+
+  only:
+    - dev
+    - main
+
+trivy-frontend-image:
+  stage: security
+
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+
+  script:
+    - trivy image --severity HIGH,CRITICAL portfy-frontend
+
+  allow_failure: true
+
+  only:
+    - dev
+    - main
+
+# ==========================================
+# ADVANCED SECURITY REPORTS
+# ==========================================
+
+# À activer quand :
+# - GitLab stable
+# - stockage suffisant
+# - rapports sécurité nécessaires
+
+# artifacts:
+#   when: always
+#   expire_in: 30 days
+#   paths:
+#     - trivy-report.txt
+#     - security-report.json
+
+# ==========================================
+# SONARQUBE
+# ==========================================
+
+# À activer quand :
+# - SonarQube installé
+# - SONAR_TOKEN configuré
+
+# sonarqube-check:
+#   stage: security
+#
+#   image: sonarsource/sonar-scanner-cli:latest
+#
+#   script:
+#     - sonar-scanner
+#
+#   only:
+#     - dev
+#     - main
+
+# ==========================================
+# OWASP ZAP
+# ==========================================
+
+# À activer quand :
+# - frontend accessible
+# - backend déployé
+# - environnement staging prêt
+
+# zap-security-test:
+#   stage: security
+#
+#   image: zaproxy/zap-stable
+#
+#   script:
+#     - zap-baseline.py -t http://frontend-url
+#
+#   allow_failure: true
+#
+#   only:
+#     - main
+
+# ==========================================
+# DOCKER HUB PUSH
+# ==========================================
+
+# À activer quand :
+# - Docker Hub prêt
+# - secrets GitLab configurés
+
+# docker-push:
+#   stage: security
+#
+#   image: docker:latest
+#
+#   services:
+#     - docker:dind
+#
+#   before_script:
+#     - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+#
+#   script:
+#     - docker push portfy-backend
+#     - docker push portfy-frontend
+#
+#   only:
+#     - main
+
+# ==========================================
+# DEPLOYMENT
+# ==========================================
+
+# À activer quand :
+# - VPS prêt
+# - serveur configuré
+# - docker-compose production prêt
+
+# deploy-production:
+#   stage: security
+#
+#   script:
+#     - docker-compose pull
+#     - docker-compose up -d
+#
+#   only:
+#     - main
+#
+#   when: manual

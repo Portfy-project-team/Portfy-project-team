@@ -96,6 +96,7 @@ let verificationDocumentUrl: string | null = null
 if (req.file) {
   try {
 
+
     // const user = await registerUser(parsed.data);
     // console.log(user)
 
@@ -116,6 +117,9 @@ if (req.file) {
 }
   try {
     const user = await registerUser(parsed.data, verificationDocumentUrl);
+
+
+    // const user = await registerUser(parsed.data);
 
 
   sendVerificationEmail(user.id, user.email).catch((err) => {
