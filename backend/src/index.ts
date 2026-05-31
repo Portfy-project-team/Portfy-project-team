@@ -53,7 +53,7 @@ app.use(cors({
 app.use(express.json({ limit: "10kb" })); // Limite la taille des JSON entrants
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
-app.use("/api/portfolio", portfolioRoutes);
+// app.use("/api/portfolio", portfolioRoutes);
 
 // Rate Limiting Global
 const globalLimiter = rateLimit({
@@ -81,6 +81,7 @@ app.use("/api/notifications", notificationRoutes);
 
 // Healthcheck améliorée pour le debug
 app.use("/api/letters", letterRoutes);
+app.use("/api/portfolio", portfolioRoutes);
 
 
 // Route de santé (Healthcheck)

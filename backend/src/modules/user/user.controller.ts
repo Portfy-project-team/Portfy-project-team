@@ -20,9 +20,20 @@ export const changePassword = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+    // safeParse pour renvoyer 400 proprement au lieu de 500 via next(err)
+  const parsed = changePasswordSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    res.status(400).json({
+      message: "Données invalides",
+      errors:  parsed.error.flatten().fieldErrors,
+    });
+    return;
+  }
 try {
-    const data =changePasswordSchema.parse(req.body)
-    await UserService.changePassword(req.user.id, data);
+  await UserService.changePassword(req.user.id, parsed.data);
+    // const data =changePasswordSchema.parse(req.body)
+    // await UserService.changePassword(req.user.id, data);
 
 res.json({message:"Password changed successfully"})
 } catch (err) {

@@ -3,12 +3,12 @@ import { sendApprovalEmail, sendRejectionEmail } from "../../utils/email.js"
 import {prisma} from "../../utils/prisma.js";
 import bcrypt from "bcryptjs";
 import { AjouterUserInput, UpdateUserInput } from "./admin.validation.js";
-interface RegisterData {
-  email: string;
-  password: string;
-  // name: string;
-  role: Role;
-}
+// interface RegisterData {
+//   email: string;
+//   password: string;
+//   // name: string;
+//   role: Role;
+// }
 export const AdminServices = {
   async AjouterUser(data: AjouterUserInput) {
     const hashed = await bcrypt.hash(data.password, 12);
@@ -16,8 +16,10 @@ export const AdminServices = {
     const user = await prisma.user.create({
       data: {
         email: data.email,
+        password: hashed,       // ← FIX : était absent
         role: data.role,
         status: UserStatus.ACTIVE,
+        isEmailVerified: true,  // créé par admin → pas besoin de vérification
       },
     });
     return user;

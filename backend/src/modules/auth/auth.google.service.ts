@@ -1,5 +1,17 @@
 // Service dédié à l'authentification Google via Supabase
 // Gère la création/récupération du compte utilisateur local
+//
+// Flux complet :
+//   1. Frontend reçoit le token Supabase après connexion Google
+//   2. googleVerifyController → verifyAndGetGoogleUser (ce fichier)
+//   3. Si nouvel utilisateur → frontend choisit un rôle
+//   4. googleCompleteController → completeGoogleRegistration (ce fichier)
+//
+// Différence clé avec l'inscription classique :
+//   - Pas de vérification email (isEmailVerified = true dès la création)
+//   - Pas de mot de passe stocké (password = null)
+//   - STUDENT → ACTIVE immédiatement
+//   - PRO / PROF → PENDING (validation admin requise)
 import { prisma }       from "../../utils/prisma.js";
 import { supabaseAdmin } from "../../utils/supabaseAdmin.js";
 import { UserStatus }   from "@prisma/client";
@@ -8,7 +20,15 @@ import {
   generateRefreshToken,
 } from "../../utils/jwt.js";
 
-
+// ─────────────────────────────────────────────────────────────────
+// Type local pour les identités Supabase
+//  AJOUTÉ : évite ts(7006) "Parameter 'id' implicitly has an 'any' type"
+//            Supabase ne type pas strictement le tableau identities
+// ─────────────────────────────────────────────────────────────────
+interface SupabaseIdentity {
+  provider: string;
+  [key: string]: unknown;
+}
 
 // Vérifie le token Supabase et retourne les infos Google
 // Sans créer de compte — utilisé pour la première étape
@@ -25,7 +45,8 @@ export const verifyAndGetGoogleUser = async (supabaseAccessToken: string) => {
 
   const isGoogleProvider =
     user.app_metadata?.provider === "google" ||
-    user.identities?.some((id) => id.provider === "google");
+    // user.identities?.some((id) => id.provider === "google");
+     user.identities?.some((id: SupabaseIdentity) => id.provider === "google");
 
   if (!isGoogleProvider) {
     const err: any = new Error("Provider non autorisé");
@@ -78,7 +99,8 @@ export const completeGoogleRegistration = async (
       // Créer le profil lié selon le rôle
       ...(role === "STUDENT" && { student:        { create: {} } }),
       ...(role === "PRO"     && { professionnel:  { create: {} } }),
-      ...(role === "PROF"    && { professeur:     { create: {} } }),
+      // ...(role === "PROF"    && { professeur:     { create: {} } }),
+      ...(role === "PROF"    && { prof:          { create: {} } }),
     },
     select: { id: true, email: true, role: true, status: true },
   });
@@ -113,6 +135,13 @@ const loginExistingGoogleUser = async (
     if (user.status === UserStatus.PENDING) {
       return { pending: true, user };
     }
+  }
+
+  // Utilisateur BLOCKED → refus de connexion
+  if (user.status === UserStatus.BLOCKED) {
+    const err: any = new Error("Compte bloqué. Contactez l'administrateur.");
+    err.statusCode = 403;
+    throw err;
   }
 
   const accessToken  = generateAccessToken({ userId: user.id, role: user.role });

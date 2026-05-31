@@ -17,6 +17,9 @@ import {
   resendVerificationEmail,
   forgotPasswordService,
   resetPasswordService} from "./auth.service.js";
+  // MODIFIÉ : import des vraies fonctions exportées par auth.google.service.ts
+// SUPPRIMÉ   : loginOrRegisterWithGoogle (n'a jamais existé dans la codebase)
+// AJOUTÉ     : completeGoogleRegistration + verifyAndGetGoogleUser
 import { completeGoogleRegistration, verifyAndGetGoogleUser } from "./auth.google.service.js";
 import { prisma } from "../../utils/prisma.js";
 
@@ -306,32 +309,86 @@ export const resetPasswordController = async (
 
 
 
-
+// ─────────────────────────────────────────────────────────────────
+//  MODIFIÉ : logique réécrite avec les vraies fonctions
+// SUPPRIMÉ  : appel à loginOrRegisterWithGoogle (n'existe pas)
+// AJOUTÉ    : appel à verifyAndGetGoogleUser + completeGoogleRegistration
+//
+// Ce controller est conservé pour compatibilité mais n'est plus
+// utilisé dans auth.routes.ts (remplacé par verify + complete)
+// ─────────────────────────────────────────────────────────────────
 // ── Google OAuth Callback ─────────────────────────────────────────
 export const googleCallbackController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   const { supabaseAccessToken } = req.body;
-
+ 
   if (!supabaseAccessToken || typeof supabaseAccessToken !== "string") {
     res.status(400).json({ message: "Token Supabase manquant" });
     return;
   }
-
-  try {
-    const { user, accessToken, refreshToken } =
-      await loginOrRegisterWithGoogle(supabaseAccessToken, {
-        ip:        req.ip,
-        userAgent: req.headers["user-agent"] as string,
-      });
-
-    res.cookie("access_token",  accessToken,  ACCESS_COOKIE_OPTIONS);
-    res.cookie("refresh_token", refreshToken, REFRESH_COOKIE_OPTIONS);
-
+ 
+//   try {
+//     // ── FIX : loginOrRegisterWithGoogle maintenant importé ────────
+//     const { user, accessToken, refreshToken } =
+//       await loginOrRegisterWithGoogle(supabaseAccessToken, {
+//         ip:        req.ip,
+//         userAgent: req.headers["user-agent"] as string,
+//       });
+ 
+//     res.cookie("access_token",  accessToken,  ACCESS_COOKIE_OPTIONS);
+//     res.cookie("refresh_token", refreshToken, REFRESH_COOKIE_OPTIONS);
+ 
+//     res.status(200).json({ message: "Connexion Google réussie", user });
+//   } catch (error) {
+//     handleError(error, res, "googleCallbackController");
+//   }
+// };
+try {
+    // Étape 1 — vérifier le token Supabase et récupérer les infos Google
+    const googleUser = await verifyAndGetGoogleUser(supabaseAccessToken);
+ 
+    // Étape 2 — chercher si le compte existe déjà (par googleId OU email)
+    const existing = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { googleId: googleUser.googleId },
+          { email:    googleUser.email    },
+        ],
+      },
+      select: { id: true, role: true, status: true },
+    });
+ 
+    // Étape 3a — utilisateur existant : connexion directe
+    if (existing) {
+      const result = await completeGoogleRegistration(
+        googleUser.googleId,
+        googleUser.email,
+        googleUser.avatarUrl,
+        existing.role as "STUDENT" | "PRO" | "PROF",
+        { ip: req.ip, userAgent: req.headers["user-agent"] as string }
+      );
+      if (result.pending) {
+        res.status(200).json({
+          status:  "PENDING",
+          message: "Compte en attente de validation par un administrateur",
+          user:    result.user,
+        });
+        return;
+      }
+      res.cookie("access_token",  result.accessToken!,  ACCESS_COOKIE_OPTIONS);
+      res.cookie("refresh_token", result.refreshToken!, REFRESH_COOKIE_OPTIONS);
+      res.status(200).json({ message: "Connexion Google réussie", user: result.user });
+      return;
+    }
+ 
+    // Étape 3b — nouvel utilisateur : demander au frontend de choisir un rôle
     res.status(200).json({
-      message: "Connexion Google réussie",
-      user,
+      status:    "NEW_USER",
+      googleId:  googleUser.googleId,
+      email:     googleUser.email,
+      avatarUrl: googleUser.avatarUrl,
     });
   } catch (error) {
     handleError(error, res, "googleCallbackController");

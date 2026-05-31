@@ -10,10 +10,10 @@ import {
 const router = Router();
 
 // Connecté — étudiant uniquement
-router.get("/me", verifyToken, requireRole("STUDENT"), getMyPortfolio);
+router.get("/me",       verifyToken, requireRole("STUDENT"), getMyPortfolio);
 router.put("/settings", verifyToken, requireRole("STUDENT"), updateSettings);
 
-// Public — pas besoin d'auth
+// Public — pas d'auth requise
 router.get("/public/:studentId", getPublicPortfolio);
 
 export default router;
