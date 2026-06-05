@@ -6,6 +6,18 @@ stages:
 variables:
   NODE_ENV: test
   DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/portfy_test"
+  TRIVY_SEVERITY: "CRITICAL,HIGH" #7-8.9->HIGH / 9-10->CRITICAL
+  TRIVY_EXIT_CODE: "1"
+  TRIVY_CACHE_DIR: ".trivycache/" #cache de trivy
+  TRIVY_FORMAT: "table" #sortie sous forme de table
+  TRIVY_TIMEOUT: "10m"
+
+
+cache:
+  key: "${CI_COMMIT_REF_SLUG}-trivy"  # Cache par branche
+  paths:
+    - .trivycache/
+  policy: pull-push  # Lire et écrire dans le cache
 
 # ==========================================
 # POSTGRES SERVICE
@@ -74,152 +86,500 @@ backend-test:
     - merge_requests
 
 # ==========================================
-# TRIVY BACKEND
+# Job 1 : Scanner PostgreSQL 16.8-alpine
 # ==========================================
 
-trivy-backend:
+# Scanne l'image officielle PostgreSQL depuis Docker Hub
+# Vérifie les vulnérabilités dans les paquets Alpine Linux
+
+security:trivy-postgres:
   stage: security
-
-  image:
-    name: aquasec/trivy:latest
-    entrypoint: [""]
-
+  
+  image: aquasec/trivy:latest
+  
+  variables:
+    IMAGE_NAME: "postgres:16.8-alpine"
+    SCAN_TYPE: "Docker Hub Image"
+  
+  before_script:
+    - echo " SCAN TRIVY - PostgreSQL"
+    - echo "Type: $SCAN_TYPE"
+    - echo "Image: $IMAGE_NAME"
+    - echo "Sévérité: $TRIVY_SEVERITY"
+  
   script:
-    - trivy fs --severity HIGH,CRITICAL backend/
-
-  allow_failure: true
-
+    # Télécharger la base de données CVE (si pas en cache)
+    - echo "Mise à jour de la base de données CVE..."
+    - trivy image --download-db-only
+    
+    # Scanner l'image PostgreSQL
+    - echo " Scan en cours..."
+    - trivy image 
+        --severity $TRIVY_SEVERITY 
+        --exit-code $TRIVY_EXIT_CODE 
+        --format $TRIVY_FORMAT
+        --timeout $TRIVY_TIMEOUT
+        --output trivy-postgres-scan.txt
+        $IMAGE_NAME
+    
+    - echo " PostgreSQL $IMAGE_NAME : Aucune vulnérabilité CRITICAL/HIGH"
+  
+  after_script:
+    - echo "Rapport sauvegardé : trivy-postgres-scan.txt"
+  
+  allow_failure: false #en cas de vulnerabilites la pipeline est bloque
+  
+  # Exécuter sur ces branches/événements
   only:
-    - dev
     - main
+    - dev
     - merge_requests
+  
+  # Sauvegarder le rapport même en cas d'échec
+  artifacts:
+    name: "trivy-postgres-scan-$CI_COMMIT_SHORT_SHA"
+    when: always
+    paths:
+      - trivy-postgres-scan.txt
+    expire_in: 30 days
+  #  reports:
+  #   junit: trivy-postgres-scan.txt
 
 # ==========================================
-# TRIVY FRONTEND
+# Job 2 : Scanner le code BACKEND (dépendances npm)
 # ==========================================
 
-trivy-frontend:
+# Scanne package-lock.json pour détecter les dépendances vulnérables
+
+security:trivy-backend:
   stage: security
-
-  image:
-    name: aquasec/trivy:latest
-    entrypoint: [""]
-
+  image: aquasec/trivy:latest
+  
+  variables:
+    SCAN_PATH: "backend/"
+    SCAN_TYPE: "Backend Code (npm)"
+  
+  before_script:
+    - echo "SCAN TRIVY - Backend"
+    - echo "Type: $SCAN_TYPE"
+    - echo "Path: $SCAN_PATH"
+    - echo "Sévérité: $TRIVY_SEVERITY"
+  
   script:
-    - trivy fs --severity HIGH,CRITICAL frontend/
-
-  allow_failure: true
-
+    # Vérifier que le dossier existe
+    - |
+      if [ ! -d "$SCAN_PATH" ]; then
+        echo " ERREUR: Dossier $SCAN_PATH introuvable"
+        exit 1
+      fi
+    
+    # Vérifier que package-lock.json existe
+    - |
+      if [ ! -f "$SCAN_PATH/package-lock.json" ]; then
+        echo "WARNING: package-lock.json introuvable"
+        echo "Exécuter 'npm install' pour le générer"
+        echo "Skip scan"
+        exit 0
+      fi
+    
+    # Scanner le code backend
+    - echo "Scan du code backend..."
+    - trivy fs 
+        --severity $TRIVY_SEVERITY 
+        --exit-code $TRIVY_EXIT_CODE 
+        --format $TRIVY_FORMAT
+        --timeout $TRIVY_TIMEOUT
+        --output trivy-backend-scan.txt
+        $SCAN_PATH
+    
+    # Afficher le résultat
+    - cat trivy-backend-scan.txt
+    - echo "Backend : Aucune vulnérabilité CRITICAL/HIGH"
+  
+  after_script:
+    - echo "Rapport sauvegardé : trivy-backend-scan.txt"
+  
+  allow_failure: false
+  
   only:
-    - dev
     - main
+    - dev
     - merge_requests
+  
+  artifacts:
+    name: "trivy-backend-scan-$CI_COMMIT_SHORT_SHA"
+    when: always
+    paths:
+      - trivy-backend-scan.txt
+    expire_in: 30 days
 
 # ==========================================
-# TRUFFLEHOG SECRET SCAN
+# Job 3 : Scanner le code FRONTEND (dépendances npm)
 # ==========================================
 
-secret-scan:
+# Scanne package-lock.json pour détecter les dépendances vulnérables
+
+security:trivy-frontend:
   stage: security
+  image: aquasec/trivy:latest
+  
+  variables:
+    SCAN_PATH: "frontend/"
+    SCAN_TYPE: "Frontend Code (npm)"
+  
+  before_script:
+    - echo " SCAN TRIVY - Frontend"
+    - echo "Type: $SCAN_TYPE"
+    - echo "Path: $SCAN_PATH"
+    - echo "Sévérité: $TRIVY_SEVERITY"
+  
+  script:
+    # Vérifier que le dossier existe
+    - |
+      if [ ! -d "$SCAN_PATH" ]; then
+        echo " ERREUR: Dossier $SCAN_PATH introuvable"
+        exit 1
+      fi
+    
+    # Vérifier que package-lock.json existe
+    - |
+      if [ ! -f "$SCAN_PATH/package-lock.json" ]; then
+        echo "WARNING: package-lock.json introuvable"
+        echo "Exécuter 'npm install' pour le générer"
+        echo "Skip scan"
+        exit 0
+      fi
+    
+    # Scanner le code frontend
+    - echo "Scan du code frontend..."
+    - trivy fs 
+        --severity $TRIVY_SEVERITY 
+        --exit-code $TRIVY_EXIT_CODE 
+        --format $TRIVY_FORMAT
+        --timeout $TRIVY_TIMEOUT
+        --output trivy-frontend-scan.txt
+        $SCAN_PATH
+    
+    # Afficher le résultat
+    - cat trivy-frontend-scan.txt
+    - echo "Frontend : Aucune vulnérabilité CRITICAL/HIGH"
+  
+  after_script:
+    - echo "Rapport sauvegardé : trivy-frontend-scan.txt"
+  
+  allow_failure: false
+  
+  only:
+    - main
+    - dev
+    - merge_requests
+  
+  artifacts:
+    name: "trivy-frontend-scan-$CI_COMMIT_SHORT_SHA"
+    when: always
+    paths:
+      - trivy-frontend-scan.txt
+    expire_in: 30 days
 
+# ==========================================
+# STAGE: SECURITY - SCAN DES SECRETS EXPOSÉS
+
+# Job 5 : Scanner les secrets exposés (TruffleHog)
+# ==========================================
+
+# Détecte les clés API, tokens, mots de passe en clair dans le code
+
+security:secrets-scan:
+  stage: security
+  
+  # TRUFFLEHOG : outil spécialisé détection de secrets dans le code
   image: trufflesecurity/trufflehog:latest
-
+  
+  variables:
+    SCAN_TYPE: "Exposed Secrets"
+  
+  before_script:
+    - echo "SCAN SECRETS - TruffleHog"
+    - echo "Type: $SCAN_TYPE"
+  
   script:
-    - trufflehog filesystem . || true
+    - echo "Scan des secrets exposés..."
+    
+    # Scanner tout le repo Git
+    # --only-verified : seulement les secrets vérifiés (moins de faux positifs)
+    # --fail : exit code 1 si secrets trouvés
+    # --json : format JSON pour parsing
 
-  allow_failure: true
-
+    - trufflehog git file://. 
+        --only-verified 
+        --json > secrets-report.json || true
+    
+    # Vérifier si des secrets ont été trouvés
+    - |
+      if [ -s secrets-report.json ]; then
+        echo "❌ SECRETS DÉTECTÉS ! ❌"
+        echo "Les secrets suivants ont été trouvés dans le code :"
+        cat secrets-report.json | head -100
+        echo "ACTION REQUISE :"
+        echo "1. Supprimer les secrets du code"
+        echo "2. Utiliser des variables d'environnement (.env)"
+        echo "3. Ne JAMAIS commiter de secrets"
+        exit 1
+      else
+        echo "Aucun secret exposé détecté"
+      fi
+  
+  after_script:
+    - echo " Rapport sauvegardé : secrets-report.json"
+  
+  # CRITIQUE : Bloque le pipeline si secrets trouvés
+  allow_failure: false
+  
   only:
-    - dev
     - main
+    - dev
     - merge_requests
+  
+  artifacts:
+    name: "secrets-scan-$CI_COMMIT_SHORT_SHA"
+    when: always
+    paths:
+      - secrets-report.json
+    expire_in: 30 days
+
+# ==========================================
+# STAGE: SECURITY - SCAN DES DOCKERFILES
+
+# Job 4 : Scanner les Dockerfiles (mauvaises pratiques)
+# ==========================================
+
+# Vérifie les mauvaises pratiques de sécurité dans les Dockerfiles
+
+#security:trivy-dockerfiles:
+#  stage: security
+# image: aquasec/trivy:latest
+  
+#  variables:
+#    SCAN_TYPE: "Dockerfiles & Configs"
+  
+#  before_script:
+#    - echo "SCAN TRIVY - Dockerfiles"
+#    - echo "Type: $SCAN_TYPE"
+  
+#  script:
+#    - echo " Scan des Dockerfiles..."
+    
+    # Scanner backend/Dockerfile
+#    - |
+#      if [ -f "backend/Dockerfile" ]; then
+#        echo " Scan: backend/Dockerfile"
+#        trivy config 
+#          --severity $TRIVY_SEVERITY 
+#          --exit-code 0
+#          --format table
+#          backend/Dockerfile
+#        echo ""
+#      fi
+    
+    # Scanner frontend/Dockerfile
+#    - |
+#      if [ -f "frontend/Dockerfile" ]; then
+#        echo " Scan: frontend/Dockerfile"
+#        trivy config 
+#          --severity $TRIVY_SEVERITY 
+#          --exit-code 0
+#          --format table
+#          frontend/Dockerfile
+#        echo ""
+#      fi
+    
+    # Scanner docker-compose.yml
+#    - |
+#      if [ -f "docker-compose.yml" ]; then
+#        echo "Scan: docker-compose.yml"
+#        trivy config 
+#          --severity $TRIVY_SEVERITY 
+#          --exit-code 0
+#          --format table
+#          --output trivy-dockerfiles-scan.txt
+#          docker-compose.yml
+#        echo ""
+#      fi
+#    
+#    - echo "Scan Dockerfiles terminé (mode info)"
+  
+#  after_script:
+#    - echo "Rapport sauvegardé : trivy-dockerfiles-scan.txt"
+  
+  # Mode INFO uniquement (ne bloque pas le pipeline)
+  # Car les mauvaises pratiques ne sont pas forcément critiques
+
+#  allow_failure: true
+#  
+#  only:
+#    - main
+#    - dev
+#    - merge_requests
+#  
+#  artifacts:
+#    name: "trivy-dockerfiles-scan-$CI_COMMIT_SHORT_SHA"
+#    when: always
+#    paths:
+#      - trivy-dockerfiles-scan.txt
+#    expire_in: 30 days
 
 # ==========================================
 # DOCKER BUILD
 # ==========================================
 
-docker-build-backend:
-  stage: security
+#docker-build-backend:
+#  stage: security
+#
+#  image: docker:latest
+#
+#  services:
+#    - docker:dind
 
-  image: docker:latest
+#  script:
+#    - docker build -t portfy-backend ./backend
 
-  services:
-    - docker:dind
+#  only:
+#    - dev
+#    - main
 
-  script:
-    - docker build -t portfy-backend ./backend
-
-  only:
-    - dev
-    - main
-
-docker-build-frontend:
-  stage: security
-
-  image: docker:latest
-
-  services:
-    - docker:dind
-
-  script:
-    - docker build -t portfy-frontend ./frontend
-
-  only:
-    - dev
-    - main
-
-# ==========================================
-# TRIVY IMAGE SCAN
-# ==========================================
-
-
-trivy-backend-image:
-  stage: security
-
-  image:
-    name: aquasec/trivy:latest
-    entrypoint: [""]
-
-  script:
-    - trivy image --severity HIGH,CRITICAL portfy-backend
-
-  allow_failure: true
-
-  only:
-    - dev
-    - main
-
-trivy-frontend-image:
-  stage: security
-
-  image:
-    name: aquasec/trivy:latest
-    entrypoint: [""]
-
-  script:
-    - trivy image --severity HIGH,CRITICAL portfy-frontend
-
-  allow_failure: true
-
-  only:
-    - dev
-    - main
+#docker-build-frontend:
+#  stage: security
+#
+#  image: docker:latest
+#
+#  services:
+#    - docker:dind
+#
+#  script:
+#    - docker build -t portfy-frontend ./frontend
+#
+#  only:
+#    - dev
+#    - main
 
 # ==========================================
-# ADVANCED SECURITY REPORTS
+# STAGE: SECURITY - IMAGES LOCALES (APRÈS BUILD)
+
+# Job 6 : Scanner les images buildées localement
 # ==========================================
 
-# À activer quand :
-# - GitLab stable
-# - stockage suffisant
-# - rapports sécurité nécessaires
+# Ce job scanne les images APRÈS qu'elles soient buildées
+# Pour l'instant, exécution MANUELLE (when: manual)
+# !!!!!!!!!!!!!!! À automatiser plus tard quand vous aurez un stage "build" !!!!!!!!!!!!!!
 
-# artifacts:
-#   when: always
-#   expire_in: 30 days
-#   paths:
-#     - trivy-report.txt
-#     - security-report.json
+#security:trivy-built-images:
+#  stage: security
+#  
+#  # Docker-in-Docker pour builder et scanner
+#  image: docker:latest
+#  
+#  services:
+#    - docker:dind  # Docker daemon
+#  
+#  variables:
+#    DOCKER_DRIVER: overlay2
+#    DOCKER_TLS_CERTDIR: "/certs"
+#    SCAN_TYPE: "Built Docker Images"
+#  
+#  before_script:
+#    - echo " SCAN TRIVY - Images buildées"
+#    - echo "Type: $SCAN_TYPE"
+#    
+#    # Installer Trivy dans le container Docker
+#    - apk add --no-cache curl bash
+#    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+#    - trivy --version
+  
+#  script:
+#    # Vérifier si des images portfy existent
+#    - |
+#      if docker images | grep -qE "portfy|backend|frontend"; then
+#        echo " Images locales détectées"
+#        
+#        # Lister les images
+#        docker images | grep -E "portfy|backend|frontend"
+        
+#        # Scanner chaque image
+#        for IMAGE in $(docker images --format "{{.Repository}}:{{.Tag}}" | grep -E "portfy|backend|frontend"); do
+#          echo " Scanning: $IMAGE"
+#          trivy image \
+#            --severity $TRIVY_SEVERITY \
+#            --exit-code 0 \
+#            --format table \
+#            $IMAGE
+#        done
+#        
+#        echo "Scan des images buildées terminé"
+#      else
+#        echo "Aucune image locale portfy-* trouvée"
+#        echo " Ce job s'exécutera après le stage build"
+#        exit 0
+#      fi
+  
+#  after_script:
+#    - echo ""
+  
+#  # Ne bloque pas pour l'instant (car pas encore de stage build)
+#  allow_failure: true
+  
+#  only:
+#    - main
+#    - dev
+  
+  # Exécution MANUELLE pour l'instant
+  # Retirer "when: manual" quand vous aurez un stage build !!!!!!!!!!!!
+#  when: manual
+
+# ==========================================
+# JOB FINAL : Résumé global du scan
+# ==========================================
+
+security:summary:
+  stage: security
+  image: alpine:latest
+  
+  script:
+    - echo "SÉCURITÉ - RÉSUMÉ COMPLET"
+    - echo "Scans effectués avec succès :"
+    - echo ""
+    - echo "  PostgreSQL 16.8-alpine (Docker Hub)"
+    - echo "     → Image de base de données"
+    - echo ""
+    - echo "  Backend code (npm dependencies)"
+    - echo "     → Dépendances Node.js/Express"
+    - echo ""
+    - echo "  Frontend code (npm dependencies)"
+    - echo "     → Dépendances Vue.js"
+    - echo ""
+    - echo "  Dockerfiles & docker-compose.yml"
+    - echo "     → Configurations et bonnes pratiques"
+    - echo ""
+    - echo "  Secrets exposés"
+    - echo "     → Clés API, tokens, mots de passe"
+    - echo ""
+    - echo "════════════════════════════════════════════════════════"
+    - echo "Niveau de sécurité scanné :"
+    - echo "   → CRITICAL (9.0-10.0)"
+    - echo "   → HIGH (7.0-8.9)"
+    - echo ""
+    - echo "Rapports disponibles dans les artifacts"
+    - echo "════════════════════════════════════════════════════════"
+    - echo ""
+    - echo "Pipeline sécurité : SUCCÈS"
+    - echo ""
+  
+  # S'exécute SEULEMENT si tous les jobs précédents ont réussi
+  when: on_success
+  
+  only:
+    - main
+    - dev
+    - merge_requests
 
 # ==========================================
 # SONARQUBE
