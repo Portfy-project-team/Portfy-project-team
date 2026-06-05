@@ -7,226 +7,93 @@ on:
     branches: [dev, main]
 
 jobs:
-  build:
+  build-test:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: portfy_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/portfy_test
+      JWT_ACCESS_SECRET: testsecret
+      JWT_REFRESH_SECRET: refreshsecret
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      NODE_ENV: test
 
     steps:
       # ==========================================
-      # Récupération du dépôt GitHub
+      # CHECKOUT
       # ==========================================
 
-      - name: Checkout code
-        uses: actions/checkout@v3
-
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       # ==========================================
-      # Installation de Node.js
-      # Cache npm pour accélérer le pipeline
+      # NODE.JS
       # ==========================================
 
-      - name: Setup Node
-        uses: actions/setup-node@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-
+          node-version: 22
 
       # ==========================================
       # FRONTEND
       # ==========================================
 
-      # Installation des dépendances frontend
-
-      - name: Install frontend
+      - name: Install frontend dependencies
         run: |
           cd frontend
           npm install
-
-
-      # Vérification qualité du code frontend
 
       - name: Run frontend lint
         run: |
           cd frontend
           npm run lint
 
-
-      # Construction du projet frontend
-      # Vérifie que Vite compile correctement
-
       - name: Build frontend
         run: |
           cd frontend
-          chmod +x node_modules/.bin/vite
           npm run build
-
-
-      # Tests frontend
-
-      #- name: Run frontend tests
-      #  run: |
-      #    cd frontend
-      #    npm test -- --run
-
-
-      # Audit sécurité frontend
-      # Vérifie les vulnérabilités npm
-
-      #- name: Security audit frontend
-      #  run: |
-      #    cd frontend
-      #    npm audit --audit-level=high
-
 
       # ==========================================
       # BACKEND
       # ==========================================
 
-      # Installation dépendances backend
-
-      - name: Install backend
+      - name: Install backend dependencies
         run: |
           cd backend
           npm install
 
+      - name: Generate Prisma Client
+        run: |
+          cd backend
+          npx prisma generate
 
-      # Tests backend
-      # IMPORTANT :
-      # backend doit préparer Jest/tests
+      - name: Run Prisma migrations
+        run: |
+          cd backend
+          npx prisma migrate deploy
 
-      #- name: Run backend tests
-      #  run: |
-      #    cd backend
-      #    npm test
-
-
-      # Audit sécurité backend
-
-      #- name: Security audit backend
-      #  run: |
-      #    cd backend
-      #    npm audit --audit-level=high
-
-     
-      # ==========================================
-      # DOCKER BUILD
-      # ==========================================
-
-      # Build image frontend
-
-      #- name: Build frontend Docker image
-      #  run: |
-      #    docker build -t frontend-app ./frontend
-
-
-      # Build image backend
-
-      #- name: Build backend Docker image
-      #  run: |
-      #    docker build -t backend-app ./backend
-
-
-      # ==========================================
-      # TRIVY SECURITY SCAN
-      # ==========================================
-
-      # À activer après génération des:
-      # - vulnérabilités
-      # - dépendances obsolètes
-      # - packages critiques
-
-      # continue-on-error :
-      # évite que toute la pipeline casse
-      # au début du projet
-
-      #- name: Run Trivy vulnerability scanner for frontend
-      #  uses: aquasecurity/trivy-action@master
-      #  continue-on-error: true
-      #  with:
-      #    image-ref: 'frontend-app'
-      #    format: 'table'
-      #    severity: 'HIGH,CRITICAL'
-
-
-      #- name: Run Trivy vulnerability scanner for backend
-      #  uses: aquasecurity/trivy-action@master
-      #  continue-on-error: true
-      #  with:
-      #    image-ref: 'backend-app'
-      #    format: 'table'
-      #    severity: 'HIGH,CRITICAL'
-
-
-      # ==========================================
-      # DOCKER HUB PUSH
-      # ==========================================
-
-      # À etre activer quand:
-      # - Docker Hub prêt
-      # - secrets GitHub configurés
-      # - images Docker stables
-
-      # - name: Login to Docker Hub
-      #   uses: docker/login-action@v3
-      #   with:
-      #     username: ${{ secrets.DOCKER_USERNAME }}
-      #     password: ${{ secrets.DOCKER_TOKEN }}
-
-
-      # - name: Push frontend image
-      #   run: |
-      #     docker tag frontend-app yourdockerhub/frontend-app:latest
-      #     docker push yourdockerhub/frontend-app:latest
-
-
-      # - name: Push backend image
-      #   run: |
-      #     docker tag backend-app yourdockerhub/backend-app:latest
-      #     docker push yourdockerhub/backend-app:latest
-
-
-      # ==========================================
-      #  DEPLOYMENT
-      # ==========================================
-
-      # À etre activer quand
-      # - VPS prêt
-      # - docker-compose prêt
-      # - serveur configuré
-
-      # - name: Deploy with Docker Compose
-      #   run: |
-      #     docker-compose pull
-      #     docker-compose up -d
-
-      # ==========================================
-      # SONARQUBE ANALYSIS
-      # ==========================================
-
-      # À activer quand :
-      # - SonarQube installé dans VM GitLab
-      # - sonar-scanner configuré
-      # - SONAR_TOKEN ajouté dans GitHub Secrets
-
-      # - name: SonarQube Scan
-      #   run: |
-      #     sonar-scanner \
-      #       -Dsonar.projectKey=portfolio-project \
-      #       -Dsonar.sources=. \
-      #       -Dsonar.host.url=http://your-sonarqube-url:9000 \
-      #       -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-
-
-      # ==========================================
-      # OWASP ZAP SECURITY SCAN
-      # ==========================================
-
-      # À activer quand :
-      # - application déployée/testable
-      # - frontend/backend accessibles
-      # - environnement Docker prêt
-
-      # - name: OWASP ZAP Scan
-      #   run: |
-      #     docker run -t zaproxy/zap-stable zap-baseline.py \
-      #     -t http://localhost:5173
+      - name: Run backend tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/portfy_test
+          JWT_ACCESS_SECRET: testsecret
+          JWT_REFRESH_SECRET: testrefreshsecret
+          NODE_ENV: test
+        run: |
+          cd backend
+          npm test

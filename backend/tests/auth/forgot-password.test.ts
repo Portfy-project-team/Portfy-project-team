@@ -52,7 +52,7 @@ describe("POST /api/auth/forgot-password", () => {
 
 //     await request(app).post("/api/auth/register").send({
 //       email,
-//       password: "Secure123!!!",
+//       password: "SecurePassword123!!!",
 //       role: "STUDENT",
 //     });
 
@@ -104,7 +104,7 @@ describe("POST /api/auth/forgot-password", () => {
 
 //     await request(app).post("/api/auth/register").send({
 //       email,
-//       password: "Secure123!!!",
+//       password: "SecurePassword123!!!",
 //       role: "STUDENT",
 //     });
 

@@ -1,22 +1,15 @@
-# PIPELINE CI/CD PORTFY - SÉCURITÉ INFRASTRUCTURE
-
-# STAGES DU PIPELINE
-
-
 stages:
-  - security      
-
+  - install
+  - test
+  - security
 
 variables:
-  
+  NODE_ENV: test
+  DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/portfy_test"
   TRIVY_SEVERITY: "CRITICAL,HIGH" #7-8.9->HIGH / 9-10->CRITICAL
-  
   TRIVY_EXIT_CODE: "1"
-  
   TRIVY_CACHE_DIR: ".trivycache/" #cache de trivy
-  
   TRIVY_FORMAT: "table" #sortie sous forme de table
-  
   TRIVY_TIMEOUT: "10m"
 
 
@@ -26,8 +19,75 @@ cache:
     - .trivycache/
   policy: pull-push  # Lire et écrire dans le cache
 
+# ==========================================
+# POSTGRES SERVICE
+# ==========================================
 
+default:
+  image: node:22
+
+services:
+  - postgres:16
+
+before_script:
+  - node -v
+  - npm -v
+
+# ==========================================
+# FRONTEND
+# ==========================================
+
+frontend-build:
+  stage: install
+
+  script:
+    - cd frontend
+    - npm install
+    - npm run build
+
+  only:
+    - dev
+    - main
+    - merge_requests
+
+frontend-lint:
+  stage: test
+
+  script:
+    - cd frontend
+    - npm install
+    - npm run lint
+
+  only:
+    - dev
+    - main
+    - merge_requests
+
+# ==========================================
+# BACKEND
+# ==========================================
+
+backend-test:
+  stage: test
+
+  variables:
+    NODE_ENV: test
+  
+  script:
+    - cd backend
+    - npm install
+    - npx prisma generate
+    - npx prisma migrate deploy
+    - npm test
+
+  only:
+    - dev
+    - main
+    - merge_requests
+
+# ==========================================
 # Job 1 : Scanner PostgreSQL 16.8-alpine
+# ==========================================
 
 # Scanne l'image officielle PostgreSQL depuis Docker Hub
 # Vérifie les vulnérabilités dans les paquets Alpine Linux
@@ -82,12 +142,13 @@ security:trivy-postgres:
     paths:
       - trivy-postgres-scan.txt
     expire_in: 30 days
-    reports:
-      junit: trivy-postgres-scan.txt
+  #  reports:
+  #   junit: trivy-postgres-scan.txt
 
-# STAGE: SECURITY - SCAN DU CODE SOURCE
-
+# ==========================================
 # Job 2 : Scanner le code BACKEND (dépendances npm)
+# ==========================================
+
 # Scanne package-lock.json pour détecter les dépendances vulnérables
 
 security:trivy-backend:
@@ -152,7 +213,10 @@ security:trivy-backend:
       - trivy-backend-scan.txt
     expire_in: 30 days
 
+# ==========================================
 # Job 3 : Scanner le code FRONTEND (dépendances npm)
+# ==========================================
+
 # Scanne package-lock.json pour détecter les dépendances vulnérables
 
 security:trivy-frontend:
@@ -217,87 +281,12 @@ security:trivy-frontend:
       - trivy-frontend-scan.txt
     expire_in: 30 days
 
-# STAGE: SECURITY - SCAN DES DOCKERFILES
-
-# Job 4 : Scanner les Dockerfiles (mauvaises pratiques)
-# Vérifie les mauvaises pratiques de sécurité dans les Dockerfiles
-
-security:trivy-dockerfiles:
-  stage: security
-  image: aquasec/trivy:latest
-  
-  variables:
-    SCAN_TYPE: "Dockerfiles & Configs"
-  
-  before_script:
-    - echo "SCAN TRIVY - Dockerfiles"
-    - echo "Type: $SCAN_TYPE"
-  
-  script:
-    - echo " Scan des Dockerfiles..."
-    
-    # Scanner backend/Dockerfile
-    - |
-      if [ -f "backend/Dockerfile" ]; then
-        echo " Scan: backend/Dockerfile"
-        trivy config 
-          --severity $TRIVY_SEVERITY 
-          --exit-code 0
-          --format table
-          backend/Dockerfile
-        echo ""
-      fi
-    
-    # Scanner frontend/Dockerfile
-    - |
-      if [ -f "frontend/Dockerfile" ]; then
-        echo " Scan: frontend/Dockerfile"
-        trivy config 
-          --severity $TRIVY_SEVERITY 
-          --exit-code 0
-          --format table
-          frontend/Dockerfile
-        echo ""
-      fi
-    
-    # Scanner docker-compose.yml
-    - |
-      if [ -f "docker-compose.yml" ]; then
-        echo "Scan: docker-compose.yml"
-        trivy config 
-          --severity $TRIVY_SEVERITY 
-          --exit-code 0
-          --format table
-          --output trivy-dockerfiles-scan.txt
-          docker-compose.yml
-        echo ""
-      fi
-    
-    - echo "Scan Dockerfiles terminé (mode info)"
-  
-  after_script:
-    - echo "Rapport sauvegardé : trivy-dockerfiles-scan.txt"
-  
-  # Mode INFO uniquement (ne bloque pas le pipeline)
-  # Car les mauvaises pratiques ne sont pas forcément critiques
-
-  allow_failure: true
-  
-  only:
-    - main
-    - dev
-    - merge_requests
-  
-  artifacts:
-    name: "trivy-dockerfiles-scan-$CI_COMMIT_SHORT_SHA"
-    when: always
-    paths:
-      - trivy-dockerfiles-scan.txt
-    expire_in: 30 days
-
+# ==========================================
 # STAGE: SECURITY - SCAN DES SECRETS EXPOSÉS
 
 # Job 5 : Scanner les secrets exposés (TruffleHog)
+# ==========================================
+
 # Détecte les clés API, tokens, mots de passe en clair dans le code
 
 security:secrets-scan:
@@ -358,77 +347,197 @@ security:secrets-scan:
       - secrets-report.json
     expire_in: 30 days
 
+# ==========================================
+# STAGE: SECURITY - SCAN DES DOCKERFILES
+
+# Job 4 : Scanner les Dockerfiles (mauvaises pratiques)
+# ==========================================
+
+# Vérifie les mauvaises pratiques de sécurité dans les Dockerfiles
+
+#security:trivy-dockerfiles:
+#  stage: security
+# image: aquasec/trivy:latest
+  
+#  variables:
+#    SCAN_TYPE: "Dockerfiles & Configs"
+  
+#  before_script:
+#    - echo "SCAN TRIVY - Dockerfiles"
+#    - echo "Type: $SCAN_TYPE"
+  
+#  script:
+#    - echo " Scan des Dockerfiles..."
+    
+    # Scanner backend/Dockerfile
+#    - |
+#      if [ -f "backend/Dockerfile" ]; then
+#        echo " Scan: backend/Dockerfile"
+#        trivy config 
+#          --severity $TRIVY_SEVERITY 
+#          --exit-code 0
+#          --format table
+#          backend/Dockerfile
+#        echo ""
+#      fi
+    
+    # Scanner frontend/Dockerfile
+#    - |
+#      if [ -f "frontend/Dockerfile" ]; then
+#        echo " Scan: frontend/Dockerfile"
+#        trivy config 
+#          --severity $TRIVY_SEVERITY 
+#          --exit-code 0
+#          --format table
+#          frontend/Dockerfile
+#        echo ""
+#      fi
+    
+    # Scanner docker-compose.yml
+#    - |
+#      if [ -f "docker-compose.yml" ]; then
+#        echo "Scan: docker-compose.yml"
+#        trivy config 
+#          --severity $TRIVY_SEVERITY 
+#          --exit-code 0
+#          --format table
+#          --output trivy-dockerfiles-scan.txt
+#          docker-compose.yml
+#        echo ""
+#      fi
+#    
+#    - echo "Scan Dockerfiles terminé (mode info)"
+  
+#  after_script:
+#    - echo "Rapport sauvegardé : trivy-dockerfiles-scan.txt"
+  
+  # Mode INFO uniquement (ne bloque pas le pipeline)
+  # Car les mauvaises pratiques ne sont pas forcément critiques
+
+#  allow_failure: true
+#  
+#  only:
+#    - main
+#    - dev
+#    - merge_requests
+#  
+#  artifacts:
+#    name: "trivy-dockerfiles-scan-$CI_COMMIT_SHORT_SHA"
+#    when: always
+#    paths:
+#      - trivy-dockerfiles-scan.txt
+#    expire_in: 30 days
+
+# ==========================================
+# DOCKER BUILD
+# ==========================================
+
+#docker-build-backend:
+#  stage: security
+#
+#  image: docker:latest
+#
+#  services:
+#    - docker:dind
+
+#  script:
+#    - docker build -t portfy-backend ./backend
+
+#  only:
+#    - dev
+#    - main
+
+#docker-build-frontend:
+#  stage: security
+#
+#  image: docker:latest
+#
+#  services:
+#    - docker:dind
+#
+#  script:
+#    - docker build -t portfy-frontend ./frontend
+#
+#  only:
+#    - dev
+#    - main
+
+# ==========================================
 # STAGE: SECURITY - IMAGES LOCALES (APRÈS BUILD)
 
 # Job 6 : Scanner les images buildées localement
+# ==========================================
+
 # Ce job scanne les images APRÈS qu'elles soient buildées
 # Pour l'instant, exécution MANUELLE (when: manual)
 # !!!!!!!!!!!!!!! À automatiser plus tard quand vous aurez un stage "build" !!!!!!!!!!!!!!
 
-security:trivy-built-images:
-  stage: security
+#security:trivy-built-images:
+#  stage: security
+#  
+#  # Docker-in-Docker pour builder et scanner
+#  image: docker:latest
+#  
+#  services:
+#    - docker:dind  # Docker daemon
+#  
+#  variables:
+#    DOCKER_DRIVER: overlay2
+#    DOCKER_TLS_CERTDIR: "/certs"
+#    SCAN_TYPE: "Built Docker Images"
+#  
+#  before_script:
+#    - echo " SCAN TRIVY - Images buildées"
+#    - echo "Type: $SCAN_TYPE"
+#    
+#    # Installer Trivy dans le container Docker
+#    - apk add --no-cache curl bash
+#    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+#    - trivy --version
   
-  # Docker-in-Docker pour builder et scanner
-  image: docker:latest
-  
-  services:
-    - docker:dind  # Docker daemon
-  
-  variables:
-    DOCKER_DRIVER: overlay2
-    DOCKER_TLS_CERTDIR: "/certs"
-    SCAN_TYPE: "Built Docker Images"
-  
-  before_script:
-    - echo " SCAN TRIVY - Images buildées"
-    - echo "Type: $SCAN_TYPE"
-    
-    # Installer Trivy dans le container Docker
-    - apk add --no-cache curl bash
-    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
-    - trivy --version
-  
-  script:
-    # Vérifier si des images portfy existent
-    - |
-      if docker images | grep -qE "portfy|backend|frontend"; then
-        echo " Images locales détectées"
+#  script:
+#    # Vérifier si des images portfy existent
+#    - |
+#      if docker images | grep -qE "portfy|backend|frontend"; then
+#        echo " Images locales détectées"
+#        
+#        # Lister les images
+#        docker images | grep -E "portfy|backend|frontend"
         
-        # Lister les images
-        docker images | grep -E "portfy|backend|frontend"
-        
-        # Scanner chaque image
-        for IMAGE in $(docker images --format "{{.Repository}}:{{.Tag}}" | grep -E "portfy|backend|frontend"); do
-          echo " Scanning: $IMAGE"
-          trivy image \
-            --severity $TRIVY_SEVERITY \
-            --exit-code 0 \
-            --format table \
-            $IMAGE
-        done
-        
-        echo "Scan des images buildées terminé"
-      else
-        echo "Aucune image locale portfy-* trouvée"
-        echo " Ce job s'exécutera après le stage build"
-        exit 0
-      fi
+#        # Scanner chaque image
+#        for IMAGE in $(docker images --format "{{.Repository}}:{{.Tag}}" | grep -E "portfy|backend|frontend"); do
+#          echo " Scanning: $IMAGE"
+#          trivy image \
+#            --severity $TRIVY_SEVERITY \
+#            --exit-code 0 \
+#            --format table \
+#            $IMAGE
+#        done
+#        
+#        echo "Scan des images buildées terminé"
+#      else
+#        echo "Aucune image locale portfy-* trouvée"
+#        echo " Ce job s'exécutera après le stage build"
+#        exit 0
+#      fi
   
-  after_script:
-    - echo ""
+#  after_script:
+#    - echo ""
   
-  # Ne bloque pas pour l'instant (car pas encore de stage build)
-  allow_failure: true
+#  # Ne bloque pas pour l'instant (car pas encore de stage build)
+#  allow_failure: true
   
-  only:
-    - main
-    - dev
+#  only:
+#    - main
+#    - dev
   
   # Exécution MANUELLE pour l'instant
   # Retirer "when: manual" quand vous aurez un stage build !!!!!!!!!!!!
-  when: manual
+#  when: manual
 
+# ==========================================
 # JOB FINAL : Résumé global du scan
+# ==========================================
 
 security:summary:
   stage: security
@@ -471,3 +580,92 @@ security:summary:
     - main
     - dev
     - merge_requests
+
+# ==========================================
+# SONARQUBE
+# ==========================================
+
+# À activer quand :
+# - SonarQube installé
+# - SONAR_TOKEN configuré
+
+# sonarqube-check:
+#   stage: security
+#
+#   image: sonarsource/sonar-scanner-cli:latest
+#
+#   script:
+#     - sonar-scanner
+#
+#   only:
+#     - dev
+#     - main
+
+# ==========================================
+# OWASP ZAP
+# ==========================================
+
+# À activer quand :
+# - frontend accessible
+# - backend déployé
+# - environnement staging prêt
+
+# zap-security-test:
+#   stage: security
+#
+#   image: zaproxy/zap-stable
+#
+#   script:
+#     - zap-baseline.py -t http://frontend-url
+#
+#   allow_failure: true
+#
+#   only:
+#     - main
+
+# ==========================================
+# DOCKER HUB PUSH
+# ==========================================
+
+# À activer quand :
+# - Docker Hub prêt
+# - secrets GitLab configurés
+
+# docker-push:
+#   stage: security
+#
+#   image: docker:latest
+#
+#   services:
+#     - docker:dind
+#
+#   before_script:
+#     - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+#
+#   script:
+#     - docker push portfy-backend
+#     - docker push portfy-frontend
+#
+#   only:
+#     - main
+
+# ==========================================
+# DEPLOYMENT
+# ==========================================
+
+# À activer quand :
+# - VPS prêt
+# - serveur configuré
+# - docker-compose production prêt
+
+# deploy-production:
+#   stage: security
+#
+#   script:
+#     - docker-compose pull
+#     - docker-compose up -d
+#
+#   only:
+#     - main
+#
+#   when: manual

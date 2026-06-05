@@ -14,7 +14,7 @@ describe("GET /api/user/me", () => {
       .post("/api/auth/register")
       .send({
         email,
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
         role: "STUDENT",
       });
 
@@ -29,7 +29,7 @@ describe("GET /api/user/me", () => {
       .post("/api/auth/login")
       .send({
         email,
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
       });
 
     cookies = Array.isArray(login.headers["set-cookie"])

@@ -10,7 +10,7 @@ describe("POST /api/auth/register", () => {
       .send({
         role: "STUDENT",
         email: `test${Date.now()}@test.com`,
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
       });
 
     expect(res.status).toBe(201);
@@ -22,7 +22,7 @@ describe("POST /api/auth/register", () => {
     const user = {
       role: "STUDENT",
       email,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
     };
 
     await request(app).post("/api/auth/register").send(user);
@@ -38,7 +38,7 @@ describe("POST /api/auth/register", () => {
       .send({
         role: "STUDENT",
         email: "invalid-email",
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
       });
 
     expect(res.status).toBe(400);
@@ -81,7 +81,7 @@ describe("POST /api/auth/register", () => {
       .send({
         role: "STUDENT",
         email: "'; DROP TABLE users; --",
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
       });
 
     expect(res.status).toBe(400);
@@ -93,7 +93,7 @@ describe("POST /api/auth/register", () => {
       .send({
         role: "STUDENT",
         email: `ALI${Date.now()}@TEST.COM`,
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
       });
 
     expect(res.status).toBe(201);

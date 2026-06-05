@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../../utils/prisma.js";
 import { Prisma, UserStatus } from '@prisma/client';
+
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -17,7 +18,12 @@ const DUMMY_HASH =
 
 // ── Register ──────────────────────────────────────────────────────
 export const registerUser = async (data: RegisterInput) => {
-  const { email, password, role } = data;
+  const { email, password, role="STUDENT" } = data;
+
+
+  // Hash EN PREMIER — temps de reponse constant que l'email existe ou non
+  // Sans ca : reponse immediate w(~1ms) si email existe, ~400ms si non
+  // → un attaquant detecte les emails enregistres par le temps de reponse
 
   const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
@@ -84,7 +90,11 @@ export const loginUser = async (
       isEmailVerified: true,
     },
   });
-
+if (user && !user.password) {
+  const error: any = new Error("Utilisez Google pour vous connecter");
+  error.statusCode = 403;
+  throw error;
+}
   const isValid = await bcrypt.compare(
     password,
     user?.password ?? DUMMY_HASH
@@ -243,8 +253,9 @@ export const sendVerificationEmail = async (
 
   const verifyLink = `${process.env.FRONTEND_URL}/verify-email?token=${rawToken}`;
   const template   = emailTemplates.verifyEmail(verifyLink);
-
-  await sendEmail({ to: email, subject: template.subject, html: template.html });
+  console.log("seding email")
+  const res = await sendEmail({ to: email, subject: template.subject, html: template.html });
+  console.log(res)
 };
 
 // ── Resend Verification Email ─────────────────────────────────────
@@ -376,3 +387,4 @@ export const resetPasswordService = async (
     }),
   ]);
 };
+

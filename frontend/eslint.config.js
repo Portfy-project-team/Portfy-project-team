@@ -18,7 +18,10 @@ export default [
         history: "readonly",
         location: "readonly",
         URL: "readonly",
-        setTimeout: "readonly"
+        setTimeout: "readonly",
+
+        // AJOUTER CECI
+        localStorage: "readonly"
       }
     },
 
