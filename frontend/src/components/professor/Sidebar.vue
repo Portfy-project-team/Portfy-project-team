@@ -12,95 +12,50 @@
       </button>
     </div>
 
-    <!-- Profile -->
     <div v-if="isOpen" class="sidebar-profile">
       <div class="avatar">{{ initials }}</div>
       <div class="profile-info">
-        <span class="profile-name">Ahmed Alami</span>
-        <span class="profile-role">Étudiant · ENSAT</span>
+        <span class="profile-name">M. Ghailani</span>
+        <span class="profile-role">Professeur · ENSAT</span>
       </div>
     </div>
 
-    <!-- Score -->
-    <div v-if="isOpen" class="score-badge">
-      Score: <strong>82/100</strong>
+    <div v-if="isOpen" class="verified-badge">
+      <Star size="16" />
+      Compte vérifié
     </div>
 
-    <!-- Navigation -->
     <nav class="sidebar-nav">
       <p v-if="isOpen" class="nav-label">Home</p>
-      <RouterLink to="/student/dashboard" class="nav-item" active-class="active">
+      <router-link to="/professor/dashboard" class="nav-item" active-class="active">
         <Home size="18" />
         <span v-if="isOpen">Dashboard</span>
-      </RouterLink>
-      <RouterLink to="/student/projects" class="nav-item" active-class="active">
-        <Briefcase size="18" />
-        <span v-if="isOpen">Projects</span>
-      </RouterLink>
-      <RouterLink to="/student/stages" class="nav-item" active-class="active">
-        <Zap size="18" />
-        <span v-if="isOpen">Stages</span>
-      </RouterLink>
-
-      <p v-if="isOpen" class="nav-label">Portfolio</p>
-      <RouterLink to="/student/portfolio" class="nav-item" active-class="active">
-        <Folder size="18" />
-        <span v-if="isOpen">Portfolio</span>
-      </RouterLink>
-      <RouterLink to="/student/activites" class="nav-item" active-class="active">
-        <Activity size="18" />
-        <span v-if="isOpen">Activités</span>
-      </RouterLink>
-      <RouterLink to="/student/formations" class="nav-item" active-class="active">
-        <BookOpen size="18" />
-        <span v-if="isOpen">Formations</span>
-      </RouterLink>
-      <RouterLink to="/student/competences" class="nav-item" active-class="active">
-        <Target size="18" />
-        <span v-if="isOpen">Compétences</span>
-      </RouterLink>
-      <RouterLink to="/student/lettres" class="nav-item" active-class="active">
-        <Mail size="18" />
-        <span v-if="isOpen">Lettres</span>
-      </RouterLink>
-      <RouterLink to="/student/badges" class="nav-item" active-class="active">
-        <Award size="18" />
-        <span v-if="isOpen">Badges</span>
-      </RouterLink>
-      <RouterLink to="/student/reseau" class="nav-item" active-class="active">
-        <Users size="18" />
-        <span v-if="isOpen">Réseau</span>
-      </RouterLink>
-      <RouterLink to="/student/recommendations" class="nav-item" active-class="active">
+      </router-link>
+      <router-link to="/professor/portfolios-consultes" class="nav-item" active-class="active">
+        <Eye size="18" />
+        <span v-if="isOpen">Portfolios consultés</span>
+      </router-link>
+      <router-link to="/professor/recommandations" class="nav-item" active-class="active">
         <Star size="18" />
         <span v-if="isOpen">Recommandations</span>
-      </RouterLink>
+      </router-link>
 
       <p v-if="isOpen" class="nav-label">Support</p>
-      <RouterLink to="/student/commentaires" class="nav-item" active-class="active">
+      <router-link to="/professor/commentaires" class="nav-item" active-class="active">
         <MessageCircle size="18" />
         <span v-if="isOpen">Commentaires</span>
         <span v-if="isOpen" class="badge">3</span>
-      </RouterLink>
-      <RouterLink to="/student/historique" class="nav-item" active-class="active">
-        <Clock size="18" />
-        <span v-if="isOpen">Historique</span>
-      </RouterLink>
-      <RouterLink to="/student/notifications" class="nav-item" active-class="active">
-        <Bell size="18" />
-        <span v-if="isOpen">Notifications</span>
-      </RouterLink>
-      <RouterLink to="/student/parametres" class="nav-item" active-class="active">
+      </router-link>
+      <router-link to="/professor/parametres" class="nav-item" active-class="active">
         <Settings size="18" />
         <span v-if="isOpen">Paramètres</span>
-      </RouterLink>
-      <RouterLink to="/student/aide" class="nav-item" active-class="active">
+      </router-link>
+      <router-link to="/professor/aide" class="nav-item" active-class="active">
         <HelpCircle size="18" />
         <span v-if="isOpen">Aide & Support</span>
-      </RouterLink>
+      </router-link>
     </nav>
 
-    <!-- Logout -->
     <button v-if="isOpen" class="logout-btn" @click="logout">
       <LogOut size="18" />
       Déconnexion
@@ -110,24 +65,20 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
-import { Home, Briefcase, Zap, Folder, Activity, BookOpen, Target, Mail, Award, Users, Star, MessageCircle, Clock, Bell, Settings, HelpCircle, LogOut, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { Home, Eye, Star, MessageCircle, Settings, HelpCircle, LogOut, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
+const user = { name: 'M. Ghailani', role: 'Professeur · ENSAT', verified: true }
 const router = useRouter()
 const isOpen = ref(true)
-const userName = "Ahmed Alami"
 
-const initials = computed(() => {
-  return userName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
-})
+const initials = computed(() => user.name?.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase())
 
 const toggleSidebar = () => {
   isOpen.value = !isOpen.value
 }
 
-const logout = () => {
-  router.push('/login')
-}
+const logout = () => router.push('/login')
 </script>
 
 <style scoped>
@@ -249,10 +200,10 @@ const logout = () => {
   text-overflow: ellipsis;
 }
 
-.score-badge {
+.verified-badge {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 8px 16px;
   margin: 0 16px 12px;
   background: rgba(245, 166, 35, 0.1);
@@ -262,9 +213,9 @@ const logout = () => {
   color: #e5b230;
 }
 
-.score-badge strong {
-  font-weight: 700;
-  color: #f5a623;
+.verified-badge :deep(svg) {
+  flex-shrink: 0;
+  stroke-width: 2;
 }
 
 .sidebar-nav {
@@ -347,7 +298,7 @@ const logout = () => {
 }
 
 .logout-btn:hover {
-  background: #f5a623;
+  background: #e5b230;
   color: #0f3a4f;
 }
 

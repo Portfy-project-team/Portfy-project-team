@@ -1,6 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../pages/auth/Login.vue'
 
+
+//import ProfessorRecommandations from '@/pages/professor/Recommandations.vue'
+//import ProfessorPortfoliosConsultes from '@/pages/professor/PortfoliosConsultes.vue'
+
+
 const routes = [
   {
     path: '/',
@@ -100,6 +105,16 @@ component: () => import('../pages/student/Badges.vue')
   path: '/:pathMatch(.*)*',
   redirect: '/login'
   },
+
+{
+  path: '/professor/recommandations',
+  component: () => import('../pages/professor/Recommandations.vue')
+},
+
+{
+  path: '/professor/portfolios-consultes',
+  component: () => import('../pages/professor/PortfoliosConsultes.vue')
+},
 
 ]
 

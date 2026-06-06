@@ -19,7 +19,7 @@ import {
 
       <main class="dashboard-page">
         <section class="welcome-section">
-          <h2>Bonjour Ahmed <span>👋</span></h2>
+          <h2>Bonjour Ahmed</h2>
           <p>Voici un apercu de votre activite et progression</p>
         </section>
 
