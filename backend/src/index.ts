@@ -8,6 +8,7 @@ import authRoutes from "./modules/auth/auth.routes.js";
 import projectRoutes from "./modules/projects/project.routes.js";
 import letterRoutes from "./modules/letters/letter.routes.js";
 import skillRoutes from "./modules/skills/skill.routes.js";
+import activityRoutes from "./modules/activities/activity.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,6 +53,7 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/api/skills", skillRoutes);
+app.use("/api/activities", activityRoutes);
 
 // SÉCURITÉ : Suppression de la route /users globale qui fuyait les données
 
