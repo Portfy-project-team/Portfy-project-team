@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import authRoutes from "./modules/auth/auth.routes.js";
 import projectRoutes from "./modules/projects/project.routes.js";
 import letterRoutes from "./modules/letters/letter.routes.js";
+import skillRoutes from "./modules/skills/skill.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,6 +50,8 @@ app.use("/api/letters", letterRoutes);
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", env: process.env.NODE_ENV });
 });
+
+app.use("/api/skills", skillRoutes);
 
 // SÉCURITÉ : Suppression de la route /users globale qui fuyait les données
 
