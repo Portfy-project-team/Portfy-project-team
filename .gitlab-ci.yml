@@ -185,13 +185,14 @@ security:trivy-backend:
     
     # Scanner le code backend
     - echo "Scan du code backend..."
-    - trivy fs 
-        --severity $TRIVY_SEVERITY 
-        --exit-code $TRIVY_EXIT_CODE 
-        --format $TRIVY_FORMAT
-        --timeout $TRIVY_TIMEOUT
-        --output trivy-backend-scan.txt
-        $SCAN_PATH
+    - |
+        trivy fs \
+          --severity $TRIVY_SEVERITY \
+          --exit-code $TRIVY_EXIT_CODE \
+          --format $TRIVY_FORMAT \
+          --timeout $TRIVY_TIMEOUT \
+          --output trivy-backend-scan.txt \
+          $SCAN_PATH
     
     # Afficher le résultat
     - cat trivy-backend-scan.txt
@@ -253,13 +254,14 @@ security:trivy-frontend:
     
     # Scanner le code frontend
     - echo "Scan du code frontend..."
-    - trivy fs 
-        --severity $TRIVY_SEVERITY 
-        --exit-code $TRIVY_EXIT_CODE 
-        --format $TRIVY_FORMAT
-        --timeout $TRIVY_TIMEOUT
-        --output trivy-frontend-scan.txt
-        $SCAN_PATH
+    - |
+        trivy fs \
+          --severity $TRIVY_SEVERITY \
+          --exit-code $TRIVY_EXIT_CODE \
+          --format $TRIVY_FORMAT \
+          --timeout $TRIVY_TIMEOUT \
+          --output trivy-frontend-scan.txt \
+          $SCAN_PATH
     
     # Afficher le résultat
     - cat trivy-frontend-scan.txt
