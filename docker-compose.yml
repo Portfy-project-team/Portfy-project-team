@@ -6,9 +6,12 @@ services:
     container_name: portfy_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Kholoud2005
-      POSTGRES_DB: portfytest
+
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      
+      
     ports:
       - "5433:5432"
     volumes:
