@@ -114,12 +114,13 @@ security:trivy-postgres:
     
     # Scanner l'image PostgreSQL
     - echo " Scan en cours..."
-    - trivy image 
-        --severity $TRIVY_SEVERITY 
-        --exit-code $TRIVY_EXIT_CODE 
-        --format $TRIVY_FORMAT
-        --timeout $TRIVY_TIMEOUT
-        --output trivy-postgres-scan.txt
+    - |
+      trivy image \
+        --severity $TRIVY_SEVERITY \
+        --exit-code $TRIVY_EXIT_CODE \
+        --format $TRIVY_FORMAT \
+        --timeout $TRIVY_TIMEOUT \
+        --output trivy-postgres-scan.txt \
         $IMAGE_NAME
     
     - echo " PostgreSQL $IMAGE_NAME : Aucune vulnérabilité CRITICAL/HIGH"
