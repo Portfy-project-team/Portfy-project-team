@@ -234,6 +234,7 @@ const register = () => {
   console.log('LinkedIn:', linkedin.value)
 
   alert('Compte créé avec succès')
+  router.push('/login')
 }
 </script>
 
