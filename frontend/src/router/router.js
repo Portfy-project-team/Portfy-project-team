@@ -2,10 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../pages/auth/Login.vue'
 
 
-//import ProfessorRecommandations from '@/pages/professor/Recommandations.vue'
-//import ProfessorPortfoliosConsultes from '@/pages/professor/PortfoliosConsultes.vue'
-
-
 const routes = [
   {
     path: '/',
