@@ -23,16 +23,35 @@ const routes = [
     component: () => import('../pages/auth/Register.vue')
   },
   {
+    path: '/pending',                                                          // ← ajoute ici
+    name: 'pending',
+    component: () => import('../pages/auth/PendingValidation.vue')
+  },
+  {
     path: '/forgot-password',
     name: 'forgot-password',
     component: () => import('../pages/auth/ForgotPassward.vue')
   },
   {
-    path: '/dashboard',
-    name: 'dashboard',
-    // Dashboard rāh khārej l-dossier auth kima bāyen f l-image
-    component: () => import('../pages/Dashboard.vue')
-  },
+  path: '/dashboard',
+  redirect: () => {
+    const user = JSON.parse(localStorage.getItem('user'))
+    if (user?.role === 'PROF')    return '/prof/dashboard'
+    if (user?.role === 'STUDENT') return '/student/dashboard'
+    return '/login'
+  }
+},
+{
+  path: '/prof',
+  component: () => import('../components/prof/ProfLayout.vue'),
+  children: [
+    {
+      path: 'dashboard',
+      name: 'prof-dashboard',
+      component: () => import('../pages/prof/Dashboard.vue'),
+    }
+  ]
+},
   {
     path: '/conditions',
     name: 'conditions',
@@ -42,6 +61,10 @@ const routes = [
     path: '/politique',
     name: 'politique',
     component: () => import('../pages/Politique.vue')
+  },
+  { path: '/prof/generer-lettre', 
+    name: 'prof-generer-lettre', 
+    component: () => import('../pages/prof/GenererLettre.vue') 
   },
   {
   path: '/:pathMatch(.*)*',

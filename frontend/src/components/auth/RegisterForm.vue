@@ -606,9 +606,16 @@ try {
 
     // Check if registration was successful
     if (response.status === 201) {
-      alert(response.data.message || 'Compte créé avec succès !')
-      router.push('/login')
-    }
+  if (role.value === 'PROF' || role.value === 'PRO') {
+    router.push({
+      path: '/pending',
+      query: { role: role.value }
+    })
+  } else {
+    alert('Compte créé avec succès !')
+    router.push('/login')
+  }
+}
 
   } catch (error) {
     console.error('Registration failed:', error)
