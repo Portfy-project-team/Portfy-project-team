@@ -1,14 +1,11 @@
-// stage.service.ts
 import { StatutValidation } from "@prisma/client";
 import { prisma } from "../../utils/prisma.js";
 import { StageInput } from "./stage.validation.js";
 
-// ─────────────────────────────────────────────
-// Helpers privés
-// ─────────────────────────────────────────────
-
 const calculerDuree = (dateDebut: Date, dateFin: Date): number =>
-  Math.round((dateFin.getTime() - dateDebut.getTime()) / (1000 * 60 * 60 * 24 * 30));
+  Math.round(
+    (dateFin.getTime() - dateDebut.getTime()) / (1000 * 60 * 60 * 24 * 30)
+  );
 
 const getStudentOrThrow = async (userId: number) => {
   const student = await prisma.student.findUnique({ where: { userId } });
@@ -28,56 +25,53 @@ const getStageOrThrow = async (stageId: number) => {
   return stage;
 };
 
-/** Vérifie que le stage appartient à l'étudiant ET est encore en PENDING */
-const assertStageEditableByStudent = async (stageId: number, userId: number) => {
+const assertStageEditableByStudent = async (
+  stageId: number,
+  userId:  number
+) => {
   const student = await getStudentOrThrow(userId);
   const stage   = await getStageOrThrow(stageId);
 
-  if (stage.studentId !== student.id)             throw new Error("FORBIDDEN");
-  if (stage.statutV   !== StatutValidation.PENDING) throw new Error("STAGE_LOCKED");
+  if (stage.studentId !== student.id)               throw new Error("FORBIDDEN");
+  if (stage.statutV   !== StatutValidation.PENDING)  throw new Error("STAGE_LOCKED");
 
   return { student, stage };
 };
 
-// ─────────────────────────────────────────────
-// Services
-// ─────────────────────────────────────────────
-
+// ── AjouterStage ──────────────────────────────────────────────────
 export const AjouterStage = async (userId: number, stageData: StageInput) => {
-  try {
-    const student = await getStudentOrThrow(userId);
-    const { encadrantId, ...stageInfo } = stageData;
-    
-    
-    const encadrant = await prisma.prof.findUnique({ where: { id: encadrantId } });
-    
-    if (!encadrant) throw new Error("Encadrant introuvable");
+  const student                    = await getStudentOrThrow(userId);
+  const { encadrantId, ...stageInfo } = stageData;
 
-    const chevauchement = await prisma.stage.findFirst({
-      where: {
-        studentId: student.id,
-        AND: [
-          { dateDebut: { lte: stageInfo.dateFin } },
-          { dateFin:   { gte: stageInfo.dateDebut } },
-        ],
-      },
-    });
+  const encadrant = await prisma.prof.findUnique({ where: { id: encadrantId } });
+  if (!encadrant) throw new Error("Encadrant introuvable");
 
-    const result = await prisma.stage.create({
-      data: {
-        ...stageInfo,
-        studentId:   student.id,
-        encadrantId: encadrant.id,
-        duree:       calculerDuree(stageInfo.dateDebut, stageInfo.dateFin),
-        statutV:     StatutValidation.PENDING,
-      },
-    });
-    return result;
-    
-  } catch (error) {
-    throw error;
-  }
+  const chevauchement = await prisma.stage.findFirst({
+    where: {
+      studentId: student.id,
+      AND: [
+        { dateDebut: { lte: stageInfo.dateFin } },
+        { dateFin:   { gte: stageInfo.dateDebut } },
+      ],
+    },
+  });
+
+  // BUG CRITIQUE corrigé — la version prcedente vérifie le chevauchement
+  // mais n'a pas de throw si chevauchement existe
+  // Le stage était créé même en cas de conflit de dates
+  if (chevauchement) throw new Error("Vous avez déjà un stage dans cette période");
+
+  return prisma.stage.create({
+    data: {
+      ...stageInfo,
+      studentId:   student.id,
+      encadrantId: encadrant.id,
+      duree:       calculerDuree(stageInfo.dateDebut, stageInfo.dateFin),
+      statutV:     StatutValidation.PENDING,
+    },
+  });
 };
+
 export const GetMyStages = async (userId: number) => {
   const student = await getStudentOrThrow(userId);
   return prisma.stage.findMany({
@@ -89,7 +83,7 @@ export const GetMyStages = async (userId: number) => {
 export const GetSubmittedStages = async (profUserId: number) => {
   const prof = await getProfOrThrow(profUserId);
   return prisma.stage.findMany({
-    where:   { statutV: StatutValidation.SUBMITTED, encadrantId:prof.id },
+    where:   { statutV: StatutValidation.SUBMITTED, encadrantId: prof.id },
     include: { Student: { select: { id: true, userId: true } } },
     orderBy: { dateDebut: "desc" },
   });
@@ -127,14 +121,13 @@ export const UpdateStage = async (
   await assertStageEditableByStudent(stageId, userId);
 
   if (data.encadrantId) {
-    const encadrant = await prisma.prof.findUnique({ where: { id: data.encadrantId } });
+    const encadrant = await prisma.prof.findUnique({
+      where: { id: data.encadrantId },
+    });
     if (!encadrant) throw new Error("Encadrant introuvable");
   }
 
-  return prisma.stage.update({
-    where: { id: stageId },
-    data,
-  });
+  return prisma.stage.update({ where: { id: stageId }, data });
 };
 
 export const DeleteStage = async (stageId: number, userId: number) => {
@@ -150,18 +143,16 @@ export const SubmitStage = async (stageId: number, userId: number) => {
   });
 };
 
-// ─────────────────────────────────────────────
-// Actions professeur
-// ─────────────────────────────────────────────
-
-/** Helper commun pour ValidateStage / RejectStage */
-const assertStageSubmittedByProf = async (stageId: number, profUserId: number) => {
+const assertStageSubmittedByProf = async (
+  stageId:    number,
+  profUserId: number
+) => {
   const prof  = await getProfOrThrow(profUserId);
   const stage = await prisma.stage.findUnique({
     where:   { id: stageId },
     include: { Student: true },
   });
-  if (!stage) throw new Error("Stage introuvable");
+  if (!stage)                                          throw new Error("Stage introuvable");
   if (stage.statutV    !== StatutValidation.SUBMITTED) throw new Error("STAGE_NOT_SUBMITTED");
   if (stage.encadrantId !== prof.id)                   throw new Error("FORBIDDEN");
 
@@ -169,11 +160,11 @@ const assertStageSubmittedByProf = async (stageId: number, profUserId: number) =
 };
 
 const envoyerNotificationStage = (
-  studentId:  number,
+  studentId:   number,
   _entreprise: string,
-  stageId:    number,
-  type:       "STAGE_VALIDATED" | "STAGE_REJECTED",
-  message:    string
+  stageId:     number,
+  type:        "STAGE_VALIDATED" | "STAGE_REJECTED",
+  message:     string
 ) =>
   prisma.notification.create({
     data: {
@@ -214,7 +205,7 @@ export const RejectStage = async (
 
   const stageRejete = await prisma.stage.update({
     where: { id: stageId },
-    data:  {
+    data: {
       statutV:         StatutValidation.REJECTED,
       encadrantId:     prof.id,
       rejectionReason: raison,
@@ -242,4 +233,3 @@ export const GetProfs = async () =>
       specialite:  true,
     },
   });
-
