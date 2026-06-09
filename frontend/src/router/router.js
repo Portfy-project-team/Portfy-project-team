@@ -122,6 +122,19 @@ component: () => import('../pages/student/Badges.vue')
   component: () => import('../pages/professor/PortfoliosConsultes.vue')
 },
 
+{
+  path: '/professor/commentaires',
+  component: () => import('../pages/professor/Commentaires.vue')
+},
+{
+  path: '/professor/parametres',
+  component: () => import('../pages/professor/Parametres.vue')
+},
+{
+  path: '/professor/aide',
+  component: () => import('../pages/professor/Aide.vue')
+},
+
 ]
 
 const router = createRouter({
