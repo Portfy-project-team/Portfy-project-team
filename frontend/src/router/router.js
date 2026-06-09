@@ -9,8 +9,9 @@ import LoginView from '../pages/auth/Login.vue'
 const routes = [
   {
     path: '/',
-    redirect: '/login'
+    redirect: '/home'
   },
+
   {
     path: '/login',
     name: 'login',
@@ -20,6 +21,11 @@ const routes = [
     path: '/register',
     name: 'register',
     component: () => import('../pages/auth/Register.vue')
+  },
+  {
+    path: '/home',
+    name: 'home',
+    component: () => import('../pages/PageHome.vue')
   },
   {
     path: '/forgot-password',
@@ -103,7 +109,7 @@ component: () => import('../pages/student/Badges.vue')
 },
   {
   path: '/:pathMatch(.*)*',
-  redirect: '/login'
+  redirect: '/home'
   },
 
 {
