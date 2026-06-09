@@ -11,6 +11,7 @@ import adminRoutes from "./modules/admin/admin.routes.js";
 import portfolioRoutes from "./modules/portfolio/portfolio.routes.js";
 import projectRoutes from "./modules/projects/project.routes.js";
 import letterRoutes from "./modules/letters/letter.routes.js";
+import skillRoutes from "./modules/skills/skill.routes.js";
 
 import stageRoutes from "./modules/stages/stage.routes.js";
 import notificationRoutes from "./modules/notifications/notification.routes.js"
@@ -94,7 +95,14 @@ app.get("/health", (req, res) => {
   });
 });
 
+
 // Capture des routes inexistantes (404)
+
+app.use("/api/skills", skillRoutes);
+
+// SÉCURITÉ : Suppression de la route /users globale qui fuyait les données
+
+// 6. Gestion des erreurs 404
 app.use((req, res) => {
   res.status(404).json({ message: "Ressource introuvable" });
 });
