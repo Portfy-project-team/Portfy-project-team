@@ -210,3 +210,277 @@ const form = reactive({
     </div>
   </div>
 </template>
+
+<style scoped>
+.student-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f4f1ec;
+}
+
+.student-main {
+  flex: 1;
+  min-width: 0;
+  background: #f4f1ec;
+}
+
+.settings-page {
+  padding: 32px 38px 60px;
+}
+
+.page-header {
+  margin-bottom: 22px;
+}
+
+.page-header h2 {
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 800;
+  color: #050505;
+}
+
+.page-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 17px;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 22px;
+}
+
+.left-column,
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.settings-card,
+.danger-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.settings-card h3,
+.danger-card h3 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #050505;
+}
+
+.card-subtitle,
+.danger-card p {
+  margin: 0 0 18px;
+  color: #64748b;
+  font-size: 15px;
+}
+
+.photo-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #082a47;
+  color: #f0a91f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.dark-btn,
+.save-btn,
+.save-small-btn {
+  background: #082a47;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.dark-btn {
+  padding: 11px 22px;
+}
+
+.save-btn {
+  padding: 15px 28px;
+  margin-top: 18px;
+}
+
+.save-small-btn {
+  padding: 14px 28px;
+  margin-top: 18px;
+}
+
+.hint {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+label {
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+label.full {
+  grid-column: 1 / -1;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: #050505;
+  font-size: 15px;
+}
+
+textarea {
+  min-height: 58px;
+  resize: vertical;
+}
+
+.small-card {
+  padding: 22px;
+}
+
+.toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #334155;
+  font-size: 15px;
+}
+
+.toggle {
+  width: 36px;
+  height: 20px;
+  border: none;
+  border-radius: 999px;
+  background: #cbd5e1;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.toggle span {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 0.2s ease;
+}
+
+.toggle.active {
+  background: #10b981;
+}
+
+.toggle.active span {
+  transform: translateX(16px);
+}
+
+.outline-btn {
+  width: 100%;
+  height: 42px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #082a47;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.select-label {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.danger-card {
+  background: #fff1f1;
+  border-color: #ff8b8b;
+}
+
+.danger-card h3 {
+  color: #dc2626;
+}
+
+.danger-outline,
+.danger-btn {
+  width: 100%;
+  height: 42px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.danger-outline {
+  background: #ffffff;
+  color: #dc2626;
+  border: 1px solid #ff8b8b;
+}
+
+.danger-btn {
+  background: #c92f2f;
+  color: #ffffff;
+  border: 1px solid #c92f2f;
+}
+
+@media (max-width: 1100px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .settings-page {
+    padding: 22px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .photo-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+</style>

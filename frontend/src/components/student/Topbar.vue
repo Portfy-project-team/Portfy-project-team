@@ -11,6 +11,16 @@ const props = defineProps({
     default: 'AA'
   }
 })
+
+const router = useRouter()
+
+function goToNotifications() {
+  router.push('/student/notifications')
+}
+
+function goToParametres() {
+  router.push('/student/parametres')
+}
 </script>
 
 <template>

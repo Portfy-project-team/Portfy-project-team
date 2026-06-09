@@ -160,7 +160,7 @@
 import { useAuthStore } from '../../store/authStore'
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import '../../styles/auth.css' // 👈 مهم
+import '../../styles/auth.css' // 
 import axios from 'axios'
 
 const router = useRouter()
@@ -212,14 +212,7 @@ async function handleLogin() {
   isLoading.value = true
   try {
     // simulate API
-    const res = await axios.post("http://localhost:3000/api/auth/login", {
-    email: form.email,
-    password : form.password
-  } )
-
-    const response = res.json();
-    console.log(response)
-
+    await new Promise((resolve) => setTimeout(resolve, 1000))
 
     const fakeUser = {
       email: form.email
