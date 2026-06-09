@@ -1,4 +1,5 @@
 import { Router } from "express";
+<<<<<<< HEAD
 import rateLimit from "express-rate-limit";
 import {
   registerController,
@@ -120,4 +121,13 @@ router.post("/google/complete-registration", googleCompleteController);
 
 
 router.post("/google/callback", googleCallbackController);
+=======
+import { registerController } from "./auth.controller.js";
+
+const router = Router();
+
+// Register route
+router.post("/register", registerController);
+
+>>>>>>> a032c28552d4a135d15a49edf044f7e07108f4cf
 export default router;

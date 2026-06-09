@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+<<<<<<< HEAD
 export const registerSchema = z
   .object({
     email: z
@@ -75,3 +76,12 @@ export type RegisterInput       = z.infer<typeof registerSchema>;
 export type LoginInput          = z.infer<typeof loginSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput  = z.infer<typeof resetPasswordSchema>;
+=======
+export const registerSchema = z.object({
+  email: z.email("Invalid email format"),
+
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters"),
+});
+>>>>>>> a032c28552d4a135d15a49edf044f7e07108f4cf

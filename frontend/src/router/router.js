@@ -1,9 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
+
+// Importations dyal l-Pages (Views)
+// Login hiya l-oūlā li ghadi i-chouf l-user
 import LoginView from '../pages/auth/Login.vue'
-
-
-//import ProfessorRecommandations from '@/pages/professor/Recommandations.vue'
-//import ProfessorPortfoliosConsultes from '@/pages/professor/PortfoliosConsultes.vue'
 
 
 const routes = [
@@ -31,6 +30,12 @@ const routes = [
     path: '/forgot-password',
     name: 'forgot-password',
     component: () => import('../pages/auth/ForgotPassward.vue')
+  },
+  {
+    path: '/pagehome',
+    name: 'pagehome',
+    // Dashboard rāh khārej l-dossier auth kima bāyen f l-image
+    component: () => import('../pages/PageHome.vue')
   },
   {
   path: '/student/aide',
@@ -107,11 +112,17 @@ component: () => import('../pages/student/Badges.vue')
   name: 'student-parametres',
   component: () => import('../pages/student/Parametres.vue')
 },
+{
+  path: '/portfolio/:slug',
+  name: 'public-portfolio',
+  component: () => import('../pages/student/PublicPortfolio.vue')
+},
   {
   path: '/:pathMatch(.*)*',
   redirect: '/home'
   },
-
+  //redirect: '/pagehome'
+  //},
 {
   path: '/professor/recommandations',
   component: () => import('../pages/professor/Recommandations.vue')
@@ -120,6 +131,19 @@ component: () => import('../pages/student/Badges.vue')
 {
   path: '/professor/portfolios-consultes',
   component: () => import('../pages/professor/PortfoliosConsultes.vue')
+},
+
+{
+  path: '/professor/commentaires',
+  component: () => import('../pages/professor/Commentaires.vue')
+},
+{
+  path: '/professor/parametres',
+  component: () => import('../pages/professor/Parametres.vue')
+},
+{
+  path: '/professor/aide',
+  component: () => import('../pages/professor/Aide.vue')
 },
 
 ]

@@ -6,7 +6,6 @@ import { useRouter } from 'vue-router'
 // Step 1
 const name = ref('')
 const prenom = ref('')
-const role = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
@@ -38,7 +37,6 @@ function goToLogin() {
 // Errors
 const errors = reactive({
   name: '',
-  role: '',
   prenom: '',
   email: '',
   password: '',
@@ -119,13 +117,6 @@ const nextStep = () => {
       errors.password = 'Le mot de passe doit contenir au moins 8 caractères'
       isValid = false
     }
-    
-    // Ajoutez cette validation au début ou avec les autres
-    if (role.value === '') {
-      errors.role = 'Rôle obligatoire'
-      isValid = false
-    }
-    
     if (confirmPassword.value.trim() === '') {
       errors.confirmPassword = 'Confirmation obligatoire'
       isValid = false
@@ -195,7 +186,6 @@ const previousStep = () => {
   }
 }
 
-// Updated register function
 const register = async () => {
   if (currentStep.value < 3) {
     nextStep()
@@ -287,8 +277,26 @@ try {
   alert(errorMessage)
 
 }
+
+  console.log('Nom:', name.value)
+  console.log('Prénom:', prenom.value)
+  console.log('Email:', email.value)
+  console.log('Formation:', formationType.value)
+  console.log('Établissement:', etablissement.value)
+  console.log('Filière:', filiere.value)
+  console.log('Niveau:', niveau.value)
+  console.log('Année d’entrée:', anneeEntree.value)
+  console.log('Diplôme prévu:', diplomePrevu.value)
+  console.log('Bio:', bio.value)
+  console.log('Skills:', skills.value)
+  console.log('Disponibilité:', disponibilite.value)
+  console.log('LinkedIn:', linkedin.value)
+
+  alert('Compte créé avec succès')
+  router.push('/login')
 }
 </script>
+
 <template>
   <div class="register-page">
 
@@ -442,19 +450,6 @@ try {
               </span>
             </div>
 
-            <div class="field-group">
-              <label>Rôle <span class="required-star">*</span></label>
-              <div class="input-wrapper">
-                <select v-model="role">
-                  <option value="" disabled>Sélectionnez votre profil</option>
-                  <option value="STUDENT">Étudiant</option>
-                  <option value="PROF">Professeur</option>
-                  <option value="PRO">Professionnel</option>
-                  <option value="ADMIN">Administrateur</option>
-                </select>
-              </div>
-              <span v-if="errors.role" class="field-error">{{ errors.role }}</span>
-            </div>
             <div class="checkbox">
               <input v-model="accepted" type="checkbox" id="terms">
               <label for="terms">

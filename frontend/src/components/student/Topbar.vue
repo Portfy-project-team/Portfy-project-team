@@ -1,5 +1,6 @@
 <script setup>
 import { Search, Bell } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 
 const props = defineProps({
   title: {
@@ -11,6 +12,16 @@ const props = defineProps({
     default: 'AA'
   }
 })
+
+const router = useRouter()
+
+function goToNotifications() {
+  router.push('/student/notifications')
+}
+
+function goToParametres() {
+  router.push('/student/parametres')
+}
 </script>
 
 <template>
