@@ -12,6 +12,7 @@ import portfolioRoutes from "./modules/portfolio/portfolio.routes.js";
 import projectRoutes from "./modules/projects/project.routes.js";
 import letterRoutes from "./modules/letters/letter.routes.js";
 import skillRoutes from "./modules/skills/skill.routes.js";
+import activityRoutes from "./modules/activities/activity.routes.js";
 
 import stageRoutes from "./modules/stages/stage.routes.js";
 import notificationRoutes from "./modules/notifications/notification.routes.js"
@@ -99,6 +100,7 @@ app.get("/health", (req, res) => {
 // Capture des routes inexistantes (404)
 
 app.use("/api/skills", skillRoutes);
+app.use("/api/activities", activityRoutes);
 
 // SÉCURITÉ : Suppression de la route /users globale qui fuyait les données
 
