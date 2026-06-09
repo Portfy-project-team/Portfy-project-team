@@ -1,7 +1,6 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../../utils/prisma.js";
-import { Prisma, UserStatus } from '@prisma/client';
-
+import { Prisma, UserStatus } from "@prisma/client";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -33,41 +32,31 @@ export const registerUser = async (data: RegisterInput) => {
     throw error;
   }
 
-return await prisma.$transaction(
-  async (tx: Prisma.TransactionClient) => {
-
+  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const status =
-      role === "STUDENT"
-        ? UserStatus.ACTIVE
-        : UserStatus.PENDING;
+      role === "STUDENT" ? UserStatus.ACTIVE : UserStatus.PENDING;
 
     return await tx.user.create({
       data: {
         email,
         password: hashedPassword,
         role,
-
-        ...(role === "STUDENT" && {
-          student: { create: {} },
-        }),
-
-        ...(role === "PRO" && {
-          professionnel: { create: {} },
-        }),
-
-        status
+        status,
+        ...(role === "STUDENT" && { student:      { create: {} } }),
+        ...(role === "PRO"     && { professionnel: { create: {} } }),
+        // PROF via register classique — pas de profil prof créé automatiquement
+        // car l'inscription PROF nécessite validation Admin
       },
-
       select: {
-        id: true,
-        email: true,
-        role: true,
+        id:        true,
+        email:     true,
+        role:      true,
         createdAt: true,
       },
     });
+  });
+};
 
-  }
-);}
 // ── Login ─────────────────────────────────────────────────────────
 export const loginUser = async (
   data: LoginInput,
@@ -83,13 +72,18 @@ export const loginUser = async (
       role:            true,
       password:        true,
       isEmailVerified: true,
+      status:          true,
     },
   });
-if (user && !user.password) {
-  const error: any = new Error("Utilisez Google pour vous connecter");
-  error.statusCode = 403;
-  throw error;
-}
+
+  // Utilisateur Google sans mot de passe — détection avant bcrypt
+  // Important : vérifier avant le DUMMY_HASH pour ne pas bloquer inutilement
+  if (user && !user.password) {
+    const error: any = new Error("Utilisez Google pour vous connecter");
+    error.statusCode = 403;
+    throw error;
+  }
+
   const isValid = await bcrypt.compare(
     password,
     user?.password ?? DUMMY_HASH
@@ -111,27 +105,29 @@ if (user && !user.password) {
     throw error;
   }
 
-  // if (!user.isEmailVerified) {
-  //   const error: any = new Error(
-  //     "Veuillez vérifier votre email avant de vous connecter"
-  //   );
-  //   error.statusCode = 403;
-  //   throw error;
-  // }
-  const isEmailVerified =
-  process.env.SKIP_EMAIL_VERIFICATION === "true"
-    ? true
-    : user.isEmailVerified;
+  // Vérification email
+  const skipEmailVerification =
+    process.env.SKIP_EMAIL_VERIFICATION === "true";
 
-if (!isEmailVerified) {
-  const error: any = new Error(
-    "Veuillez vérifier votre email avant de vous connecter"
-  );
-  error.statusCode = 403;
-  throw error;
-}
+  if (!skipEmailVerification && !user.isEmailVerified) {
+    const error: any = new Error(
+      "Veuillez vérifier votre email avant de vous connecter"
+    );
+    error.statusCode = 403;
+    throw error;
+  }
 
+  // Vérification statut compte — BLOCKED ou REJECTED ne peuvent pas se connecter
+  if (
+    user.status === UserStatus.BLOCKED ||
+    user.status === UserStatus.REJECTED
+  ) {
+    const error: any = new Error("Identifiants incorrects");
+    error.statusCode = 401;
+    throw error;
+  }
 
+  // Vérification PRO
   if (user.role === "PRO") {
     const pro = await prisma.professionnel.findUnique({
       where:  { userId: user.id },
@@ -232,6 +228,7 @@ export const sendVerificationEmail = async (
   email: string
 ) => {
   if (process.env.SKIP_EMAIL_VERIFICATION === "true") return;
+
   const rawToken    = crypto.randomBytes(32).toString("hex");
   const hashedToken = crypto
     .createHash("sha256")
@@ -311,8 +308,6 @@ export const forgotPasswordService = async (email: string) => {
 
   if (!user) return;
 
-  // Invalider tous les tokens de reset existants pour cet utilisateur
-  // avant d'en créer un nouveau — un seul token valide à la fois
   await prisma.passwordResetToken.updateMany({
     where: { userId: user.id, used: false },
     data:  { used: true },
@@ -328,7 +323,7 @@ export const forgotPasswordService = async (email: string) => {
     data: {
       token:     hashedToken,
       userId:    user.id,
-      expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
     },
   });
 
@@ -374,11 +369,8 @@ export const resetPasswordService = async (
       where: { id: tokenInDb.id },
       data:  { used: true },
     }),
-    // Invalider toutes les sessions actives après reset
-    // Force la reconnexion sur tous les appareils
     prisma.refreshToken.deleteMany({
       where: { userId: tokenInDb.userId },
     }),
   ]);
 };
-

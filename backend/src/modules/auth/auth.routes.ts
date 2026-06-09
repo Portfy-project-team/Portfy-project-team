@@ -10,15 +10,14 @@ import {
   forgotPasswordController,
   resetPasswordController,
   googleVerifyController,
-  googleCompleteController
+  googleCompleteController,
 } from "./auth.controller.js";
 import { verifyToken } from "../../middlewares/auth.middleware.js";
-
 
 const router = Router();
 
 const isTest = process.env.NODE_ENV === "test";
-const isK6 = process.env.K6 === "true";
+const isK6   = process.env.K6       === "true";
 
 const registerLimiter = rateLimit({
   windowMs:        15 * 60 * 1000,
@@ -27,7 +26,6 @@ const registerLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders:   false,
 });
-
 
 const loginLimiter = rateLimit({
   windowMs:        15 * 60 * 1000,
@@ -45,16 +43,13 @@ const refreshLimiter = rateLimit({
   legacyHeaders:   false,
 });
 
-
-
-  const verifyEmailLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 heure
-  max:      10,
-  message:  { message: "Trop de tentatives. Réessayez dans 1 heure." },
+const verifyEmailLimiter = rateLimit({
+  windowMs:        60 * 60 * 1000,
+  max:             10,
+  message:         { message: "Trop de tentatives. Réessayez dans 1 heure." },
   standardHeaders: true,
   legacyHeaders:   false,
 });
-
 
 const resendVerificationLimiter = rateLimit({
   windowMs:        60 * 60 * 1000,
@@ -72,11 +67,20 @@ const forgotPasswordLimiter = rateLimit({
   legacyHeaders:   false,
 });
 
-
 const resetPasswordLimiter = rateLimit({
   windowMs:        60 * 60 * 1000,
   max:             5,
   message:         { message: "Trop de tentatives. Réessayez dans 1 heure." },
+  standardHeaders: true,
+  legacyHeaders:   false,
+});
+
+// Rate limiter pour les routes Google
+// Limiter strict car chaque appel fait une requête vers Supabase
+const googleLimiter = rateLimit({
+  windowMs:        15 * 60 * 1000,
+  max:             20,
+  message:         { message: "Trop de tentatives. Réessayez dans 15 minutes." },
   standardHeaders: true,
   legacyHeaders:   false,
 });
@@ -93,33 +97,17 @@ const refreshMiddlewares = (isTest || isK6)
   ? [refreshController]
   : [refreshLimiter, refreshController];
 
-
-router.post("/register", ...registerMiddlewares);
-router.post("/login", ...loginMiddlewares);
-router.post("/refresh", ...refreshMiddlewares);
-
-// router.post("/register", registerLimiter, registerController);
-// router.post("/login",    loginLimiter,    loginController);
-// router.post("/refresh",  refreshLimiter,  refreshController);
-
-router.post("/logout",   verifyToken,     logoutController);
-router.get("/verify-email", verifyEmailLimiter, verifyEmailController);
-router.post("/forgot-password", forgotPasswordLimiter, forgotPasswordController);
-router.post("/reset-password",  resetPasswordLimiter,  resetPasswordController);
-// router.post("/register",            registerLimiter,           registerController);
-// router.post("/login",               loginLimiter,              loginController);
-// router.post("/refresh",             refreshLimiter,            refreshController);
-// router.post("/logout",              verifyToken,               logoutController);
-// router.get("/verify-email",         verifyEmailLimiter,        verifyEmailController);
+router.post("/register",            ...registerMiddlewares);
+router.post("/login",               ...loginMiddlewares);
+router.post("/refresh",             ...refreshMiddlewares);
+router.post("/logout",              verifyToken,               logoutController);
+router.get("/verify-email",         verifyEmailLimiter,        verifyEmailController);
 router.post("/resend-verification", resendVerificationLimiter, resendVerificationController);
-// router.post("/forgot-password",     forgotPasswordLimiter,     forgotPasswordController);
-// router.post("/reset-password",      resetPasswordLimiter,      resetPasswordController);
+router.post("/forgot-password",     forgotPasswordLimiter,     forgotPasswordController);
+router.post("/reset-password",      resetPasswordLimiter,      resetPasswordController);
 
-// Étape 1 — Vérifier le token Google et checker si l'utilisateur existe
-router.post("/google/verify",               googleVerifyController);
-
-// Étape 2 — Compléter l'inscription avec le rôle choisi
-router.post("/google/complete-registration", googleCompleteController);
-
+// Routes Google — rate limiter ajouté
+router.post("/google/verify",                googleLimiter, googleVerifyController);
+router.post("/google/complete-registration", googleLimiter, googleCompleteController);
 
 export default router;

@@ -4,82 +4,70 @@ import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
-import authRoutes from "./modules/auth/auth.routes.js";
-import userRoutes from "./modules/user/user.routes.js";
-import adminRoutes from "./modules/admin/admin.routes.js";
-import stageRoutes from "./modules/stages/stage.routes.js";
-import notificationRoutes from "./modules/notifications/notification.routes.js"
+import authRoutes         from "./modules/auth/auth.routes.js";
+import userRoutes         from "./modules/user/user.routes.js";
+import adminRoutes        from "./modules/admin/admin.routes.js";
+import stageRoutes        from "./modules/stages/stage.routes.js";
+import notificationRoutes from "./modules/notifications/notification.routes.js";
+
 const app = express();
 
-const isProduction = process.env.NODE_ENV === "production";
 const isTest = process.env.NODE_ENV === "test";
-const isK6 = process.env.K6 === "true";
+const isK6   = process.env.K6        === "true";
 
-
-//  CONFIGURATION RÉSEAU ---
-// Nécessaire pour capturer la vraie IP derrière Docker pour le Rate Limiting et LoginLog
 app.set("trust proxy", 1);
 
-// SÉCURITÉ DES HEADERS (Défense en profondeur) 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "same-origin" },
   contentSecurityPolicy: {
     directives: {
       defaultSrc:     ["'self'"],
       scriptSrc:      ["'self'"],
-      styleSrc:       ["'self'", "'unsafe-inline'"], // Autorise les styles internes si besoin
+      styleSrc:       ["'self'", "'unsafe-inline'"],
       objectSrc:      ["'none'"],
-      frameAncestors: ["'none'"], // Empêche le Clickjacking
+      frameAncestors: ["'none'"],
     },
   },
 }));
 
-// CONTRÔLE DES ACCÈS (CORS) 
 const ALLOWED_ORIGIN = process.env.FRONTEND_URL || "http://localhost:5173";
+
 app.use(cors({
-  origin:      ALLOWED_ORIGIN,
-  credentials: true, // Crucial pour les cookies HttpOnly (JWT)
-  methods:     ["GET", "POST", "PUT", "DELETE","PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization"], 
+  origin:         ALLOWED_ORIGIN,
+  credentials:    true,
+  methods:        ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type"],
+  // Authorization retiré — on utilise les cookies httpOnly, pas les headers
 }));
 
-// PROTECTION CONTRE LE DÉNI DE SERVICE (DoS)
-app.use(express.json({ limit: "10kb" })); // Limite la taille des JSON entrants
+app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 
-// Rate Limiting Global
 const globalLimiter = rateLimit({
-  windowMs:        15 * 60 * 1000, // 15 minutes
-  max:             100,            // 100 requêtes max par IP
+  windowMs:        15 * 60 * 1000,
+  max:             100,
   message:         { message: "Trop de requêtes, veuillez réessayer plus tard." },
   standardHeaders: true,
   legacyHeaders:   false,
 });
 
-//app.use(globalLimiter);
 if (!isTest && !isK6) {
   app.use(globalLimiter);
 }
 
-app.use("/api/auth", authRoutes);
-app.use("/api/user", userRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/stages", stageRoutes);
+app.use("/api/auth",          authRoutes);
+app.use("/api/user",          userRoutes);
+app.use("/api/admin",         adminRoutes);
+app.use("/api/stages",        stageRoutes);
 app.use("/api/notifications", notificationRoutes);
 
-
-// Healthcheck améliorée pour le debug
-app.get("/health", (req, res) => {
-  res.status(200).json({ 
-    status: "ok", 
-    env: process.env.NODE_ENV || "development",
-    timestamp: new Date().toISOString()
-  });
+// Route minimale — ne pas exposer d'informations système
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok" });
 });
 
-// Capture des routes inexistantes (404)
-app.use((req, res) => {
+app.use((_req, res) => {
   res.status(404).json({ message: "Ressource introuvable" });
 });
 
