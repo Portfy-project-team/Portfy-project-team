@@ -82,7 +82,7 @@ model Student {
   prenom           String?
   dateC            DateTime?
   filiere          String?
-
+   avatarUrl String?
   formationType String?
   niveau        String?
   anneeEntree   Int?
@@ -110,6 +110,7 @@ model Student {
 model Prof {
   departement          String?
   specialite           String?
+     avatarUrl String?
   bio           String?   // stocke bioProf
   linkedin      String?
   etablissement String?
@@ -131,6 +132,7 @@ model Professionnel {
   poste          String?
   nom            String?
   prenom         String?
+     avatarUrl String?
   statusV        StatutValidation @default(PENDING)
   secteur               String?
   localisation          String?
@@ -147,6 +149,7 @@ model Professionnel {
 model Admin {
   nom                  String?
   prenom               String?
+     avatarUrl String?
   userId               Int                    @unique
   id                   Int                    @id @default(autoincrement())
   ActiviteParascolaire ActiviteParascolaire[]

@@ -44,32 +44,40 @@ const assertStageEditableByStudent = async (stageId: number, userId: number) => 
 // ─────────────────────────────────────────────
 
 export const AjouterStage = async (userId: number, stageData: StageInput) => {
-  const student   = await getStudentOrThrow(userId);
-  const encadrant = await prisma.prof.findUnique({ where: { id: stageData.encadrantId } });
-  if (!encadrant) throw new Error("Encadrant introuvable");
+  try {
+    const student = await getStudentOrThrow(userId);
+    const { encadrantId, ...stageInfo } = stageData;
+    
+    
+    const encadrant = await prisma.prof.findUnique({ where: { id: encadrantId } });
+    
+    if (!encadrant) throw new Error("Encadrant introuvable");
 
-  const chevauchement = await prisma.stage.findFirst({
-    where: {
-      studentId: student.id,
-      AND: [
-        { dateDebut: { lte: stageData.dateFin } },
-        { dateFin:   { gte: stageData.dateDebut } },
-      ],
-    },
-  });
-  if (chevauchement) throw new Error("Vous avez déjà un stage dans cette période");
+    const chevauchement = await prisma.stage.findFirst({
+      where: {
+        studentId: student.id,
+        AND: [
+          { dateDebut: { lte: stageInfo.dateFin } },
+          { dateFin:   { gte: stageInfo.dateDebut } },
+        ],
+      },
+    });
 
-  return prisma.stage.create({
-    data: {
-      ...stageData,
-      studentId:   student.id,
-      encadrantId: encadrant.id,
-      duree:       calculerDuree(stageData.dateDebut, stageData.dateFin),
-      statutV:     StatutValidation.PENDING,
-    },
-  });
+    const result = await prisma.stage.create({
+      data: {
+        ...stageInfo,
+        studentId:   student.id,
+        encadrantId: encadrant.id,
+        duree:       calculerDuree(stageInfo.dateDebut, stageInfo.dateFin),
+        statutV:     StatutValidation.PENDING,
+      },
+    });
+    return result;
+    
+  } catch (error) {
+    throw error;
+  }
 };
-
 export const GetMyStages = async (userId: number) => {
   const student = await getStudentOrThrow(userId);
   return prisma.stage.findMany({
@@ -234,3 +242,4 @@ export const GetProfs = async () =>
       specialite:  true,
     },
   });
+

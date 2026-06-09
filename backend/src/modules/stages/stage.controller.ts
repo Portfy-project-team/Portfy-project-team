@@ -38,6 +38,8 @@ const ERROR_MAP: Record<string, { status: number; message: string }> = {
 
 /** Gestion centralisée des erreurs */
 const handleError = (res: Response, error: unknown): Response => {
+    console.error("🔴 ERROR:", error); // ← السطر الجديد فقط
+
   if (error instanceof ZodError)
     return res.status(400).json({ error: error.issues });
 
@@ -168,3 +170,4 @@ export const GetProfsController = async (req: Request, res: Response) => {
     handleError(res, error);
   }
 };
+

@@ -6,7 +6,7 @@ export const StageSchema = z.object({
   technologies: z.array(z.string()).optional(),
   dateDebut:    z.coerce.date({ required_error: "Date de début requise" }),
   dateFin:      z.coerce.date({ required_error: "Date de fin requise" }),
-  reportUrl:    z.string().url().optional(),
+  rapportUrl:    z.string().url().optional(),
   encadrantId:  z.number({ required_error: "Encadrant académique requis" }),
 
 }).refine(

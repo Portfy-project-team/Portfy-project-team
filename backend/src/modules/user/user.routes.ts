@@ -1,11 +1,21 @@
 import { Router } from "express";
-import { changePassword, getMe, getSkills, updateProfile } from "./user.controller.js";
-import { verifyToken } from "../../middlewares/auth.middleware.js"
+import { changePassword, getMe, getSkills, updateProfile, uploadAvatar } from "./user.controller.js";
+import { verifyToken } from "../../middlewares/auth.middleware.js";
+import { uploadAvatar as uploadMiddleware } from "../../middlewares/upload.middleware.js";
 
-const router = Router()
+const router = Router();
 
-router.get('/me',verifyToken,getMe)
+
+
+router.get('/me', verifyToken, getMe);
 router.put('/me/profile', verifyToken, updateProfile);
 router.patch('/change-password', verifyToken, changePassword);
-router.get('/skills',getSkills)
-export default router
+router.get('/skills', getSkills);
+
+
+router.post('/avatar', verifyToken, uploadMiddleware, uploadAvatar);
+
+
+
+
+export default router;

@@ -14,7 +14,7 @@ import letterRoutes from "./modules/letters/letter.routes.js";
 
 import stageRoutes from "./modules/stages/stage.routes.js";
 import notificationRoutes from "./modules/notifications/notification.routes.js"
-
+import exportRoute from "./modules/export_pdf/export-portfolio.routes.js"
 const app = express();
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -83,6 +83,8 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/letters", letterRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 
+app.use("/api",exportRoute)
+app.use("/uploads", express.static("uploads"));
 
 // Route de santé (Healthcheck)
 
@@ -98,13 +100,6 @@ app.get("/health", (req, res) => {
 app.use((req, res) => {
   res.status(404).json({ message: "Ressource introuvable" });
 });
-
-
-
-// app.listen(PORT, () => {
-//   console.log(` Portfy API sécurisée lancée sur le port ${PORT}`);
-//   if (!isProduction) console.log(` CORS autorisé pour : ${process.env.FRONTEND_URL}`);
-// });
 
 
 export default app;
