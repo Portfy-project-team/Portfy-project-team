@@ -1,4 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
+
+// Importations dyal l-Pages (Views)
+// Login hiya l-oūlā li ghadi i-chouf l-user
 import LoginView from '../pages/auth/Login.vue'
 
 const routes = [
@@ -14,12 +17,19 @@ const routes = [
   {
     path: '/register',
     name: 'register',
+    // Lazy loading 3la hsāb l-fichiers li wast pages/auth/
     component: () => import('../pages/auth/Register.vue')
   },
   {
     path: '/forgot-password',
     name: 'forgot-password',
     component: () => import('../pages/auth/ForgotPassward.vue')
+  },
+  {
+    path: '/pagehome',
+    name: 'pagehome',
+    // Dashboard rāh khārej l-dossier auth kima bāyen f l-image
+    component: () => import('../pages/PageHome.vue')
   },
   {
   path: '/student/aide',
@@ -72,6 +82,11 @@ component: () => import('../pages/student/Badges.vue')
   component: () => import('../pages/student/Reseau.vue')
 },
 {
+  path: '/portfolio/:slug',
+  name: 'public-portfolio',
+  component: () => import('../pages/student/PublicPortfolio.vue')
+},
+{
   path: '/student/historique',
   name: 'student-historique',
   component: () => import('../pages/student/Historique.vue')
@@ -96,11 +111,15 @@ component: () => import('../pages/student/Badges.vue')
   name: 'student-parametres',
   component: () => import('../pages/student/Parametres.vue')
 },
-  {
+{
+  path: '/portfolio/:slug',
+  name: 'public-portfolio',
+  component: () => import('../pages/student/PublicPortfolio.vue')
+},
+{
   path: '/:pathMatch(.*)*',
-  redirect: '/login'
-  },
-
+  redirect: '/pagehome'
+}
 ]
 
 const router = createRouter({
