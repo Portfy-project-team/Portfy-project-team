@@ -22,3 +22,11 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #707070;
 }
+.student-layout {
+  min-height: 100vh;
+  align-items: flex-start;
+}
+
+.student-main {
+  min-height: 100vh;
+}
