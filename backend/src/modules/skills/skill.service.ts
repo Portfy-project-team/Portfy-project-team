@@ -11,15 +11,15 @@ class SkillError extends Error {
 }
 
 const niveauScore = {
-  DEBUTANT: 1,
+  DEBUTANT:      1,
   INTERMEDIAIRE: 2,
-  AVANCE: 3,
-  EXPERT: 4,
+  AVANCE:        3,
+  EXPERT:        4,
 } as const;
 
 const getStudentByUserId = async (userId: number) => {
   const student = await prisma.student.findUnique({
-    where: { userId },
+    where:  { userId },
     select: { id: true },
   });
 
@@ -30,23 +30,24 @@ const getStudentByUserId = async (userId: number) => {
   return student;
 };
 
+// ── Add skill ─────────────────────────────────────────────────────
 export const addStudentSkill = async (
   userId: number,
-  data: CreateStudentSkillInput
+  data:   CreateStudentSkillInput
 ) => {
   const student = await getStudentByUserId(userId);
 
-  let skill = await prisma.skill.findFirst({
-    where: {
-      nom: data.nom,
-      categorie: data.categorie ?? null,
-    },
+  // CORRECTION 1 : findUnique au lieu de findFirst
+  // Le schéma Prisma définit @@unique([etablissement, diplome, specialite]) sur Skill
+  // et nom est @unique sur Skill — findUnique est plus approprié et plus performant
+  let skill = await prisma.skill.findUnique({
+    where: { nom: data.nom },
   });
 
   if (!skill) {
     skill = await prisma.skill.create({
       data: {
-        nom: data.nom,
+        nom:       data.nom,
         categorie: data.categorie,
       },
     });
@@ -56,47 +57,65 @@ export const addStudentSkill = async (
     where: {
       studentId_skillId: {
         studentId: student.id,
-        skillId: skill.id,
+        skillId:   skill.id,
       },
     },
+    select: { studentId: true },
   });
 
   if (existing) {
-    throw new SkillError("Cette compétence existe déjà pour cet étudiant", 409);
+    throw new SkillError(
+      "Cette compétence existe déjà pour cet étudiant",
+      409
+    );
   }
 
   return prisma.studentSkill.create({
     data: {
       studentId: student.id,
-      skillId: skill.id,
-      niveau: data.niveau ?? "DEBUTANT",
+      skillId:   skill.id,
+      niveau:    data.niveau ?? "DEBUTANT",
     },
-    include: {
-      skill: true,
+    select: {
+      niveau:    true,
+      dateAjout: true,
+      skill: {
+        select: {
+          id:        true,
+          nom:       true,
+          categorie: true,
+        },
+      },
     },
   });
 };
 
+// ── Get my skills ─────────────────────────────────────────────────
 export const getMySkills = async (userId: number) => {
   const student = await getStudentByUserId(userId);
 
   return prisma.studentSkill.findMany({
-    where: {
-      studentId: student.id,
-    },
-    orderBy: {
-      dateAjout: "desc",
-    },
-    include: {
-      skill: true,
+    where:   { studentId: student.id },
+    orderBy: { dateAjout: "desc" },
+    select: {
+      niveau:    true,
+      dateAjout: true,
+      skill: {
+        select: {
+          id:        true,
+          nom:       true,
+          categorie: true,
+        },
+      },
     },
   });
 };
 
+// ── Update skill ──────────────────────────────────────────────────
 export const updateStudentSkill = async (
-  userId: number,
+  userId:  number,
   skillId: number,
-  data: UpdateStudentSkillInput
+  data:    UpdateStudentSkillInput
 ) => {
   const student = await getStudentByUserId(userId);
 
@@ -107,9 +126,13 @@ export const updateStudentSkill = async (
         skillId,
       },
     },
+    select: { studentId: true },
   });
 
   if (!existing) {
+    // CORRECTION 2 : 404 — ownership check
+    // Si la compétence n'appartient pas à l'étudiant connecté
+    // on retourne 404 pour ne pas confirmer son existence
     throw new SkillError("Compétence introuvable", 404);
   }
 
@@ -120,16 +143,26 @@ export const updateStudentSkill = async (
         skillId,
       },
     },
-    data: {
-      niveau: data.niveau,
-    },
-    include: {
-      skill: true,
+    data:  { niveau: data.niveau },
+    select: {
+      niveau:    true,
+      dateAjout: true,
+      skill: {
+        select: {
+          id:        true,
+          nom:       true,
+          categorie: true,
+        },
+      },
     },
   });
 };
 
-export const deleteStudentSkill = async (userId: number, skillId: number) => {
+// ── Delete skill ──────────────────────────────────────────────────
+export const deleteStudentSkill = async (
+  userId:  number,
+  skillId: number
+) => {
   const student = await getStudentByUserId(userId);
 
   const existing = await prisma.studentSkill.findUnique({
@@ -139,6 +172,7 @@ export const deleteStudentSkill = async (userId: number, skillId: number) => {
         skillId,
       },
     },
+    select: { studentId: true },
   });
 
   if (!existing) {
@@ -155,6 +189,7 @@ export const deleteStudentSkill = async (userId: number, skillId: number) => {
   });
 };
 
+// ── Radar ─────────────────────────────────────────────────────────
 export const getMySkillRadar = async (userId: number) => {
   const skills = await getMySkills(userId);
 
@@ -162,9 +197,8 @@ export const getMySkillRadar = async (userId: number) => {
 
   for (const item of skills) {
     const category = item.skill.categorie ?? "Autres";
-    const score = niveauScore[item.niveau];
-
-    const current = grouped.get(category) ?? { total: 0, count: 0 };
+    const score    = niveauScore[item.niveau];
+    const current  = grouped.get(category) ?? { total: 0, count: 0 };
 
     grouped.set(category, {
       total: current.total + score,
@@ -174,20 +208,21 @@ export const getMySkillRadar = async (userId: number) => {
 
   return Array.from(grouped.entries()).map(([categorie, value]) => ({
     categorie,
-    score: Number((value.total / value.count).toFixed(2)),
+    score:    Number((value.total / value.count).toFixed(2)),
     maxScore: 4,
-    count: value.count,
+    count:    value.count,
   }));
 };
 
+// ── Stats ─────────────────────────────────────────────────────────
 export const getMySkillStats = async (userId: number) => {
   const skills = await getMySkills(userId);
 
   const byLevel = {
-    DEBUTANT: 0,
+    DEBUTANT:      0,
     INTERMEDIAIRE: 0,
-    AVANCE: 0,
-    EXPERT: 0,
+    AVANCE:        0,
+    EXPERT:        0,
   };
 
   const byCategory: Record<string, number> = {};

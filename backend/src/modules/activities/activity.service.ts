@@ -12,13 +12,13 @@ class ActivityError extends Error {
 }
 
 interface AuthUser {
-  id: number;
+  id:   number;
   role: Role;
 }
 
 const getStudentByUserId = async (userId: number) => {
   const student = await prisma.student.findUnique({
-    where: { userId },
+    where:  { userId },
     select: { id: true },
   });
 
@@ -31,7 +31,7 @@ const getStudentByUserId = async (userId: number) => {
 
 const getAdminByUserId = async (userId: number) => {
   const admin = await prisma.admin.findUnique({
-    where: { userId },
+    where:  { userId },
     select: { id: true },
   });
 
@@ -39,7 +39,7 @@ const getAdminByUserId = async (userId: number) => {
 };
 
 const ensureStudentOwnsActivity = async (
-  userId: number,
+  userId:     number,
   activityId: number
 ) => {
   const student = await getStudentByUserId(userId);
@@ -47,7 +47,7 @@ const ensureStudentOwnsActivity = async (
   const link = await prisma.studentActivite.findUnique({
     where: {
       studentId_activiteId: {
-        studentId: student.id,
+        studentId:  student.id,
         activiteId: activityId,
       },
     },
@@ -57,39 +57,50 @@ const ensureStudentOwnsActivity = async (
   });
 
   if (!link) {
-    throw new ActivityError("Activité introuvable ou accès refusé", 403);
+    // CORRECTION 1 : 404 au lieu de 403
+    // Un 403 confirme que l'activité existe mais est interdite
+    // Un 404 ne révèle rien — anti-énumération des IDs d'activités
+    throw new ActivityError("Activité introuvable", 404);
   }
 
   return link.ActiviteParascolaire;
 };
 
+// ── Create ────────────────────────────────────────────────────────
 export const createActivity = async (
   userId: number,
-  data: CreateActivityInput
+  data:   CreateActivityInput
 ) => {
   const student = await getStudentByUserId(userId);
 
   return prisma.activiteParascolaire.create({
     data: {
-      nom: data.nom,
-      description: data.description,
-      type: data.type,
+      nom:            data.nom,
+      description:    data.description,
+      type:           data.type,
       attestationUrl: data.attestationUrl,
-      statutV: "PENDING",
+      statutV:        "PENDING",
       StudentActivite: {
-        create: {
-          studentId: student.id,
-        },
+        create: { studentId: student.id },
       },
     },
-    include: {
+    // CORRECTION 2 : select explicite au lieu de include sans filtre
+    // include retournait tous les champs de StudentActivite et Student
+    // select limite exactement ce qui est retourné au client
+    select: {
+      id:             true,
+      nom:            true,
+      description:    true,
+      type:           true,
+      attestationUrl: true,
+      statutV:        true,
       StudentActivite: {
-        include: {
+        select: {
           Student: {
             select: {
-              id: true,
-              nom: true,
-              prenom: true,
+              id:      true,
+              nom:     true,
+              prenom:  true,
               filiere: true,
             },
           },
@@ -99,23 +110,28 @@ export const createActivity = async (
   });
 };
 
+// ── Get my activities ─────────────────────────────────────────────
 export const getMyActivities = async (userId: number) => {
   const student = await getStudentByUserId(userId);
 
   return prisma.activiteParascolaire.findMany({
     where: {
       StudentActivite: {
-        some: {
-          studentId: student.id,
-        },
+        some: { studentId: student.id },
       },
     },
     orderBy: { id: "desc" },
-    include: {
+    select: {
+      id:             true,
+      nom:            true,
+      description:    true,
+      type:           true,
+      attestationUrl: true,
+      statutV:        true,
       Admin: {
         select: {
-          id: true,
-          nom: true,
+          id:     true,
+          nom:    true,
           prenom: true,
         },
       },
@@ -123,10 +139,11 @@ export const getMyActivities = async (userId: number) => {
   });
 };
 
+// ── Update ────────────────────────────────────────────────────────
 export const updateActivity = async (
-  userId: number,
+  userId:     number,
   activityId: number,
-  data: UpdateActivityInput
+  data:       UpdateActivityInput
 ) => {
   const activity = await ensureStudentOwnsActivity(userId, activityId);
 
@@ -147,6 +164,7 @@ export const updateActivity = async (
   });
 };
 
+// ── Delete ────────────────────────────────────────────────────────
 export const deleteActivity = async (userId: number, activityId: number) => {
   const activity = await ensureStudentOwnsActivity(userId, activityId);
 
@@ -167,25 +185,28 @@ export const deleteActivity = async (userId: number, activityId: number) => {
   ]);
 };
 
+// ── Get pending ───────────────────────────────────────────────────
 export const getPendingActivities = async () => {
   return prisma.activiteParascolaire.findMany({
-    where: {
-      statutV: "PENDING",
-    },
+    where:   { statutV: "PENDING" },
     orderBy: { id: "desc" },
-    include: {
+    select: {
+      id:             true,
+      nom:            true,
+      description:    true,
+      type:           true,
+      attestationUrl: true,
+      statutV:        true,
       StudentActivite: {
-        include: {
+        select: {
           Student: {
             select: {
-              id: true,
-              nom: true,
-              prenom: true,
+              id:      true,
+              nom:     true,
+              prenom:  true,
               filiere: true,
               user: {
-                select: {
-                  email: true,
-                },
+                select: { email: true },
               },
             },
           },
@@ -195,12 +216,13 @@ export const getPendingActivities = async () => {
   });
 };
 
+// ── Validate ──────────────────────────────────────────────────────
 export const validateActivity = async (
-  authUser: AuthUser,
+  authUser:   AuthUser,
   activityId: number
 ) => {
   const activity = await prisma.activiteParascolaire.findUnique({
-    where: { id: activityId },
+    where:  { id: activityId },
     select: { id: true, statutV: true },
   });
 
@@ -220,15 +242,22 @@ export const validateActivity = async (
       statutV: "VALIDATED",
       adminId: admin?.id ?? null,
     },
+    select: {
+      id:      true,
+      nom:     true,
+      statutV: true,
+      adminId: true,
+    },
   });
 };
 
+// ── Reject ────────────────────────────────────────────────────────
 export const rejectActivity = async (
-  authUser: AuthUser,
+  authUser:   AuthUser,
   activityId: number
 ) => {
   const activity = await prisma.activiteParascolaire.findUnique({
-    where: { id: activityId },
+    where:  { id: activityId },
     select: { id: true, statutV: true },
   });
 
@@ -247,6 +276,12 @@ export const rejectActivity = async (
     data: {
       statutV: "REJECTED",
       adminId: admin?.id ?? null,
+    },
+    select: {
+      id:      true,
+      nom:     true,
+      statutV: true,
+      adminId: true,
     },
   });
 };
