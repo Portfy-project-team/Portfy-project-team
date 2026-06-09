@@ -186,7 +186,7 @@ const previousStep = () => {
   }
 }
 
-const register = () => {
+const register = async () => {
   if (currentStep.value < 3) {
     nextStep()
     return

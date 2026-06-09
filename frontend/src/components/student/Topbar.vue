@@ -1,5 +1,6 @@
 <script setup>
 import { Search, Bell } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 
 const props = defineProps({
   title: {
