@@ -11,7 +11,37 @@
 // };
 
 
+// jest.config.js
+export default {
+  preset: "ts-jest/presets/default-esm",
+  testEnvironment: "node",
+  testTimeout: 20000,
+  setupFiles: ["<rootDir>/tests/setup.ts"],
 
+  // Ajouter .tsx aux extensions ESM
+  extensionsToTreatAsEsm: [".ts", ".tsx"],
+
+  testPathIgnorePatterns: ["/node_modules/", "/dist/"],
+
+  transform: {
+    // Transformer AUSSI les fichiers .tsx avec JSX activé
+    "^.+\\.(ts|tsx)$": [
+      "ts-jest",
+      {
+        useESM: true,
+        tsconfig: {
+          jsx: "react-jsx",  // Activer la transformation JSX
+        },
+      },
+    ],
+  },
+
+  moduleNameMapper: {
+    "^(\\.{1,2}/.*)\\.js$": "$1",
+    // Mocker le module PDF entier — inutile de le compiler dans les tests
+    "^@react-pdf/renderer$": "<rootDir>/tests/__mocks__/@react-pdf/renderer.ts",
+  },
+};
 
 // export default {
 //   preset: "ts-jest/presets/default-esm",
@@ -37,23 +67,26 @@
 
 
 // jest.config.js
-export default {
-  preset: "ts-jest/presets/default-esm",
-  testEnvironment: "node",
-  testTimeout: 20000,
-  setupFiles: ["<rootDir>/tests/setup.ts"],
-  extensionsToTreatAsEsm: [".ts"],
-  testPathIgnorePatterns: ["/node_modules/", "/dist/"],  // ← AJOUT CRITIQUE
-  transform: {
-    "^.+\\.ts$": [
-      "ts-jest",
-      { useESM: true },
-    ],
-  },
-  moduleNameMapper: {
-    "^(\\.{1,2}/.*)\\.js$": "$1",
-  },
-};
+
+
+// export default {
+//   preset: "ts-jest/presets/default-esm",
+//   testEnvironment: "node",
+//   testTimeout: 20000,
+//   setupFiles: ["<rootDir>/tests/setup.ts"],
+//   extensionsToTreatAsEsm: [".ts"],
+//   testPathIgnorePatterns: ["/node_modules/", "/dist/"],  // ← AJOUT CRITIQUE
+//   transform: {
+//     "^.+\\.ts$": [
+//       "ts-jest",
+//       { useESM: true },
+//     ],
+//   },
+//   moduleNameMapper: {
+//     "^(\\.{1,2}/.*)\\.js$": "$1",
+//   },
+// };
+
 // export default {
 //   preset: "ts-jest/presets/default-esm",
 //   testEnvironment: "node",
