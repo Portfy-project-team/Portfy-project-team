@@ -36,19 +36,19 @@ const routes = [
   path: '/dashboard',
   redirect: () => {
     const user = JSON.parse(localStorage.getItem('user'))
-    if (user?.role === 'PROF')    return '/prof/dashboard'
+    if (user?.role === 'PROF')    return '/professor/dashboard'
     if (user?.role === 'STUDENT') return '/student/dashboard'
     return '/login'
   }
 },
 {
-  path: '/prof',
-  component: () => import('../components/prof/ProfLayout.vue'),
+  path: '/professor',
+  component: () => import('../components/professor/ProfLayout.vue'),
   children: [
     {
       path: 'dashboard',
       name: 'prof-dashboard',
-      component: () => import('../pages/prof/Dashboard.vue'),
+      component: () => import('../pages/professor/Dashboard.vue'),
     }
   ]
 },
@@ -62,9 +62,9 @@ const routes = [
     name: 'politique',
     component: () => import('../pages/Politique.vue')
   },
-  { path: '/prof/generer-lettre', 
-    name: 'prof-generer-lettre', 
-    component: () => import('../pages/prof/GenererLettre.vue') 
+  { path: '/professor/generer-lettre', 
+    name: 'professor-generer-lettre', 
+    component: () => import('../pages/professor/GenererLettre.vue') 
   },
   {
   path: '/:pathMatch(.*)*',
