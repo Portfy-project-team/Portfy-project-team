@@ -111,21 +111,45 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { Home, Briefcase, Zap, Folder, Activity, BookOpen, Target, Mail, Award, Users, Star, MessageCircle, Clock, Bell, Settings, HelpCircle, LogOut, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import {
+  Home, Briefcase, Zap, Folder, Activity, BookOpen,
+  Target, Mail, Award, Users, Star, MessageCircle,
+  Clock, Bell, Settings, HelpCircle, LogOut,
+  ChevronLeft, ChevronRight
+} from 'lucide-vue-next'
+import { useAuthStore } from '../../store/authStore'
 
-const router = useRouter()
-const isOpen = ref(true)
-const userName = "Ahmed Alami"
+const router    = useRouter()
+const authStore = useAuthStore()
+const isOpen    = ref(true)
 
-const initials = computed(() => {
-  return userName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
-})
+// CORRECTION 1 : nom et initiales depuis le authStore
+// La version originale avait le nom "Ahmed Alami" codé en dur
+// Ce qui signifie que tous les utilisateurs voyaient ce même nom
+const userName = computed(() =>
+  authStore.user
+    ? `${authStore.user.prenom || ''} ${authStore.user.nom || ''}`.trim()
+    : ''
+)
 
-const toggleSidebar = () => {
-  isOpen.value = !isOpen.value
-}
+const initials = computed(() =>
+  userName.value
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+)
 
-const logout = () => {
+const toggleSidebar = () => { isOpen.value = !isOpen.value }
+
+// CORRECTION 2 : logout appelle vraiment le authStore
+// La version originale faisait juste router.push('/login')
+// sans invalider le cookie côté backend ni nettoyer le store
+// Un utilisateur pouvait donc revenir en arrière dans le navigateur
+// et accéder aux pages protégées même après déconnexion
+async function logout() {
+  await authStore.logout()
   router.push('/login')
 }
 </script>

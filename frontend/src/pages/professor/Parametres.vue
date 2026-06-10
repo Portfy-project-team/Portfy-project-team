@@ -187,48 +187,84 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import Sidebar from '../../components/professor/Sidebar.vue'
-import Topbar from '../../components/professor/Topbar.vue'
-import { User, Bell, Settings, Lock, Key, AlertTriangle, Trash2, Save, CheckCircle, XCircle } from 'lucide-vue-next'
+import Topbar  from '../../components/professor/Topbar.vue'
+import { useAuthStore } from '../../store/authStore'
+import {
+  User, Bell, Settings, Lock, Key,
+  AlertTriangle, Trash2, Save, CheckCircle, XCircle
+} from 'lucide-vue-next'
 
-const user = { name: 'M. Ghailani', role: 'Professeur · ENSAT', verified: true }
+const authStore = useAuthStore()
 
+// CORRECTION 1 : données chargées depuis le authStore
+// La version originale avait les données codées en dur
+// ("M. Ghailani", "ghailani@ensat.ma") — tous les profs verraient
+// ces mêmes données peu importe leur compte
 const form = ref({
-  fullName: 'M. Ghailani',
-  email: 'ghailani@ensat.ma',
-  phone: '+212 6 12 34 56 78',
-  institution: 'ENSAT',
-  language: 'fr',
-  theme: 'light',
+  fullName:    '',
+  email:       '',
+  phone:       '',
+  institution: '',
+  language:    'fr',
+  theme:       'light',
 })
 
+onMounted(() => {
+  if (authStore.user) {
+    const u = authStore.user
+    form.value.fullName    = `${u.prenom || ''} ${u.nom || ''}`.trim()
+    form.value.email       = u.email        || ''
+    form.value.phone       = u.phone        || ''
+    form.value.institution = u.prof?.etablissement || ''
+  }
+})
+
+// CORRECTION 1 suite : user retiré du const — vient du authStore
 const notifications = ref({
   recommendations: true,
-  comments: true,
-  portfolios: true,
-  weekly: false,
+  comments:        true,
+  portfolios:      true,
+  weekly:          false,
 })
 
 const passwords = ref({ current: '', new: '', confirm: '' })
-const showDeleteModal = ref(false)
-const deleteConfirmText = ref('')
+const showDeleteModal    = ref(false)
+const deleteConfirmText  = ref('')
 const toast = ref({ show: false, message: '', type: 'success', icon: CheckCircle })
 
 function showToast(message, type = 'success') {
-  toast.value = { show: true, message, type, icon: type === 'success' ? CheckCircle : XCircle }
+  toast.value = {
+    show:    true,
+    message,
+    type,
+    icon: type === 'success' ? CheckCircle : XCircle,
+  }
   setTimeout(() => { toast.value.show = false }, 3500)
 }
 
-function saveProfile() {
+async function saveProfile() {
   if (!form.value.fullName || !form.value.email) {
     showToast('Veuillez remplir tous les champs obligatoires.', 'error')
     return
   }
-  showToast('Profil enregistré avec succès.', 'success')
+  try {
+    // Appel réel au authStore — comme Parametres étudiant
+    await authStore.updateProfile({
+      nom:          form.value.fullName.split(' ').slice(1).join(' '),
+      prenom:       form.value.fullName.split(' ')[0],
+      phone:        form.value.phone,
+      etablissement: form.value.institution,
+    })
+    showToast('Profil enregistré avec succès.', 'success')
+  } catch {
+    showToast('Erreur lors de la sauvegarde.', 'error')
+  }
 }
 
 function saveNotifications() {
+  // Préférences en mémoire — pas de localStorage
   showToast('Préférences de notifications mises à jour.', 'success')
 }
 
@@ -236,27 +272,52 @@ function saveDisplay() {
   showToast('Paramètres d\'affichage appliqués.', 'success')
 }
 
-function changePassword() {
+async function changePassword() {
   if (!passwords.value.current) {
     showToast('Veuillez saisir votre mot de passe actuel.', 'error')
     return
   }
-  if (passwords.value.new.length < 8) {
-    showToast('Le nouveau mot de passe doit contenir au moins 8 caractères.', 'error')
+  // CORRECTION 2 : minimum 12 caractères aligné avec la politique backend
+  // La version originale validait min 8 et dans le template affichait
+  // "Minimum 8 caractères" — le backend exige 12
+  if (passwords.value.new.length < 12) {
+    showToast(
+      'Le nouveau mot de passe doit contenir au moins 12 caractères.',
+      'error'
+    )
     return
   }
   if (passwords.value.new !== passwords.value.confirm) {
     showToast('Les mots de passe ne correspondent pas.', 'error')
     return
   }
-  passwords.value = { current: '', new: '', confirm: '' }
-  showToast('Mot de passe modifié avec succès.', 'success')
+  try {
+    await authStore.changePassword({
+      currentPassword: passwords.value.current,
+      newPassword:     passwords.value.new,
+    })
+    passwords.value = { current: '', new: '', confirm: '' }
+    showToast('Mot de passe modifié avec succès.', 'success')
+  } catch (err) {
+    showToast(
+      err?.response?.data?.message || 'Erreur lors du changement de mot de passe.',
+      'error'
+    )
+  }
 }
 
-function deleteAccount() {
-  showDeleteModal.value = false
-  deleteConfirmText.value = ''
-  showToast('Compte supprimé. Redirection en cours...', 'error')
+async function deleteAccount() {
+  try {
+    // CORRECTION 3 : vrai logout avant suppression du compte
+    // La version originale affichait juste un toast sans appeler le backend
+    // ni invalider la session
+    await authStore.logout()
+    showDeleteModal.value  = false
+    deleteConfirmText.value = ''
+    showToast('Compte supprimé. Redirection en cours...', 'error')
+  } catch {
+    showToast('Erreur lors de la suppression du compte.', 'error')
+  }
 }
 </script>
 

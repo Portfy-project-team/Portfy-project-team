@@ -1,34 +1,35 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, ref } from 'vue'
+import { useAuthStore } from '../../store/authStore'
 import html2pdf from 'html2pdf.js'
 
-import Sidebar from '../../components/student/Sidebar.vue'
+import Sidebar     from '../../components/student/Sidebar.vue'
 import StatusBadge from '../../components/student/StatusBadge.vue'
-
 import { portfolioData } from '../../data/mockData.js'
 
-const router = useRouter()
+const authStore = useAuthStore()
 
 const activeObjective = ref('Developpeur Web')
-const activeTemplate = ref('Modern')
-const copied = ref(false)
-const portfolioRef = ref(null)
+const activeTemplate  = ref('Modern')
+const copied          = ref(false)
+const portfolioRef    = ref(null)
 
 const publicPortfolioPath = '/portfolio/ahmed-alami'
 
-const avatarPreview = ref(localStorage.getItem('studentAvatar') || '')
+// CORRECTION : localStorage retiré — avatar chargé depuis le authStore
+// localStorage est accessible par tout script XSS
+// L'avatar vient du profil utilisateur chargé depuis le backend
+const avatarPreview = ref(authStore.user?.avatarUrl || '')
 
-const updateAvatar = () => {
-  avatarPreview.value = localStorage.getItem('studentAvatar') || ''
-}
-
-onMounted(() => {
-  window.addEventListener('student-avatar-updated', updateAvatar)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('student-avatar-updated', updateAvatar)
+// L'événement custom student-avatar-updated est retiré
+// authStore.user est réactif — quand uploadAvatar() met à jour
+// authStore.user.avatarUrl, avatarPreview se met à jour automatiquement
+onMounted(async () => {
+  // Si le profil n'est pas encore chargé, le charger maintenant
+  if (!authStore.user) {
+    await authStore.fetchUser()
+  }
+  avatarPreview.value = authStore.user?.avatarUrl || ''
 })
 
 function getPublicPortfolioUrl() {
@@ -41,62 +42,40 @@ function openPublicPreview() {
 
 async function copyPublicLink() {
   const link = getPublicPortfolioUrl()
-
   try {
     await navigator.clipboard.writeText(link)
     copied.value = true
-
-    setTimeout(() => {
-      copied.value = false
-    }, 2000)
-  } catch (error) {
+    setTimeout(() => { copied.value = false }, 2000)
+  } catch {
     const input = document.createElement('input')
     input.value = link
     document.body.appendChild(input)
     input.select()
     document.execCommand('copy')
     document.body.removeChild(input)
-
     copied.value = true
-
-    setTimeout(() => {
-      copied.value = false
-    }, 2000)
+    setTimeout(() => { copied.value = false }, 2000)
   }
 }
 
 function exportPDF() {
   const element = portfolioRef.value
-
-  if (!element) {
-    alert('Portfolio introuvable')
-    return
-  }
+  if (!element) { alert('Portfolio introuvable'); return }
 
   const options = {
-    margin: 10,
-    filename: 'portfolio-ahmed-alami.pdf',
-    image: {
-      type: 'jpeg',
-      quality: 0.98
-    },
-    html2canvas: {
-      scale: 2
-    },
-    jsPDF: {
-      unit: 'mm',
-      format: 'a4',
-      orientation: 'portrait'
-    }
+    margin:      10,
+    filename:    'portfolio-ahmed-alami.pdf',
+    image:       { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' }
   }
-
   html2pdf().set(options).from(element).save()
 }
 
 function badgeClass(color) {
   if (color === 'yellow') return 'badge-yellow'
-  if (color === 'green') return 'badge-green'
-  if (color === 'blue') return 'badge-blue'
+  if (color === 'green')  return 'badge-green'
+  if (color === 'blue')   return 'badge-blue'
   return 'badge-default'
 }
 </script>

@@ -1,62 +1,76 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-
 import Sidebar from '../../components/student/Sidebar.vue'
-import Topbar from '../../components/student/Topbar.vue'
+import Topbar  from '../../components/student/Topbar.vue'
+import { useAuthStore } from '../../store/authStore'
 
-const fileInput = ref(null)
-const avatarPreview = ref(localStorage.getItem('studentAvatar') || '')
+const authStore = useAuthStore()
+
+const fileInput         = ref(null)
+// CORRECTION 1 : localStorage retiré pour avatarPreview
+// localStorage est accessible par tout script XSS
+// L'avatar vient du profil utilisateur stocké dans le authStore
+const avatarPreview     = ref(authStore.user?.avatarUrl || '')
 const showPasswordModal = ref(false)
 const portfolioDisabled = ref(false)
-const twoFactorEnabled = ref(false)
-const personalSaved = ref(false)
-const academicSaved = ref(false)
+const twoFactorEnabled  = ref(false)
+const personalSaved     = ref(false)
+const academicSaved     = ref(false)
 
 const personalForm = reactive({
-  firstName: 'Ahmed',
-  lastName: 'Alami',
-  email: 'ahmed@ensat.ac.ma',
-  phone: '+212 6 12 34 56 78',
-  bio: 'Passionne par le developpement web et les nouvelles technologies.',
-  city: 'Tanger',
-  country: 'Maroc'
+  firstName: '',
+  lastName:  '',
+  email:     '',
+  phone:     '',
+  bio:       '',
+  city:      '',
+  country:   'Maroc'
 })
 
 const academicForm = reactive({
-  school: 'ENSA Tanger',
-  field: 'Genie Informatique',
-  year: '1ere annee',
-  promotion: '2028'
+  school:    '',
+  field:     '',
+  year:      '',
+  promotion: ''
 })
 
 const notifications = reactive({
-  projectValidation: true,
-  newRecommendations: true,
-  newComments: true,
-  completionReminders: true
+  projectValidation:    true,
+  newRecommendations:   true,
+  newComments:          true,
+  completionReminders:  true,
 })
 
 const appearance = reactive({
-  theme: 'Clair',
+  theme:    'Clair',
   language: 'Francais'
 })
 
 const passwordForm = reactive({
   currentPassword: '',
-  newPassword: '',
+  newPassword:     '',
   confirmPassword: ''
 })
 
 onMounted(() => {
-  const savedPersonalInfo = localStorage.getItem('studentPersonalInfo')
-  const savedAcademicInfo = localStorage.getItem('studentAcademicInfo')
+  // CORRECTION 1 suite : données chargées depuis le authStore
+  // au lieu de localStorage
+  if (authStore.user) {
+    const u = authStore.user
+    personalForm.firstName = u.prenom  || ''
+    personalForm.lastName  = u.nom     || ''
+    personalForm.email     = u.email   || ''
+    personalForm.phone     = u.phone   || ''
+    personalForm.bio       = u.bio     || ''
+    personalForm.city      = u.city    || ''
+    personalForm.country   = u.country || 'Maroc'
 
-  if (savedPersonalInfo) {
-    Object.assign(personalForm, JSON.parse(savedPersonalInfo))
-  }
-
-  if (savedAcademicInfo) {
-    Object.assign(academicForm, JSON.parse(savedAcademicInfo))
+    if (u.student) {
+      academicForm.school    = u.student.etablissement || ''
+      academicForm.field     = u.student.filiere       || ''
+      academicForm.year      = u.student.niveau        || ''
+      academicForm.promotion = u.student.diplomePrevu  || ''
+    }
   }
 })
 
@@ -64,149 +78,118 @@ const initials = computed(() => {
   return `${personalForm.firstName[0] || ''}${personalForm.lastName[0] || ''}`.toUpperCase()
 })
 
-function openPhotoPicker() {
-  fileInput.value.click()
-}
+function openPhotoPicker() { fileInput.value.click() }
 
 function changePhoto(event) {
   const file = event.target.files[0]
-
   if (!file) return
 
   const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg']
-
   if (!allowedTypes.includes(file.type)) {
     alert('Veuillez choisir une image JPG ou PNG.')
     return
   }
-
   if (file.size > 2 * 1024 * 1024) {
     alert('La taille maximale est 2MB.')
     return
   }
 
   const reader = new FileReader()
-
-reader.onload = () => {
-  avatarPreview.value = reader.result
-  localStorage.setItem('studentAvatar', reader.result)
-  window.dispatchEvent(new Event('student-avatar-updated'))
-  alert('Photo modifiee avec succes.')
-}
-
+  reader.onload = () => {
+    avatarPreview.value = reader.result
+    // CORRECTION 1 suite : localStorage.setItem retiré
+    // l'upload de la photo passe par l'API backend via le authStore
+    authStore.uploadAvatar(file)
+  }
   reader.readAsDataURL(file)
 }
 
 function savePersonalInfo() {
   if (!personalForm.firstName.trim() || !personalForm.lastName.trim()) {
-    alert('Veuillez remplir le prenom et le nom.')
+    alert('Veuillez remplir le prénom et le nom.')
     return
   }
-
   if (!personalForm.email.includes('@')) {
     alert('Email invalide.')
     return
   }
 
-  localStorage.setItem('studentPersonalInfo', JSON.stringify(personalForm))
-
-  window.dispatchEvent(new Event('student-profile-updated'))
+  // CORRECTION 1 suite : localStorage.setItem retiré
+  // les données sont sauvegardées via l'API backend
+  authStore.updateProfile(personalForm)
 
   personalSaved.value = true
-
-  setTimeout(() => {
-    personalSaved.value = false
-  }, 2500)
+  setTimeout(() => { personalSaved.value = false }, 2500)
 }
 
 function saveAcademicInfo() {
-  localStorage.setItem('studentAcademicInfo', JSON.stringify(academicForm))
-
-  window.dispatchEvent(new Event('student-academic-updated'))
+  // CORRECTION 1 suite : localStorage.setItem retiré
+  authStore.updateProfile({ student: academicForm })
 
   academicSaved.value = true
-
-  setTimeout(() => {
-    academicSaved.value = false
-  }, 2500)
+  setTimeout(() => { academicSaved.value = false }, 2500)
 }
 
 function toggleNotification(key) {
   notifications[key] = !notifications[key]
-  localStorage.setItem('studentNotifications', JSON.stringify(notifications))
+  // CORRECTION 1 suite : localStorage.setItem retiré
+  // les préférences de notifications sont sauvegardées via l'API backend
+  authStore.updateNotificationPreferences(notifications)
 }
 
 function saveAppearance() {
-  localStorage.setItem('studentAppearance', JSON.stringify(appearance))
-  alert('Preferences d’apparence enregistrees.')
+  // localStorage retiré — préférences d'apparence peuvent rester en mémoire
+  // ou être sauvegardées en BDD selon le besoin
+  alert('Préférences d\'apparence enregistrées.')
 }
 
-function openPasswordModal() {
-  showPasswordModal.value = true
-}
-
-function closePasswordModal() {
-  showPasswordModal.value = false
-  resetPasswordForm()
-}
-
-function resetPasswordForm() {
+function openPasswordModal()  { showPasswordModal.value = true }
+function closePasswordModal() { showPasswordModal.value = false; resetPasswordForm() }
+function resetPasswordForm()  {
   passwordForm.currentPassword = ''
-  passwordForm.newPassword = ''
+  passwordForm.newPassword     = ''
   passwordForm.confirmPassword = ''
 }
 
 function changePassword() {
-  if (
-    !passwordForm.currentPassword ||
-    !passwordForm.newPassword ||
-    !passwordForm.confirmPassword
-  ) {
+  if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
     alert('Veuillez remplir tous les champs.')
     return
   }
-
-  if (passwordForm.newPassword.length < 8) {
-    alert('Le nouveau mot de passe doit contenir au moins 8 caracteres.')
+  // CORRECTION 2 : minimum aligné avec la politique backend (12 chars)
+  // La version originale vérifiait min 8 — le backend exige min 12
+  if (passwordForm.newPassword.length < 12) {
+    alert('Le nouveau mot de passe doit contenir au moins 12 caractères.')
     return
   }
-
   if (passwordForm.newPassword !== passwordForm.confirmPassword) {
     alert('Les mots de passe ne correspondent pas.')
     return
   }
 
-  alert('Mot de passe change avec succes.')
+  // Appel API via authStore
+  authStore.changePassword({
+    currentPassword: passwordForm.currentPassword,
+    newPassword:     passwordForm.newPassword,
+  })
+
   closePasswordModal()
 }
 
 function toggleTwoFactor() {
   twoFactorEnabled.value = !twoFactorEnabled.value
-
-  if (twoFactorEnabled.value) {
-    alert('2FA active avec succes.')
-  } else {
-    alert('2FA desactive.')
-  }
+  alert(twoFactorEnabled.value ? '2FA activé.' : '2FA désactivé.')
 }
 
 function disablePortfolio() {
-  const confirmed = confirm('Voulez-vous vraiment desactiver votre portfolio ?')
-
-  if (!confirmed) return
-
+  if (!confirm('Voulez-vous vraiment désactiver votre portfolio ?')) return
   portfolioDisabled.value = true
-  alert('Portfolio desactive.')
+  alert('Portfolio désactivé.')
 }
 
 function deleteAccount() {
-  const confirmed = confirm(
-    'Action irreversible. Voulez-vous vraiment supprimer votre compte ?'
-  )
-
-  if (!confirmed) return
-
-  alert('Demande de suppression du compte envoyee.')
+  if (!confirm('Action irréversible. Voulez-vous vraiment supprimer votre compte ?')) return
+  alert('Demande de suppression du compte envoyée.')
 }
 </script>
 

@@ -1,78 +1,64 @@
 <script setup>
-import axios from 'axios'
+// CORRECTION 1 : import axios retiré — remplacé par le authStore
+// La version originale appelait axios.post('http://localhost:3000/api/auth/register')
+// directement avec l'URL codée en dur et sans withCredentials
+// import axios from 'axios'  ← supprimé
+
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../../store/authStore'
 
-// Step 1
-const name = ref('')
-const prenom = ref('')
-const email = ref('')
-const password = ref('')
+const router    = useRouter()
+const authStore = useAuthStore()
+
+const name            = ref('')
+const prenom          = ref('')
+const email           = ref('')
+const password        = ref('')
 const confirmPassword = ref('')
-const accepted = ref(false)
+const accepted        = ref(false)
 
-// Step 2
 const formationType = ref('')
 const etablissement = ref('')
-const filiere = ref('')
-const niveau = ref('')
-const anneeEntree = ref('')
-const diplomePrevu = ref('')
+const filiere       = ref('')
+const niveau        = ref('')
+const anneeEntree   = ref('')
+const diplomePrevu  = ref('')
 
-// Step 3
-const bio = ref('')
-const skills = ref([])
-const newSkill = ref('')
+const bio          = ref('')
+const skills       = ref([])
+const newSkill     = ref('')
 const disponibilite = ref('')
-const linkedin = ref('')
+const linkedin     = ref('')
 const photoPreview = ref('')
 
-// Current step
+// CORRECTION 2 : role fixé à "STUDENT" — ne jamais laisser le client choisir son rôle
+// La version originale utilisait role.value sans le définir nulle part
+// Un attaquant aurait pu envoyer role: "ADMIN" ou role: "PROF"
+const role = ref('STUDENT')
+
 const currentStep = ref(1)
 
-const router = useRouter()
-function goToLogin() {
-  router.push('/login')
-}
-// Errors
 const errors = reactive({
-  name: '',
-  prenom: '',
-  email: '',
-  password: '',
-  confirmPassword: '',
-  accepted: '',
-  formationType: '',
-  etablissement: '',
-  filiere: '',
-  niveau: '',
-  anneeEntree: '',
-  diplomePrevu: '',
-  bio: '',
-  skills: '',
-  disponibilite: '',
-  linkedin: ''
+  name: '', prenom: '', email: '', password: '', confirmPassword: '',
+  accepted: '', formationType: '', etablissement: '', filiere: '',
+  niveau: '', anneeEntree: '', diplomePrevu: '', bio: '',
+  skills: '', disponibilite: '', linkedin: ''
 })
 
 const clearErrors = () => {
-  Object.keys(errors).forEach((key) => {
-    errors[key] = ''
-  })
+  Object.keys(errors).forEach((key) => { errors[key] = '' })
 }
 
-// Validations
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const yearRegex = /^[0-9]{4}$/
+const emailRegex   = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const yearRegex    = /^[0-9]{4}$/
 const linkedinRegex = /^[a-zA-Z0-9-]+$/
 
 const addSkill = () => {
-  if (newSkill.value.trim() === '') {
-    return
-  }
-
+  if (newSkill.value.trim() === '') return
   skills.value.push(newSkill.value.trim())
-  newSkill.value = ''
-  errors.skills = ''
+  newSkill.value  = ''
+  errors.skills   = ''
 }
 
 const removeSkill = (index) => {
@@ -81,10 +67,13 @@ const removeSkill = (index) => {
 
 const handlePhoto = (event) => {
   const file = event.target.files[0]
-
   if (file) {
     photoPreview.value = URL.createObjectURL(file)
   }
+}
+
+function goToLogin() {
+  router.push('/login')
 }
 
 const nextStep = () => {
@@ -92,208 +81,99 @@ const nextStep = () => {
   let isValid = true
 
   if (currentStep.value === 1) {
-    if (name.value.trim() === '') {
-      errors.name = 'Nom obligatoire'
-      isValid = false
-    } 
+    if (!name.value.trim())   { errors.name   = 'Nom obligatoire';    isValid = false }
+    if (!prenom.value.trim()) { errors.prenom = 'Prénom obligatoire'; isValid = false }
 
-    if (prenom.value.trim() === '') {
-      errors.prenom = 'Prénom obligatoire'
-      isValid = false
-    }
-
-    if (email.value.trim() === '') {
-      errors.email = 'Email obligatoire'
-      isValid = false
+    if (!email.value.trim()) {
+      errors.email = 'Email obligatoire'; isValid = false
     } else if (!emailRegex.test(email.value.trim())) {
-      errors.email = 'Veuillez entrer un email valide'
-      isValid = false
+      errors.email = 'Veuillez entrer un email valide'; isValid = false
     }
 
-    if (password.value.trim() === '') {
-      errors.password = 'Mot de passe obligatoire'
-      isValid = false
-    } else if (password.value.length < 8) {
-      errors.password = 'Le mot de passe doit contenir au moins 8 caractères'
-      isValid = false
+    if (!password.value.trim()) {
+      errors.password = 'Mot de passe obligatoire'; isValid = false
+    } else if (password.value.length < 12) {
+      // CORRECTION 3 : minimum 12 caractères aligné avec la politique backend
+      // La version originale validait min 8 — le backend exige min 12
+      errors.password = 'Le mot de passe doit contenir au moins 12 caractères'; isValid = false
     }
-    if (confirmPassword.value.trim() === '') {
-      errors.confirmPassword = 'Confirmation obligatoire'
-      isValid = false
+
+    if (!confirmPassword.value.trim()) {
+      errors.confirmPassword = 'Confirmation obligatoire'; isValid = false
     } else if (password.value !== confirmPassword.value) {
-      errors.confirmPassword = 'Les mots de passe ne sont pas identiques'
-      isValid = false
+      errors.confirmPassword = 'Les mots de passe ne sont pas identiques'; isValid = false
     }
 
     if (!accepted.value) {
-      errors.accepted = 'Vous devez accepter les conditions'
-      isValid = false
+      errors.accepted = 'Vous devez accepter les conditions'; isValid = false
     }
   }
 
   if (currentStep.value === 2) {
-    if (formationType.value === '') {
-      errors.formationType = 'Type de formation obligatoire'
-      isValid = false
-    }
-
-    if (etablissement.value.trim() === '') {
-      errors.etablissement = 'Établissement obligatoire'
-      isValid = false
-    }
-
-    if (filiere.value.trim() === '') {
-      errors.filiere = 'Filière obligatoire'
-      isValid = false
-    }
-
-    if (niveau.value === '') {
-      errors.niveau = 'Niveau d’études obligatoire'
-      isValid = false
-    }
-
-    if (anneeEntree.value.trim() === '') {
-      errors.anneeEntree = 'Année d’entrée obligatoire'
-      isValid = false
+    if (!formationType.value) { errors.formationType = 'Type de formation obligatoire'; isValid = false }
+    if (!etablissement.value.trim()) { errors.etablissement = 'Établissement obligatoire'; isValid = false }
+    if (!filiere.value.trim()) { errors.filiere = 'Filière obligatoire'; isValid = false }
+    if (!niveau.value) { errors.niveau = 'Niveau obligatoire'; isValid = false }
+    if (!anneeEntree.value.trim()) {
+      errors.anneeEntree = 'Année d\'entrée obligatoire'; isValid = false
     } else if (!yearRegex.test(anneeEntree.value.trim())) {
-      errors.anneeEntree = 'L’année doit contenir uniquement 4 chiffres'
-      isValid = false
+      errors.anneeEntree = 'L\'année doit contenir 4 chiffres'; isValid = false
     }
-
-    if (diplomePrevu.value.trim() === '') {
-      errors.diplomePrevu = 'Diplôme prévu obligatoire'
-      isValid = false
+    if (!diplomePrevu.value.trim()) {
+      errors.diplomePrevu = 'Diplôme prévu obligatoire'; isValid = false
     } else if (!yearRegex.test(diplomePrevu.value.trim())) {
-      errors.diplomePrevu = 'L’année doit contenir uniquement 4 chiffres'
-      isValid = false
+      errors.diplomePrevu = 'L\'année doit contenir 4 chiffres'; isValid = false
     }
   }
 
-  if (!isValid) {
-    return
-  }
-
-  if (currentStep.value < 3) {
-    currentStep.value++
-  }
+  if (!isValid) return
+  if (currentStep.value < 3) currentStep.value++
 }
 
 const previousStep = () => {
   clearErrors()
-
-  if (currentStep.value > 1) {
-    currentStep.value--
-  }
+  if (currentStep.value > 1) currentStep.value--
 }
 
 const register = async () => {
-  if (currentStep.value < 3) {
-    nextStep()
-    return
-  }
+  if (currentStep.value < 3) { nextStep(); return }
 
   clearErrors()
   let isValid = true
 
-  if (bio.value.trim() === '') {
-    errors.bio = 'Bio obligatoire'
-    isValid = false
-  }
-
-  if (skills.value.length === 0) {
-    errors.skills = 'Ajoutez au moins une compétence'
-    isValid = false
-  }
-
-  if (disponibilite.value === '') {
-    errors.disponibilite = 'Disponibilité obligatoire'
-    isValid = false
-  }
-
+  if (!bio.value.trim())        { errors.bio = 'Bio obligatoire'; isValid = false }
+  if (skills.value.length === 0) { errors.skills = 'Ajoutez au moins une compétence'; isValid = false }
+  if (!disponibilite.value)     { errors.disponibilite = 'Disponibilité obligatoire'; isValid = false }
   if (linkedin.value.trim() !== '' && !linkedinRegex.test(linkedin.value.trim())) {
-    errors.linkedin = 'Profil LinkedIn invalide'
-    isValid = false
+    errors.linkedin = 'Profil LinkedIn invalide'; isValid = false
   }
+  if (!isValid) return
 
-  if (!isValid) {
-    return
-  }
+  // CORRECTION 4 : console.log retirés — exposaient les données de l'utilisateur
+  // dans la console du navigateur (email, mot de passe, infos personnelles)
+  // Un utilisateur malveillant avec accès à la console peut les lire
+  // console.log('Nom:', name.value)     ← supprimé
+  // console.log('Email:', email.value)  ← supprimé
+  // etc.
 
-const userData = {
-  name: name.value,
-  role: role.value,
-  prenom: prenom.value,
-  email: email.value,
-  password: password.value,
-  formationType: formationType.value,
-  etablissement: etablissement.value,
-  filiere: filiere.value,
-  niveau: niveau.value,
-  anneeEntree: anneeEntree.value,
-  diplomePrevu: diplomePrevu.value,
-  bio: bio.value,
-  skills: skills.value,
-  disponibilite: disponibilite.value,
-  linkedin: linkedin.value
-}
-
-const sentData = {
-  email: email.value,
-  password: password.value,
-  role: role.value
-}
-
-try {
-  const response = await axios.post(
-    'http://localhost:3000/api/auth/register',
-    {
-      data: sentData
-    }
-  )
-
-  if (response.data && response.data.success === true) {
-
-    alert('Compte créé avec succès')
+  // CORRECTION 1 suite : appel via authStore au lieu d'axios direct
+  // withCredentials géré dans l'instance Axios centralisée du store
+  try {
+    await authStore.register({
+      email:    email.value,
+      password: password.value,
+      role:     role.value, // toujours 'STUDENT'
+    })
 
     router.push('/login')
-
-  } else {
-
-    throw new Error(
-      response.data?.message ||
+  } catch (error) {
+    const errorMessage =
+      error?.response?.data?.message ||
+      error?.message ||
       'Erreur lors de la création du compte'
-    )
+    // alert() remplacé par un affichage dans l'UI — à implémenter dans le template
+    errors.email = errorMessage
   }
-
-} catch (error) {
-
-  console.error('Registration failed:', error)
-
-  const errorMessage =
-    error.response?.data?.message ||
-    error.message ||
-    'Erreur lors de la création du compte'
-
-  alert(errorMessage)
-
-}
-
-  console.log('Nom:', name.value)
-  console.log('Prénom:', prenom.value)
-  console.log('Email:', email.value)
-  console.log('Formation:', formationType.value)
-  console.log('Établissement:', etablissement.value)
-  console.log('Filière:', filiere.value)
-  console.log('Niveau:', niveau.value)
-  console.log('Année d’entrée:', anneeEntree.value)
-  console.log('Diplôme prévu:', diplomePrevu.value)
-  console.log('Bio:', bio.value)
-  console.log('Skills:', skills.value)
-  console.log('Disponibilité:', disponibilite.value)
-  console.log('LinkedIn:', linkedin.value)
-
-  alert('Compte créé avec succès')
-  router.push('/login')
 }
 </script>
 

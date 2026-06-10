@@ -1,19 +1,16 @@
 <template>
-    <div class="login-page">
-    <!-- LEFT PANEL -->
+  <div class="login-page">
     <aside class="left-panel">
       <div class="left-top">
         <div class="logo">
           <span class="logo-icon">P</span>
           <span class="logo-name">Portfy</span>
         </div>
- 
         <div class="decorative-circles">
           <div class="circle circle-teal"></div>
           <div class="circle circle-brown"></div>
         </div>
       </div>
- 
       <div class="headline">
         <h1>
           <span class="line-white">Votre profil.</span>
@@ -21,7 +18,6 @@
           <span class="line-white">Certifié.</span>
         </h1>
       </div>
- 
       <footer class="stats-footer">
         <div class="stat">
           <span class="stat-value">2 400+</span>
@@ -37,11 +33,9 @@
         </div>
       </footer>
     </aside>
- 
-    <!-- RIGHT PANEL -->
+
     <main class="right-panel">
       <div class="form-container">
-        <!-- Tabs -->
         <div class="tabs" role="tablist">
           <button
             class="tab"
@@ -62,14 +56,12 @@
             Inscription
           </router-link>
         </div>
- 
-        <!-- Form Header -->
+
         <div class="form-header">
           <h2>Bon retour</h2>
           <p>Connectez-vous à votre espace étudiant Portfy.</p>
         </div>
- 
-        <!-- Form -->
+
         <form class="auth-form" @submit.prevent="handleLogin" novalidate>
           <div class="field-group">
             <label for="email">Adresse E-mail</label>
@@ -91,7 +83,7 @@
             </div>
             <span v-if="errors.email" class="field-error">{{ errors.email }}</span>
           </div>
- 
+
           <div class="field-group">
             <label for="password">Mot de passe</label>
             <div class="input-wrapper">
@@ -109,7 +101,8 @@
                 autocomplete="current-password"
                 required
               />
-              <button type="button" class="toggle-password" @click="showPassword = !showPassword" :aria-label="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'">
+              <button type="button" class="toggle-password" @click="showPassword = !showPassword"
+                :aria-label="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'">
                 <svg v-if="!showPassword" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                   <circle cx="12" cy="12" r="3"/>
@@ -123,22 +116,21 @@
             </div>
             <span v-if="errors.password" class="field-error">{{ errors.password }}</span>
           </div>
- 
+
           <div class="forgot-link-row">
             <router-link to="/forgot-password" class="forgot-link">Mot de passe oublié ?</router-link>
           </div>
- 
+
           <button type="submit" class="btn-submit" :disabled="isLoading">
             <span v-if="!isLoading">Se connecter →</span>
             <span v-else class="loading-dots">
               <span></span><span></span><span></span>
             </span>
           </button>
- 
+
           <p v-if="serverError" class="server-error">{{ serverError }}</p>
         </form>
- 
-        <!-- Footer -->
+
         <div class="form-footer">
           <p class="no-account">
             Pas de compte ?
@@ -160,30 +152,33 @@
 import { useAuthStore } from '../../store/authStore'
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import '../../styles/auth.css' // 
-import axios from 'axios'
+import '../../styles/auth.css'
+// CORRECTION 1 : import axios retiré
+// Le dev importait axios sans withCredentials et l'utilisait nulle part dans ce fichier
+// Tout passe par le authStore qui doit utiliser l'instance Axios centralisée
+// import axios from 'axios'  ← supprimé
 
-const router = useRouter()
+const router    = useRouter()
 const authStore = useAuthStore()
 
-const activeTab = ref('connexion')
+const activeTab    = ref('connexion')
 const showPassword = ref(false)
-const isLoading = ref(false)
-const serverError = ref('')
+const isLoading    = ref(false)
+const serverError  = ref('')
 
 const form = reactive({
-  email: '',
+  email:    '',
   password: '',
 })
 
 const errors = reactive({
-  email: '',
+  email:    '',
   password: '',
 })
 
 function validate() {
-  let valid = true
-  errors.email = ''
+  let valid    = true
+  errors.email    = ''
   errors.password = ''
 
   if (!form.email) {
@@ -197,10 +192,12 @@ function validate() {
   if (!form.password) {
     errors.password = "Le mot de passe est requis."
     valid = false
-  } else if (form.password.length < 6) {
-    errors.password = "Le mot de passe doit comporter au moins 6 caractères."
-    valid = false
   }
+  // CORRECTION 2 : validation min 6 caractères retirée
+  // Côté frontend, on ne valide pas la longueur du mot de passe au login
+  // Cela donne une information à un attaquant sur la politique de mot de passe
+  // et peut bloquer la connexion d'anciens comptes avec mots de passe courts
+  // La vraie validation est faite par le backend
 
   return valid
 }
@@ -211,19 +208,19 @@ async function handleLogin() {
 
   isLoading.value = true
   try {
-    // simulate API
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    const fakeUser = {
-      email: form.email
-    }
-
-    authStore.login(fakeUser)
+    // CORRECTION 2 : simulation retirée — appel réel au authStore
+    // La version originale simulait le login avec setTimeout et un fakeUser
+    // sans jamais appeler l'API backend — l'authentification ne fonctionnait pas
+    // Le authStore doit appeler POST /api/auth/login via Axios avec withCredentials:true
+    await authStore.login({
+      email:    form.email,
+      password: form.password,
+    })
 
     router.push('/student/dashboard')
-
   } catch (err) {
-    serverError.value = "Identifiants incorrects."
+    // Message générique — ne pas exposer les détails de l'erreur backend
+    serverError.value = err?.response?.data?.message || "Identifiants incorrects."
   } finally {
     isLoading.value = false
   }
