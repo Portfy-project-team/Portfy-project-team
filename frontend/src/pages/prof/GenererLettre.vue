@@ -425,39 +425,24 @@ const generateLetter = async () => {
   isGenerating.value = true
   generatedLetter.value = ''
 
-  const e = form.value.extra
-  let contextBlock = ''
-  if (form.value.candidatureType === 'Master / Doctorat')
-    contextBlock = `Université cible : ${e.university || 'non précisée'}. Programme : ${e.program || 'non précisé'}. Motivation : ${e.researchMotivation || ''}.`
-  else if (form.value.candidatureType === 'Double Diplomation')
-    contextBlock = `École partenaire : ${e.partnerSchool || 'non précisée'}. Pays : ${e.country || 'non précisé'}. Contexte : ${e.partnerContext || ''}.`
-  else if (form.value.candidatureType === 'Stage')
-    contextBlock = `Entreprise : ${e.company || 'non précisée'}. Durée : ${e.duration || 'non précisée'}. Mission : ${e.mission || ''}.`
-  else if (form.value.candidatureType === 'Emploi')
-    contextBlock = `Entreprise : ${e.company || 'non précisée'}. Poste : ${e.position || 'non précisé'}. Compétences : ${e.proSkills || ''}.`
-  else if (form.value.candidatureType === 'Programme International')
-    contextBlock = `Programme : ${e.programName || 'non précisé'}. Région : ${e.region || 'non précisée'}. Objectif : ${e.programObjective || ''}.`
-
-  const prompt = `Tu es ${form.value.profName}, professeur à ${form.value.institution}${form.value.department ? ', département ' + form.value.department : ''}.
-Rédige une lettre de recommandation formelle en ${form.value.language} pour l'étudiant(e) ${form.value.studentName}${form.value.level ? ' (filière : ' + form.value.level + ')' : ''}.
-Objectif : ${form.value.candidatureType}. ${contextBlock}
-${form.value.technicalQualities ? 'Qualités techniques : ' + form.value.technicalQualities : ''}
-${form.value.softSkills ? 'Soft skills : ' + form.value.softSkills : ''}
-${form.value.mention ? 'Mention / Niveau global : ' + form.value.mention : ''}
-Rédige une lettre complète et professionnelle avec introduction, développement et conclusion. Uniquement le texte de la lettre, sans balises ni commentaires.`
-
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    })
+    const response = await fetch(
+      'http://localhost:3000/api/ai-reco/generate',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form.value)
+      }
+    )
+
     const data = await response.json()
-    generatedLetter.value = data.content?.[0]?.text || 'Erreur lors de la génération.'
+
+    if (data.success) {
+      generatedLetter.value = data.letter
+    } else {
+      generatedLetter.value = data.message
+    }
+
   } catch (e) {
     generatedLetter.value = 'Une erreur est survenue. Veuillez réessayer.'
   } finally {
