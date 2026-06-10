@@ -2,9 +2,9 @@
 //  TEST COMPOSANT — Sidebar (Professeur)
 //  cypress/component/student/Sidebar.cy.js
 // ─────────────────────────────────────────────────────────────
-import ProfSidebar from '@/components/student/ProfSidebar.vue'
+import Sidebar from '@/components/student/Sidebar.vue'
 
-describe('ProfSidebar.vue — Composant', () => {
+describe('Sidebar.vue — Composant', () => {
   const professorLinks = [
     { label: 'Dashboard', to: '/professor/dashboard', icon: 'home' },
     { label: 'Cours', to: '/professor/courses', icon: 'book' },
@@ -12,19 +12,19 @@ describe('ProfSidebar.vue — Composant', () => {
   ]
 
   it('se monte sans erreur', () => {
-    cy.mount(ProfSidebar, {
+    cy.mount(Sidebar, {
       props: { links: professorLinks, role: 'professor' },
     })
     cy.get('[data-cy="sidebar"]').should('exist')
   })
 
   it('affiche tous les liens de navigation', () => {
-    cy.mount(ProfSidebar, { props: { links: professorLinks, role: 'professor' } })
+    cy.mount(Sidebar, { props: { links: professorLinks, role: 'professor' } })
     cy.get('[data-cy^="sidebar-link-"]').should('have.length', professorLinks.length)
   })
 
   it('applique la classe active sur le bon lien', () => {
-    cy.mount(ProfSidebar, {
+    cy.mount(Sidebar, {
       props: { links: professorLinks, role: 'professor', activeRoute: '/professor/dashboard' },
     })
     cy.get('[data-cy="sidebar-link-dashboard"]').should('have.class', 'active')
@@ -33,7 +33,7 @@ describe('ProfSidebar.vue — Composant', () => {
 
   it('émet un événement logout au clic sur Déconnexion', () => {
     const onLogout = cy.stub().as('logoutStub')
-    cy.mount(ProfSidebar, {
+    cy.mount(Sidebar, {
       props: { links: professorLinks, role: 'professor', onLogout },
     })
     cy.get('[data-cy="sidebar-logout"]').click()

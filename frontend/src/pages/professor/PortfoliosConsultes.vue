@@ -24,23 +24,23 @@
             <div class="stat-icon blue"><Eye size="20" /></div>
             <div>
               <p class="stat-label">Total consultés</p>
-              <p class="stat-value">{{ portfolios.length }}</p>
-              <p class="stat-trend positive"><TrendingUp size="12" /> +4 cette semaine</p>
+              <p class="stat-value">{{ stats.total ?? 0 }}</p>
+              <p class="stat-trend positive"><TrendingUp size="12" /> +{{ stats.weeklyNewVisits ?? 0 }} cette semaine</p>
             </div>
           </div>
           <div class="stat-card">
             <div class="stat-icon purple"><Star size="20" /></div>
             <div>
               <p class="stat-label">Recommandés</p>
-              <p class="stat-value">{{ recommended.length }}</p>
+              <p class="stat-value">{{ stats.recommended ?? 0 }}</p>
             </div>
           </div>
           <div class="stat-card">
             <div class="stat-icon orange"><MessageCircle size="20" /></div>
             <div>
               <p class="stat-label">Commentés</p>
-              <p class="stat-value">{{ commented.length }}</p>
-              <p class="stat-trend positive"><TrendingUp size="12" /> +3 cette semaine</p>
+              <p class="stat-value">{{ stats.commented ?? 0 }}</p>
+              <p class="stat-trend positive"><TrendingUp size="12" /> +{{ stats.weeklyNewComments ?? 0 }} cette semaine</p>
             </div>
           </div>
         </div>
@@ -65,10 +65,15 @@
           </div>
         </div>
 
+        <!-- Loading -->
+        <div v-if="loading" class="empty-state">
+          <p>Chargement...</p>
+        </div>
+
         <!-- Portfolio cards grid -->
-        <div class="portfolio-grid">
+        <div v-else class="portfolio-grid">
           <div
-            v-for="p in filteredPortfolios"
+            v-for="p in portfolios"
             :key="p.id"
             class="portfolio-card"
             @click="openPortfolio(p)"
@@ -76,7 +81,7 @@
             <div class="card-header">
               <div class="student-avatar" :style="{ background: p.color }">{{ p.initials }}</div>
               <div class="student-info">
-                <span class="student-name">{{ p.name }}</span>
+                <span class="student-name">{{ p.studentName }}</span>
                 <span class="student-school">{{ p.school }}</span>
               </div>
               <button class="bookmark-btn" :class="{ active: p.bookmarked }" @click.stop="toggleBookmark(p)">
@@ -89,7 +94,7 @@
             </div>
 
             <div class="card-footer">
-              <span class="last-visit">Consulté {{ p.lastVisit }}</span>
+              <span class="last-visit">Consulté {{ formatDate(p.lastVisit) }}</span>
               <div class="card-actions">
                 <span v-if="p.hasComment" class="action-chip commented"><MessageCircle size="12" /> Commenté</span>
                 <span v-if="p.hasReco" class="action-chip recommended"><Star size="12" /> Recommandé</span>
@@ -102,7 +107,7 @@
           </div>
         </div>
 
-        <div v-if="filteredPortfolios.length === 0" class="empty-state">
+        <div v-if="!loading && portfolios.length === 0" class="empty-state">
           <p>Aucun portfolio trouvé.</p>
         </div>
       </div>
@@ -116,7 +121,7 @@
             {{ selectedPortfolio.initials }}
           </div>
           <div>
-            <h3>{{ selectedPortfolio.name }}</h3>
+            <h3>{{ selectedPortfolio.studentName }}</h3>
             <p>{{ selectedPortfolio.school }}</p>
           </div>
           <button class="close-btn" @click="selectedPortfolio = null">
@@ -128,7 +133,7 @@
             <span v-for="tag in selectedPortfolio.tags" :key="tag" class="tag">{{ tag }}</span>
           </div>
           <p class="drawer-label">Dernière visite</p>
-          <p class="drawer-value">{{ selectedPortfolio.lastVisit }}</p>
+          <p class="drawer-value">{{ formatDate(selectedPortfolio.lastVisit) }}</p>
           <p class="drawer-label">Nombre de visites</p>
           <p class="drawer-value">{{ selectedPortfolio.visits }}</p>
           <div class="drawer-actions">
@@ -142,24 +147,19 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Sidebar from '../../components/professor/Sidebar.vue'
 import Topbar from '../../components/professor/Topbar.vue'
 import { Eye, Star, MessageCircle, Search, Bookmark, TrendingUp, X } from 'lucide-vue-next'
+import { portfoliosConsultesService } from '../../services/professor/portfoliosConsultes.service.js'
 
 const user = { name: 'M. Ghailani', role: 'Professeur · ENSAT', verified: true }
 const router = useRouter()
 
-const portfolios = ref([
-  { id: 1, name: 'Omar Mellouki', initials: 'OM', color: '#0891b2', school: 'ENSAT - Génie Logiciel', tags: ['React', 'Node.js', 'MongoDB'], lastVisit: 'il y a 20 min', visits: 4, hasComment: false, hasReco: false, bookmarked: false },
-  { id: 2, name: 'Sara Benali', initials: 'SB', color: '#7c3aed', school: 'ENSAT - Data Science', tags: ['Python', 'Machine Learning', 'Vue.js'], lastVisit: 'il y a 1h', visits: 7, hasComment: true, hasReco: true, bookmarked: true },
-  { id: 3, name: 'Ahmed Alami', initials: 'AA', color: '#4f46e5', school: 'ENSAT - GL', tags: ['Java', 'Spring Boot', 'PostgreSQL'], lastVisit: 'il y a 3h', visits: 5, hasComment: true, hasReco: true, bookmarked: false },
-  { id: 4, name: 'Leila Moussaoui', initials: 'LM', color: '#059669', school: 'INSEA Rabat - Cybersécurité', tags: ['Linux', 'Pentest', 'Réseau'], lastVisit: 'hier', visits: 3, hasComment: false, hasReco: true, bookmarked: true },
-  { id: 5, name: 'Youssef Khalil', initials: 'YK', color: '#d97706', school: 'FST Fès - Génie Logiciel', tags: ['React', 'Node.js'], lastVisit: 'il y a 2 jours', visits: 2, hasComment: true, hasReco: false, bookmarked: false },
-  { id: 6, name: 'Fatima Zahra', initials: 'FZ', color: '#be185d', school: 'ENSA Marrakech - IA', tags: ['TensorFlow', 'Python', 'NLP'], lastVisit: 'il y a 3 jours', visits: 1, hasComment: false, hasReco: false, bookmarked: false },
-])
-
+const portfolios = ref([])
+const stats = ref({})
+const loading = ref(false)
 const activeFilter = ref('all')
 const search = ref('')
 const sortBy = ref('recent')
@@ -172,26 +172,74 @@ const filters = [
   { label: 'Favoris', value: 'bookmarked' },
 ]
 
-const recommended = computed(() => portfolios.value.filter(p => p.hasReco))
-const commented = computed(() => portfolios.value.filter(p => p.hasComment))
+// Charger les portfolios depuis l'API
+async function fetchPortfolios() {
+  loading.value = true
+  try {
+    const res = await portfoliosConsultesService.getAll({
+      filter: activeFilter.value,
+      sortBy: sortBy.value,
+      search: search.value,
+    })
+    portfolios.value = res.data.data
+  } catch (err) {
+    console.error('Erreur chargement portfolios:', err)
+  } finally {
+    loading.value = false
+  }
+}
 
-const filteredPortfolios = computed(() => {
-  let list = portfolios.value.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(search.value.toLowerCase())
-    const matchFilter =
-      activeFilter.value === 'all' ||
-      (activeFilter.value === 'recommended' && p.hasReco) ||
-      (activeFilter.value === 'commented' && p.hasComment) ||
-      (activeFilter.value === 'bookmarked' && p.bookmarked)
-    return matchSearch && matchFilter
-  })
-  if (sortBy.value === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name))
-  if (sortBy.value === 'visits') list = [...list].sort((a, b) => b.visits - a.visits)
-  return list
+// Charger les stats
+async function fetchStats() {
+  try {
+    const res = await portfoliosConsultesService.getStats()
+    stats.value = res.data.data
+  } catch (err) {
+    console.error('Erreur chargement stats:', err)
+  }
+}
+
+// Recharger quand filter/sort/search change
+watch([activeFilter, sortBy, search], fetchPortfolios)
+
+// Chargement initial
+onMounted(() => {
+  fetchPortfolios()
+  fetchStats()
 })
 
-function toggleBookmark(p) { p.bookmarked = !p.bookmarked }
-function openPortfolio(p) { selectedPortfolio.value = p }
+// Formater la date
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = Math.floor((now - date) / 1000)
+  if (diff < 60) return 'il y a quelques secondes'
+  if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`
+  if (diff < 86400) return `il y a ${Math.floor(diff / 3600)}h`
+  if (diff < 172800) return 'hier'
+  return `il y a ${Math.floor(diff / 86400)} jours`
+}
+
+async function toggleBookmark(p) {
+  try {
+    await portfoliosConsultesService.toggleBookmark(p.id)
+    p.bookmarked = !p.bookmarked
+  } catch (err) {
+    console.error('Erreur bookmark:', err)
+  }
+}
+
+async function openPortfolio(p) {
+  selectedPortfolio.value = p
+  try {
+    await portfoliosConsultesService.recordVisit(p.id)
+    p.visits += 1
+  } catch (err) {
+    console.error('Erreur enregistrement visite:', err)
+  }
+}
+
 function goToReco(p) {
   selectedPortfolio.value = null
   router.push('/professor/recommandations')
@@ -279,48 +327,16 @@ function goToReco(p) {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
 }
 
-.stat-icon.blue {
-  background: #dbeafe;
-  color: #0284c7;
-}
+.stat-icon.blue { background: #dbeafe; color: #0284c7; }
+.stat-icon.purple { background: #ede9fe; color: #7c3aed; }
+.stat-icon.orange { background: #ffedd5; color: #ea580c; }
 
-.stat-icon.purple {
-  background: #ede9fe;
-  color: #7c3aed;
-}
-
-.stat-icon.orange {
-  background: #ffedd5;
-  color: #ea580c;
-}
-
-.stat-label {
-  color: #64748b;
-  font-size: 0.8rem;
-  margin: 0;
-}
-
-.stat-value {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-}
-
-.stat-trend {
-  font-size: 0.75rem;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.stat-trend.positive {
-  color: #16a34a;
-}
+.stat-label { color: #64748b; font-size: 0.8rem; margin: 0; }
+.stat-value { font-size: 1.6rem; font-weight: 700; color: #0f172a; margin: 0; }
+.stat-trend { font-size: 0.75rem; margin: 0; display: flex; align-items: center; gap: 4px; }
+.stat-trend.positive { color: #16a34a; }
 
 .filters-bar {
   display: flex;
@@ -346,10 +362,7 @@ function goToReco(p) {
   border-color: #1e293b;
 }
 
-.sort-box {
-  margin-left: auto;
-}
-
+.sort-box { margin-left: auto; }
 .sort-box select {
   padding: 7px 12px;
   border: 1px solid #e2e8f0;
@@ -399,23 +412,9 @@ function goToReco(p) {
   flex-shrink: 0;
 }
 
-.student-avatar.large {
-  width: 56px;
-  height: 56px;
-  font-size: 1.2rem;
-}
-
-.student-name {
-  display: block;
-  font-weight: 600;
-  color: #0f172a;
-  font-size: 0.95rem;
-}
-
-.student-school {
-  font-size: 0.75rem;
-  color: #64748b;
-}
+.student-avatar.large { width: 56px; height: 56px; font-size: 1.2rem; }
+.student-name { display: block; font-weight: 600; color: #0f172a; font-size: 0.95rem; }
+.student-school { font-size: 0.75rem; color: #64748b; }
 
 .bookmark-btn {
   margin-left: auto;
@@ -430,28 +429,11 @@ function goToReco(p) {
   transition: color .2s;
 }
 
-.bookmark-btn:hover {
-  color: #0f172a;
-}
+.bookmark-btn:hover { color: #0f172a; }
+.bookmark-btn.active { color: #f5a623; }
 
-.bookmark-btn.active {
-  color: #f5a623;
-}
-
-.card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.tag {
-  background: #f1f5f9;
-  color: #475569;
-  font-size: 0.7rem;
-  padding: 3px 8px;
-  border-radius: 4px;
-}
+.card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.tag { background: #f1f5f9; color: #475569; font-size: 0.7rem; padding: 3px 8px; border-radius: 4px; }
 
 .card-footer {
   display: flex;
@@ -461,15 +443,8 @@ function goToReco(p) {
   gap: 6px;
 }
 
-.last-visit {
-  font-size: 0.75rem;
-  color: #94a3b8;
-}
-
-.card-actions {
-  display: flex;
-  gap: 6px;
-}
+.last-visit { font-size: 0.75rem; color: #94a3b8; }
+.card-actions { display: flex; gap: 6px; }
 
 .action-chip {
   font-size: 0.7rem;
@@ -480,15 +455,8 @@ function goToReco(p) {
   gap: 3px;
 }
 
-.action-chip.commented {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
-.action-chip.recommended {
-  background: #fef9c3;
-  color: #92400e;
-}
+.action-chip.commented { background: #dbeafe; color: #1d4ed8; }
+.action-chip.recommended { background: #fef9c3; color: #92400e; }
 
 .visit-count {
   margin-top: 10px;
@@ -499,13 +467,8 @@ function goToReco(p) {
   gap: 4px;
 }
 
-.empty-state {
-  text-align: center;
-  padding: 48px;
-  color: #94a3b8;
-}
+.empty-state { text-align: center; padding: 48px; color: #94a3b8; }
 
-/* Drawer */
 .drawer-overlay {
   position: fixed;
   inset: 0;
@@ -531,17 +494,8 @@ function goToReco(p) {
   margin-bottom: 24px;
 }
 
-.drawer-header h3 {
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin: 0;
-}
-
-.drawer-header p {
-  color: #64748b;
-  font-size: 0.8rem;
-  margin: 0;
-}
+.drawer-header h3 { font-size: 1.1rem; font-weight: 700; margin: 0; }
+.drawer-header p { color: #64748b; font-size: 0.8rem; margin: 0; }
 
 .close-btn {
   margin-left: auto;
@@ -556,40 +510,14 @@ function goToReco(p) {
   transition: color .2s;
 }
 
-.close-btn:hover {
-  color: #0f172a;
-}
+.close-btn:hover { color: #0f172a; }
 
-.drawer-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+.drawer-body { display: flex; flex-direction: column; gap: 12px; }
+.drawer-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.drawer-label { color: #94a3b8; font-size: 0.75rem; margin: 0; }
+.drawer-value { font-weight: 600; color: #0f172a; margin: 0; }
 
-.drawer-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.drawer-label {
-  color: #94a3b8;
-  font-size: 0.75rem;
-  margin: 0;
-}
-
-.drawer-value {
-  font-weight: 600;
-  color: #0f172a;
-  margin: 0;
-}
-
-.drawer-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 16px;
-}
+.drawer-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
 
 .btn-primary {
   background: #f5a623;
@@ -602,9 +530,7 @@ function goToReco(p) {
   transition: background .2s;
 }
 
-.btn-primary:hover {
-  background: #e09610;
-}
+.btn-primary:hover { background: #e09610; }
 
 .btn-outline {
   background: transparent;
@@ -616,13 +542,7 @@ function goToReco(p) {
   transition: border .2s;
 }
 
-.btn-outline:hover {
-  border-color: #cbd5e1;
-}
+.btn-outline:hover { border-color: #cbd5e1; }
 
-:deep(svg) {
-  flex-shrink: 0;
-  stroke-width: 2;
-  color: currentColor;
-}
+:deep(svg) { flex-shrink: 0; stroke-width: 2; color: currentColor; }
 </style>
