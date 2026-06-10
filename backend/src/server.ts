@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Portfy API demarree sur le port ${PORT}`);
   console.log(`Environnement : ${process.env.NODE_ENV}`);
+  console.log("FRONTEND_URL =", process.env.FRONTEND_URL);
   // console.log("ACCESS:", process.env.JWT_SECRET);
 })
 
