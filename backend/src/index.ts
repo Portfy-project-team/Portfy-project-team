@@ -17,6 +17,9 @@ import activityRoutes from "./modules/activities/activity.routes.js";
 import stageRoutes from "./modules/stages/stage.routes.js";
 import notificationRoutes from "./modules/notifications/notification.routes.js"
 
+import commentRoutes        from "./modules/comments/comment.routes.js";
+import recommendationRoutes from "./modules/recommendations/recommendation.routes.js";
+
 const app = express();
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -84,6 +87,9 @@ app.use("/api/notifications", notificationRoutes);
 // Healthcheck améliorée pour le debug
 app.use("/api/letters", letterRoutes);
 app.use("/api/portfolio", portfolioRoutes);
+
+app.use("/api/comments",        commentRoutes);
+app.use("/api/recommendations", recommendationRoutes);
 
 
 // Route de santé (Healthcheck)
