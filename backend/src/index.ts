@@ -4,11 +4,13 @@ import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
+import portfolioRoutes from "./modules/portfolio/portfolio.routes.js";
 import authRoutes      from "./modules/auth/auth.routes.js";
 import userRoutes      from "./modules/user/user.routes.js";
 import adminRoutes     from "./modules/admin/admin.routes.js";
 import recoRoutes      from "./modules/ai-reco/reco.routes.js";
 import dashboardRoutes from "./modules/DashboardProf/dashboard.routes.js"; // ← AJOUT
+
 
 const app = express();
 
@@ -42,6 +44,7 @@ app.use(cors({
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
+app.use("/api/portfolio", portfolioRoutes);
 
 const globalLimiter = rateLimit({
   windowMs:        15 * 60 * 1000,
@@ -54,6 +57,7 @@ const globalLimiter = rateLimit({
 if (!isTest && !isK6) {
   app.use(globalLimiter);
 }
+
 
 app.use("/api/auth",      authRoutes);
 app.use("/api/user",      userRoutes);
@@ -72,5 +76,13 @@ app.get("/health", (req, res) => {
 app.use((req, res) => {
   res.status(404).json({ message: "Ressource introuvable" });
 });
+
+
+
+// app.listen(PORT, () => {
+//   console.log(` Portfy API sécurisée lancée sur le port ${PORT}`);
+//   if (!isProduction) console.log(` CORS autorisé pour : ${process.env.FRONTEND_URL}`);
+// });
+
 
 export default app;

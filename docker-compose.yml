@@ -6,11 +6,11 @@ services:
     container_name: portfy_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Kholoud2005
+      POSTGRES_DB: portfytest
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -62,6 +62,31 @@ services:
       - "80:80"
     depends_on:
       - backend
+    networks:
+      - portfy_network
+
+  # ── KEYCLOAK ─────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.1
+    container_name: portfy_keycloak
+    restart: unless-stopped
+    command: start-dev
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin_secret
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: Kholoud2005
+      KC_DB_SCHEMA: public
+      KC_HOSTNAME: 192.168.168.11
+      KC_HTTP_PORT: 8080
+      KC_PROXY: edge
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - portfy_network
 

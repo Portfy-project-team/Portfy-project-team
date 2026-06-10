@@ -42,32 +42,60 @@ describe("registerController", () => {
   });
 
   it("should return 201 when user registered", async () => {
-    const req: any = {
-      body: {
-        email: "test@test.com",
-        password: "Password123!",
-        role: "STUDENT",
-      },
-    };
-
-    const res = mockResponse();
-
-    registerUserMock.mockResolvedValue({
-      id: 1,
+  const req: any = {
+    body: {
       email: "test@test.com",
-    });
+      password: "Password123!",
+      role: "STUDENT",
+    },
+  };
 
-    sendVerificationEmailMock.mockResolvedValue(undefined);
+  const res = mockResponse();
 
-    await registerController(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith({
-      message:
-        "Compte créé avec succès. Vérifiez votre email pour activer votre compte.",
-      user: { id: 1, email: "test@test.com" },
-    });
+  registerUserMock.mockResolvedValue({
+    id: 1,
+    email: "test@test.com",
   });
+
+  sendVerificationEmailMock.mockResolvedValue(undefined);
+
+  await registerController(req, res);
+
+  expect(res.status).toHaveBeenCalledWith(201);
+  expect(res.json).toHaveBeenCalledWith(
+    expect.objectContaining({
+      success: true,
+      message: "Compte créé avec succès. Vérifiez votre email pour activer votre compte.",
+    })
+  );
+});
+  // it("should return 201 when user registered", async () => {
+  //   const req: any = {
+  //     body: {
+  //       email: "test@test.com",
+  //       password: "Password123!",
+  //       role: "STUDENT",
+  //     },
+  //   };
+
+  //   const res = mockResponse();
+
+  //   registerUserMock.mockResolvedValue({
+  //     id: 1,
+  //     email: "test@test.com",
+  //   });
+
+  //   sendVerificationEmailMock.mockResolvedValue(undefined);
+
+  //   await registerController(req, res);
+
+  //   expect(res.status).toHaveBeenCalledWith(201);
+  //   expect(res.json).toHaveBeenCalledWith({
+  //     message:
+  //       "Compte créé avec succès. Vérifiez votre email pour activer votre compte.",
+  //     user: { id: 1, email: "test@test.com" },
+  //   });
+  // });
 
   it("should return 400 when body is invalid", async () => {
     const req: any = {

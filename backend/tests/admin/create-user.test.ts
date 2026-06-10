@@ -14,7 +14,7 @@ describe("POST /api/admin/users", () => {
       .post("/api/auth/register")
       .send({
         email,
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
         role: "STUDENT",
       });
 
@@ -30,7 +30,7 @@ describe("POST /api/admin/users", () => {
       .post("/api/auth/login")
       .send({
         email,
-        password: "Secure123!!!",
+        password: "SecurePassword123!!!",
       });
 
     adminCookies = Array.isArray(login.headers["set-cookie"])

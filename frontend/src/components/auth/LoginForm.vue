@@ -224,10 +224,7 @@ async function handleLogin() {
     )
 
     authStore.login(response.data.user)
-    const role = response.data.user.role
-    if (role === 'PROF')    router.push('/professor/dashboard')
-    else if (role === 'STUDENT') router.push('/student/dashboard')
-    else router.push('/dashboard')
+    router.push('/dashboard')
 
   } catch (err) {
     serverError.value = "Identifiants incorrects."

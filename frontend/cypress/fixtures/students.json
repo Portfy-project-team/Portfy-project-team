@@ -1,0 +1,31 @@
+{
+  "list": [
+    {
+      "id": 1,
+      "firstName": "Youssef",
+      "lastName": "Khalil",
+      "email": "youssef.khalil@student.ma",
+      "cne": "S123456789",
+      "status": "active",
+      "average": 14.5
+    },
+    {
+      "id": 2,
+      "firstName": "Nadia",
+      "lastName": "Bouchikhi",
+      "email": "nadia.bouchikhi@student.ma",
+      "cne": "S987654321",
+      "status": "active",
+      "average": 16.2
+    },
+    {
+      "id": 3,
+      "firstName": "Hamza",
+      "lastName": "Tazi",
+      "email": "hamza.tazi@student.ma",
+      "cne": "S456789123",
+      "status": "inactive",
+      "average": 8.0
+    }
+  ]
+}

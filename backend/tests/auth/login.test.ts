@@ -9,7 +9,7 @@ describe("POST /api/auth/login", () => {
 
     await request(app).post("/api/auth/register").send({
       email,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
       role: "STUDENT",
     });
 
@@ -20,7 +20,7 @@ describe("POST /api/auth/login", () => {
 
     const res = await request(app).post("/api/auth/login").send({
       email,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
     });
 
     expect(res.status).toBe(200);
@@ -35,7 +35,7 @@ describe("POST /api/auth/login", () => {
   it("L-02 : email not found", async () => {
     const res = await request(app).post("/api/auth/login").send({
       email: "unknown@test.com",
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
     });
 
     expect(res.status).toBe(401);
@@ -46,7 +46,7 @@ describe("POST /api/auth/login", () => {
 
     await request(app).post("/api/auth/register").send({
       email,
-      password: "Secure123!!!",
+      password: "SecurePassword123!!!",
       role: "STUDENT",
     });
 
@@ -84,7 +84,7 @@ describe("POST /api/auth/login", () => {
 
 //     await request(app).post("/api/auth/register").send({
 //       email,
-//       password: "Secure123!!!",
+//       password: "SecurePassword123!!!",
 //       role: "STUDENT",
 //     });
 
@@ -95,7 +95,7 @@ describe("POST /api/auth/login", () => {
 
 //     const res = await request(app).post("/api/auth/login").send({
 //       email,
-//       password: "Secure123!!!",
+//       password: "SecurePassword123!!!",
 //     });
 
 //     expect(res.status).toBe(200);
@@ -111,7 +111,7 @@ describe("POST /api/auth/login", () => {
 //   it("L-02 : email not found", async () => {
 //     const res = await request(app).post("/api/auth/login").send({
 //       email: "unknown@test.com",
-//       password: "Secure123!!!",
+//       password: "SecurePassword123!!!",
 //     });
 
 //     expect(res.status).toBe(401);
@@ -122,7 +122,7 @@ describe("POST /api/auth/login", () => {
 
 //   //   await request(app).post("/api/auth/register").send({
 //   //     email,
-//   //     password: "Secure123!!!",
+//   //     password: "SecurePassword123!!!",
 //   //     role: "STUDENT",
 //   //   });
 
@@ -143,7 +143,7 @@ describe("POST /api/auth/login", () => {
 
 //   await request(app).post("/api/auth/register").send({
 //     email,
-//     password: "Secure123!!!",
+//     password: "SecurePassword123!!!",
 //     role: "STUDENT",
 //   });
 
@@ -193,13 +193,13 @@ describe("POST /api/auth/login", () => {
 
 //     await request(app).post("/api/auth/register").send({
 //       email,
-//       password: "Secure123!!!",
+//       password: "SecurePassword123!!!",
 //       role: "STUDENT",
 //     });
 
 //     const res = await request(app).post("/api/auth/login").send({
 //       email,
-//       password: "Secure123!!!",
+//       password: "SecurePassword123!!!",
 //     });
 
 //     expect(res.status).toBe(200);
@@ -215,7 +215,7 @@ describe("POST /api/auth/login", () => {
 //   it("L-02 : email not found", async () => {
 //     const res = await request(app).post("/api/auth/login").send({
 //       email: "unknown@test.com",
-//       password: "Secure123!!!",
+//       password: "SecurePassword123!!!",
 //     });
 
 //     expect(res.status).toBe(401);
@@ -226,7 +226,7 @@ describe("POST /api/auth/login", () => {
 
 //     await request(app).post("/api/auth/register").send({
 //       email,
-//       password: "Secure123!!!",
+//       password: "SecurePassword123!!!",
 //       role: "STUDENT",
 //     });
 

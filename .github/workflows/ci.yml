@@ -7,35 +7,93 @@ on:
     branches: [dev, main]
 
 jobs:
-  build:
+  build-test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: portfy_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/portfy_test
+      JWT_ACCESS_SECRET: testsecret
+      JWT_REFRESH_SECRET: refreshsecret
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      NODE_ENV: test
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      # ==========================================
+      # CHECKOUT
+      # ==========================================
 
-      - name: Setup Node
-        uses: actions/setup-node@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ==========================================
+      # NODE.JS
+      # ==========================================
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 22
 
-      - name: Install frontend
+      # ==========================================
+      # FRONTEND
+      # ==========================================
+
+      - name: Install frontend dependencies
         run: |
           cd frontend
           npm install
+
+      - name: Run frontend lint
+        run: |
+          cd frontend
+          npm run lint
 
       - name: Build frontend
         run: |
           cd frontend
-          chmod +x node_modules/.bin/vite
-          npm run build 
+          npm run build
 
-      - name: Install backend
+      # ==========================================
+      # BACKEND
+      # ==========================================
+
+      - name: Install backend dependencies
         run: |
           cd backend
           npm install
 
+      - name: Generate Prisma Client
+        run: |
+          cd backend
+          npx prisma generate
+
+      - name: Run Prisma migrations
+        run: |
+          cd backend
+          npx prisma migrate deploy
+
       - name: Run backend tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/portfy_test
+          JWT_ACCESS_SECRET: testsecret
+          JWT_REFRESH_SECRET: testrefreshsecret
+          NODE_ENV: test
         run: |
           cd backend
           npm test

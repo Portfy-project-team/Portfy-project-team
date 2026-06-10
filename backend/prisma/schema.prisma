@@ -16,8 +16,9 @@ enum UserStatus{
 model User {
   id            Int            @id @default(autoincrement())
   email         String         @unique
-  password      String
+  password      String?
   role          Role
+  name String?
   isEmailVerified          Boolean   @default(false)
   emailVerificationToken   String?
   emailVerificationExpires DateTime?
@@ -31,6 +32,9 @@ model User {
   passwordResetTokens PasswordResetToken[]
   student       Student?
   status UserStatus @default(PENDING)
+  // ── Champs OAuth Google ────────────────────────────
+  googleId        String?  @unique  // ID unique retourné par Google via Supabase
+  avatarUrl       String?           // Photo de profil Google
 }
 
 model RefreshToken {
