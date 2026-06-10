@@ -32,7 +32,7 @@ export const verifySupabaseToken = async (supabaseAccessToken: string) => {
 
   // Vérification que le provider est bien Google
   const isGoogleProvider = user.app_metadata?.provider === "google" ||
-    user.identities?.some((id) => id.provider === "google");
+    user.identities?.some((id: any) => id.provider === "google");
 
   if (!isGoogleProvider) {
     const err: any = new Error("Provider non autorisé");
@@ -185,7 +185,7 @@ export const verifyAndGetGoogleUser = async (supabaseAccessToken: string) => {
 
   const isGoogleProvider =
     user.app_metadata?.provider === "google" ||
-    user.identities?.some((id) => id.provider === "google");
+    user.identities?.some((id: any) => id.provider === "google");
 
   if (!isGoogleProvider) {
     const err: any = new Error("Provider non autorisé");
