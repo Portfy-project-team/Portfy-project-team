@@ -1,0 +1,41 @@
+{
+  "list": [
+    {
+      "id": 1,
+      "firstName": "Ahmed",
+      "lastName": "Benali",
+      "email": "ahmed.benali@univ.ma",
+      "department": "Informatique",
+      "courses": ["Algorithmique", "Base de données"],
+      "studentsCount": 45,
+      "status": "active"
+    },
+    {
+      "id": 2,
+      "firstName": "Fatima",
+      "lastName": "Zahraoui",
+      "email": "fatima.zahraoui@univ.ma",
+      "department": "Mathématiques",
+      "courses": ["Analyse", "Algèbre linéaire"],
+      "studentsCount": 38,
+      "status": "active"
+    }
+  ],
+  "profile": {
+    "id": 1,
+    "firstName": "Ahmed",
+    "lastName": "Benali",
+    "email": "professor@test.com",
+    "department": "Informatique",
+    "courses": ["Algorithmique", "Base de données", "Développement Web"],
+    "studentsCount": 45,
+    "hoursCount": 12,
+    "status": "active"
+  },
+  "dashboard": {
+    "totalStudents": 45,
+    "totalCourses": 3,
+    "pendingGrades": 12,
+    "upcomingClasses": 4
+  }
+}

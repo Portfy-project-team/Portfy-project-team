@@ -26,6 +26,7 @@
     "@vitest/coverage-v8": "^4.1.7",
     "@vue/test-utils": "^2.4.10",
     "autoprefixer": "^10.5.0",
+    "cypress": "^15.17.0",
     "eslint": "^10.4.0",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.10",

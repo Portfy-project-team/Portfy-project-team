@@ -1,0 +1,38 @@
+{
+  "projects": [
+    {
+      "id": 1,
+      "title": "Portfolio Personnel",
+      "description": "Une application web pour présenter mes projets et compétences",
+      "type": "Projet personnel",
+      "status": "Valide",
+      "tags": ["React", "Tailwind CSS", "Vite"],
+      "date": "Avril 2025",
+      "supervisor": "Pr. Benali",
+      "github": "https://github.com/user/portfolio",
+      "demo": "https://portfolio-demo.vercel.app",
+      "correction": ""
+    },
+    {
+      "id": 2,
+      "title": "API REST e-commerce",
+      "description": "Backend d'une plateforme e-commerce avec authentification",
+      "type": "Projet de module",
+      "status": "En attente",
+      "tags": ["Node.js", "Express", "MongoDB"],
+      "date": "Mars 2025",
+      "supervisor": "Pr. Idrissi",
+      "github": "https://github.com/user/ecommerce-api"
+    },
+    {
+      "id": 3,
+      "title": "Chat Application Real-time",
+      "description": "Application de chat en temps réel avec WebSockets",
+      "type": "Projet d'integration",
+      "status": "Brouillon",
+      "tags": ["Vue.js", "Socket.io", "Node.js"],
+      "date": "Février 2025",
+      "supervisor": "Pr. Rachid"
+    }
+  ]
+}
