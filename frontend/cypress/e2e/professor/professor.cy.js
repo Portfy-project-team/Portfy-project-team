@@ -1,105 +1,197 @@
-// ─────────────────────────────────────────────────────────────
-//  TESTS E2E — PROFESSEUR (Dashboard, Navigation, Accès)
-//  cypress/e2e/professor/professor.cy.js
-// ─────────────────────────────────────────────────────────────
+describe('Espace Professor — E2E', () => {
 
-describe('👨‍🏫 Professeur — Dashboard & Navigation', () => {
-  let professor
-  let professorData
+  // ---------- Sidebar (présente sur toutes les pages) ----------
+  describe('Navigation Sidebar', () => {
+    beforeEach(() => cy.visit('/professor/portfolios-consultes'))
 
-  before(() => {
-    cy.fixture('users').then((u) => { professor = u.professor })
-    cy.fixture('professors').then((p) => { professorData = p })
-  })
+    it('navigue entre les pages via la sidebar', () => {
+      cy.get('.nav-item').contains('Recommandations').click()
+      cy.url().should('include', '/professor/recommandations')
+      cy.get('.page-title').should('contain', 'Mes recommandations')
 
-  beforeEach(() => {
-    // Connexion rapide sans passer par l'UI
-    cy.intercept('POST', '**/auth/login', {
-      statusCode: 200,
-      body: {
-        token: 'fake-jwt-token-professor',
-        user: {
-          id: 1,
-          role: 'professor',
-          firstName: professor.firstName,
-          lastName: professor.lastName,
-          email: professor.email,
-        },
-      },
-    }).as('loginRequest')
+      cy.get('.nav-item').contains('Commentaires').click()
+      cy.url().should('include', '/professor/commentaires')
 
-    cy.intercept('GET', '**/professor/dashboard', {
-      statusCode: 200,
-      body: professorData.dashboard,
-    }).as('dashboardData')
+      cy.get('.nav-item').contains('Paramètres').click()
+      cy.url().should('include', '/professor/parametres')
 
-    cy.loginUI(professor.email, professor.password)
-    cy.wait('@loginRequest')
-  })
-
-  // ──────────────────────────────────────────────────────────
-  //  1. ACCÈS AU DASHBOARD
-  // ──────────────────────────────────────────────────────────
-  describe('Dashboard', () => {
-    it('accède au dashboard professeur après connexion', () => {
-      cy.url().should('include', '/professor/dashboard')
+      cy.get('.nav-item').contains('Aide & Support').click()
+      cy.url().should('include', '/professor/aide')
     })
 
-    it('affiche les statistiques clés (StatCards)', () => {
-      cy.wait('@dashboardData')
-
-      cy.get('[data-cy="stat-card"]').should('have.length.at.least', 3)
-      cy.get('[data-cy="stat-total-students"]')
-        .should('be.visible')
-        .and('contain', professorData.dashboard.totalStudents)
-      cy.get('[data-cy="stat-total-courses"]')
-        .should('be.visible')
-        .and('contain', professorData.dashboard.totalCourses)
-    })
-
-    it('affiche le nom du professeur dans le topbar', () => {
-      cy.get('[data-cy="topbar-username"]')
-        .should('be.visible')
-        .and('contain', professor.firstName)
+    it('déconnecte vers /login', () => {
+      cy.get('.logout-btn').click()
+      cy.url().should('include', '/login')
     })
   })
 
-  // ──────────────────────────────────────────────────────────
-  //  2. SIDEBAR — NAVIGATION
-  // ──────────────────────────────────────────────────────────
-  describe('Sidebar — Navigation', () => {
-    it('affiche les liens de navigation du professeur', () => {
-      cy.get('[data-cy="sidebar"]').should('be.visible')
-      cy.get('[data-cy="sidebar-link-dashboard"]').should('exist')
-      cy.get('[data-cy="sidebar-link-courses"]').should('exist')
-      cy.get('[data-cy="sidebar-link-students"]').should('exist')
+  // ---------- Portfolios consultés ----------
+  describe('Portfolios consultés', () => {
+    beforeEach(() => cy.visit('/professor/portfolios-consultes'))
+
+    it('affiche les 6 portfolios et les stats', () => {
+      cy.get('.portfolio-card').should('have.length', 6)
+      cy.get('.stats-row .stat-value').first().should('contain', '6')
     })
 
-    it('met en surbrillance le lien actif', () => {
-      cy.get('[data-cy="sidebar-link-dashboard"]')
+    it('filtre par recherche', () => {
+      cy.get('.search-box input').type('Sara')
+      cy.get('.portfolio-card').should('have.length', 1)
+      cy.get('.portfolio-card').should('contain', 'Sara Benali')
+    })
+
+    it('filtre par "Favoris"', () => {
+      cy.contains('.filter-btn', 'Favoris').click()
+      // 3 portfolios bookmarked dans les données (Sara, Leila)
+      cy.get('.portfolio-card').each($c =>
+        cy.wrap($c).find('.bookmark-btn').should('have.class', 'active')
+      )
+    })
+
+    it('toggle un bookmark sans ouvrir le drawer', () => {
+      cy.get('.portfolio-card').first().find('.bookmark-btn')
+        .click()
         .should('have.class', 'active')
+      cy.get('.drawer').should('not.exist')
     })
 
-    it('navigue vers la liste des cours via la sidebar', () => {
-      cy.intercept('GET', '**/professor/courses', { statusCode: 200, body: [] }).as('courses')
-      cy.get('[data-cy="sidebar-link-courses"]').click()
-      cy.url().should('include', '/professor/courses')
+    it('ouvre le drawer de détail au clic sur une carte', () => {
+      cy.get('.portfolio-card').first().click()
+      cy.get('.drawer').should('be.visible')
+      cy.get('.drawer-header h3').should('not.be.empty')
+      cy.get('.close-btn').click()
+      cy.get('.drawer').should('not.exist')
+    })
+
+    it('redirige vers recommandations depuis le drawer', () => {
+      cy.get('.portfolio-card').first().click()
+      cy.contains('.btn-primary', 'Rédiger une recommandation').click()
+      cy.url().should('include', '/professor/recommandations')
+    })
+
+    it('affiche un état vide si aucun résultat', () => {
+      cy.get('.search-box input').type('xxxxxx')
+      cy.get('.empty-state').should('contain', 'Aucun portfolio')
     })
   })
 
-  // ──────────────────────────────────────────────────────────
-  //  3. CONTRÔLE D'ACCÈS — ROUTES PROTÉGÉES
-  // ──────────────────────────────────────────────────────────
-  describe("Contrôle d'accès", () => {
-    it("bloque l'accès au dashboard admin pour un professeur", () => {
-      cy.visit('/admin/dashboard')
-      // Redirigé vers son propre espace ou une page 403
-      cy.url().should('not.include', '/admin/dashboard')
+  // ---------- Recommandations (CRUD) ----------
+  describe('Recommandations', () => {
+    beforeEach(() => cy.visit('/professor/recommandations'))
+
+    it('affiche la liste initiale (5)', () => {
+      cy.get('.reco-card').should('have.length', 5)
     })
 
-    it("bloque l'accès au dashboard étudiant pour un professeur", () => {
-      cy.visit('/student/dashboard')
-      cy.url().should('not.include', '/student/dashboard')
+    it('filtre par statut "En attente"', () => {
+      cy.contains('.filter-btn', 'En attente').click()
+      cy.get('.reco-card').should('have.length', 2) // Leila + Omar
+    })
+
+    it('crée une nouvelle recommandation', () => {
+      cy.contains('.btn-primary', 'Ajouter une recommandation').click()
+      cy.get('.modal').should('be.visible')
+      cy.get('.modal-body input').type('Test Etudiant')
+      cy.get('.modal-body textarea').type('Excellent travail de test.')
+      cy.contains('.btn-primary', 'Publier').click()
+      cy.get('.modal').should('not.exist')
+      cy.get('.reco-card').should('have.length', 6)
+      cy.get('.reco-card').first().should('contain', 'Test Etudiant')
+    })
+
+    it('modifie une recommandation existante', () => {
+      cy.get('.reco-card').first().find('.action-btn.edit').click()
+      cy.get('.modal').should('contain', 'Modifier')
+      cy.get('.modal-body textarea').clear().type('Contenu modifié.')
+      cy.contains('.btn-primary', 'Enregistrer').click()
+      cy.get('.reco-card').first().should('contain', 'Contenu modifié')
+    })
+
+    it('supprime une recommandation', () => {
+      cy.get('.reco-card').then($cards => {
+        const before = $cards.length
+        cy.get('.reco-card').first().find('.action-btn.delete').click()
+        cy.get('.reco-card').should('have.length', before - 1)
+      })
+    })
+
+    it('ferme le modal via Annuler', () => {
+      cy.contains('.btn-primary', 'Ajouter une recommandation').click()
+      cy.contains('.btn-secondary', 'Annuler').click()
+      cy.get('.modal').should('not.exist')
+    })
+  })
+
+  // ---------- Commentaires ----------
+  describe('Commentaires', () => {
+    beforeEach(() => cy.visit('/professor/commentaires'))
+
+    it('affiche stats lus / non lus', () => {
+      cy.get('.comment-card').should('have.length', 5)
+      cy.get('.stats-row .stat-value').eq(1).should('contain', '3') // lus
+      cy.get('.stats-row .stat-value').eq(2).should('contain', '2') // non lus
+    })
+
+    it('filtre les non lus', () => {
+      cy.contains('.filter-btn', 'Non lus').click()
+      cy.get('.comment-card').should('have.length', 2)
+      cy.get('.comment-card').each($c =>
+        cy.wrap($c).should('have.class', 'unread')
+      )
+    })
+
+    it('marque un commentaire comme lu', () => {
+      cy.contains('.filter-btn', 'Non lus').click()
+      cy.get('.comment-card').first().find('.mark-read-btn').click()
+      cy.get('.comment-card').should('have.length', 1) // disparaît du filtre
+    })
+  })
+
+  // ---------- Paramètres ----------
+  describe('Paramètres', () => {
+    beforeEach(() => cy.visit('/professor/parametres'))
+
+    it('pré-remplit le profil', () => {
+      cy.get('input[type="email"]').should('have.value', 'ghailani@ensat.ma')
+    })
+
+    it('affiche les 5 sections de réglages', () => {
+      cy.get('.settings-card').should('have.length', 5)
+      cy.get('.settings-card.danger').should('contain', 'Zone dangereuse')
+    })
+
+    it('modifie un champ et bascule un toggle', () => {
+      cy.get('input[type="text"]').first().clear().type('M. Test')
+        .should('have.value', 'M. Test')
+      cy.get('.toggle-input').last().check().should('be.checked')
+    })
+  })
+
+  // ---------- Aide ----------
+  describe('Aide & Support', () => {
+    beforeEach(() => cy.visit('/professor/aide'))
+
+    it('affiche les 4 cartes de contact rapide', () => {
+      cy.get('.quick-link-card').should('have.length', 4)
+    })
+
+    it('déplie / replie une FAQ', () => {
+      cy.get('.faq-content').should('not.exist')
+      cy.get('.faq-header').first().click()
+      cy.get('.faq-content').should('be.visible')
+      cy.get('.faq-header').first().click()
+      cy.get('.faq-content').should('not.exist')
+    })
+
+    it('filtre les FAQ par recherche', () => {
+      cy.get('.search-box input').type('recommandation')
+      cy.get('.faq-item').should('have.length.lessThan', 8)
+    })
+
+    it('remplit le formulaire de contact', () => {
+      cy.get('.contact-form input').type('Bug affichage')
+      cy.get('.contact-form textarea').type('Le drawer ne se ferme pas.')
+        .should('have.value', 'Le drawer ne se ferme pas.')
     })
   })
 })

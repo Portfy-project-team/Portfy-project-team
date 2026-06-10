@@ -1,43 +1,63 @@
-// ─────────────────────────────────────────────────────────────
-//  TEST COMPOSANT — StatCard
-//  cypress/component/student/StatCard.cy.js
-// ─────────────────────────────────────────────────────────────
-import StatCard from '@/components/student/StatCard.vue'
-
-describe('StatCard.vue — Composant', () => {
-  it('affiche le titre et la valeur passés en props', () => {
-    cy.mount(StatCard, {
-      props: { title: 'Total Étudiants', value: 45, icon: 'users' },
+describe('StatCard Component', () => {
+  it('renders with title and value', () => {
+    cy.mount({
+      template: '<StatCard title="Projets" value="12" unit="en cours" subtitle="3 validés" />',
+      components: { StatCard: require('../../src/components/student/StatCard.vue').default }
     })
-    cy.get('[data-cy="stat-card-title"]').should('contain', 'Total Étudiants')
-    cy.get('[data-cy="stat-card-value"]').should('contain', '45')
+
+    cy.get('.stat-header h3').should('contain', 'Projets')
+    cy.get('.value').should('contain', '12')
+    cy.get('.unit').should('contain', 'en cours')
+    cy.get('.stat-subtitle').should('contain', '3 validés')
   })
 
-  it("affiche une icône si la prop icon est fournie", () => {
-    cy.mount(StatCard, {
-      props: { title: 'Cours', value: 3, icon: 'book' },
+  it('applies correct color class', () => {
+    cy.mount({
+      template: '<StatCard title="Formations" value="5" color="green" subtitleColor="green" />',
+      components: { StatCard: require('../../src/components/student/StatCard.vue').default }
     })
-    cy.get('[data-cy="stat-card-icon"]').should('exist')
+
+    cy.get('.square-green').should('exist')
+    cy.get('.subtitle-green').should('exist')
   })
 
-  it('applique une couleur de variation positive (tendance hausse)', () => {
-    cy.mount(StatCard, {
-      props: { title: 'Notes', value: 14.5, trend: '+5%', trendType: 'up' },
+  it('applies yellow color styling', () => {
+    cy.mount({
+      template: '<StatCard title="Stages" value="2" color="yellow" subtitleColor="orange" />',
+      components: { StatCard: require('../../src/components/student/StatCard.vue').default }
     })
-    cy.get('[data-cy="stat-card-trend"]')
-      .should('contain', '+5%')
-      .and('have.class', 'trend-up')
+
+    cy.get('.square-yellow').should('exist')
+    cy.get('.subtitle-orange').should('exist')
   })
 
-  it('applique une couleur de variation négative (tendance baisse)', () => {
-    cy.mount(StatCard, {
-      props: { title: 'Présences', value: 80, trend: '-3%', trendType: 'down' },
+  it('applies blue color styling', () => {
+    cy.mount({
+      template: '<StatCard title="Compétences" value="18" color="blue" subtitleColor="gray" />',
+      components: { StatCard: require('../../src/components/student/StatCard.vue').default }
     })
-    cy.get('[data-cy="stat-card-trend"]').should('have.class', 'trend-down')
+
+    cy.get('.square-blue').should('exist')
+    cy.get('.subtitle-gray').should('exist')
   })
 
-  it("affiche 0 si la valeur est 0 (pas d'affichage vide)", () => {
-    cy.mount(StatCard, { props: { title: 'Absences', value: 0 } })
-    cy.get('[data-cy="stat-card-value"]').should('contain', '0')
+  it('renders card with proper styling', () => {
+    cy.mount({
+      template: '<StatCard title="Test" value="100" />',
+      components: { StatCard: require('../../src/components/student/StatCard.vue').default }
+    })
+
+    cy.get('.stat-card')
+      .should('have.css', 'border-radius', '16px')
+      .should('have.css', 'background', 'rgb(255, 255, 255)')
+  })
+
+  it('displays large font for value', () => {
+    cy.mount({
+      template: '<StatCard title="Test" value="999" />',
+      components: { StatCard: require('../../src/components/student/StatCard.vue').default }
+    })
+
+    cy.get('.value').should('have.css', 'font-size', '34px')
   })
 })

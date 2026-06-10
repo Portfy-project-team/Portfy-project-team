@@ -1,28 +1,61 @@
-// ─────────────────────────────────────────────────────────────
-//  TEST COMPOSANT — StatusBadge
-//  cypress/component/student/StatusBadge.cy.js
-// ─────────────────────────────────────────────────────────────
-import StatusBadge from '@/components/student/StatusBadge.vue'
+import { describe, it, expect, beforeEach } from '@cypress/webpack-dev-server'
 
-describe('StatusBadge.vue — Composant', () => {
-  const statuses = [
-    { status: 'active',   label: 'Actif',    expectedClass: 'badge-active' },
-    { status: 'inactive', label: 'Inactif',  expectedClass: 'badge-inactive' },
-    { status: 'pending',  label: 'En attente', expectedClass: 'badge-pending' },
-  ]
-
-  statuses.forEach(({ status, label, expectedClass }) => {
-    it(`affiche correctement le badge "${label}"`, () => {
-      cy.mount(StatusBadge, { props: { status } })
-      cy.get('[data-cy="status-badge"]')
-        .should('be.visible')
-        .and('contain', label)
-        .and('have.class', expectedClass)
+describe('StatusBadge Component', () => {
+  beforeEach(() => {
+    cy.fixture('formations').then((data) => {
+      cy.wrap(data)
     })
   })
 
-  it('affiche un badge par défaut pour un statut inconnu', () => {
-    cy.mount(StatusBadge, { props: { status: 'unknown' } })
-    cy.get('[data-cy="status-badge"]').should('exist')
+  it('displays valid status with correct styling', () => {
+    cy.mount({
+      template: '<StatusBadge status="Valide" />',
+      components: { StatusBadge: require('../../src/components/student/StatusBadge.vue').default }
+    })
+
+    cy.get('.status-badge')
+      .should('have.class', 'status-valid')
+      .should('contain', 'Valide')
+      .should('have.css', 'background', 'rgb(214, 247, 228)')
+  })
+
+  it('displays pending status correctly', () => {
+    cy.mount({
+      template: '<StatusBadge status="En attente" />',
+      components: { StatusBadge: require('../../src/components/student/StatusBadge.vue').default }
+    })
+
+    cy.get('.status-badge')
+      .should('have.class', 'status-pending')
+      .should('contain', 'En attente')
+  })
+
+  it('displays draft status correctly', () => {
+    cy.mount({
+      template: '<StatusBadge status="Brouillon" />',
+      components: { StatusBadge: require('../../src/components/student/StatusBadge.vue').default }
+    })
+
+    cy.get('.status-badge').should('have.class', 'status-draft')
+  })
+
+  it('displays rejected status correctly', () => {
+    cy.mount({
+      template: '<StatusBadge status="Refuse" />',
+      components: { StatusBadge: require('../../src/components/student/StatusBadge.vue').default }
+    })
+
+    cy.get('.status-badge').should('have.class', 'status-rejected')
+  })
+
+  it('displays certified status with valid styling', () => {
+    cy.mount({
+      template: '<StatusBadge status="Certifie" />',
+      components: { StatusBadge: require('../../src/components/student/StatusBadge.vue').default }
+    })
+
+    cy.get('.status-badge')
+      .should('have.class', 'status-valid')
+      .should('contain', 'Certifie')
   })
 })

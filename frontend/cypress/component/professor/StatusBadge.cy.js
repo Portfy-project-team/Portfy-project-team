@@ -1,28 +1,23 @@
-// ─────────────────────────────────────────────────────────────
-//  TEST COMPOSANT — StatusBadge
-//  cypress/component/student/StatusBadge.cy.js
-// ─────────────────────────────────────────────────────────────
-import StatusBadge from '@/components/student/StatusBadge.vue'
+import StatusBadge from '@/components/professor/StatusBadge.vue'
 
-describe('StatusBadge.vue — Composant', () => {
-  const statuses = [
-    { status: 'active',   label: 'Actif',    expectedClass: 'badge-active' },
-    { status: 'inactive', label: 'Inactif',  expectedClass: 'badge-inactive' },
-    { status: 'pending',  label: 'En attente', expectedClass: 'badge-pending' },
-  ]
-
-  statuses.forEach(({ status, label, expectedClass }) => {
-    it(`affiche correctement le badge "${label}"`, () => {
-      cy.mount(StatusBadge, { props: { status } })
-      cy.get('[data-cy="status-badge"]')
-        .should('be.visible')
-        .and('contain', label)
-        .and('have.class', expectedClass)
-    })
+describe('StatusBadge', () => {
+  it('mappe "published" → "Publiée" avec la classe published', () => {
+    cy.mount(StatusBadge, { props: { status: 'published' } })
+    cy.get('.badge').should('contain', 'Publiée').and('have.class', 'published')
   })
 
-  it('affiche un badge par défaut pour un statut inconnu', () => {
-    cy.mount(StatusBadge, { props: { status: 'unknown' } })
-    cy.get('[data-cy="status-badge"]').should('exist')
+  it('mappe "pending" → "En attente"', () => {
+    cy.mount(StatusBadge, { props: { status: 'pending' } })
+    cy.get('.badge').should('contain', 'En attente').and('have.class', 'pending')
+  })
+
+  it('mappe "validated" → "Validé"', () => {
+    cy.mount(StatusBadge, { props: { status: 'validated' } })
+    cy.get('.badge').should('contain', 'Validé').and('have.class', 'validated')
+  })
+
+  it('affiche le statut brut si inconnu', () => {
+    cy.mount(StatusBadge, { props: { status: 'archivé' } })
+    cy.get('.badge').should('contain', 'archivé')
   })
 })
