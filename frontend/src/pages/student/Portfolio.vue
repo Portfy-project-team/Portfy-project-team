@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import html2pdf from 'html2pdf.js'
 
@@ -16,6 +16,20 @@ const copied = ref(false)
 const portfolioRef = ref(null)
 
 const publicPortfolioPath = '/portfolio/ahmed-alami'
+
+const avatarPreview = ref(localStorage.getItem('studentAvatar') || '')
+
+const updateAvatar = () => {
+  avatarPreview.value = localStorage.getItem('studentAvatar') || ''
+}
+
+onMounted(() => {
+  window.addEventListener('student-avatar-updated', updateAvatar)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('student-avatar-updated', updateAvatar)
+})
 
 function getPublicPortfolioUrl() {
   return `${window.location.origin}${publicPortfolioPath}`
@@ -132,7 +146,18 @@ function badgeClass(color) {
             <div class="profile-header">
               <div class="avatar">
                 {{ portfolioData.profile.initials }}
-              </div>
+              </div><div class="avatar">
+  <img
+    v-if="avatarPreview"
+    :src="avatarPreview"
+    alt="Photo de profil"
+    class="avatar-img"
+  />
+
+  <span v-else>
+    {{ portfolioData.profile.initials }}
+  </span>
+</div>
 
               <div class="profile-info">
                 <h2>{{ portfolioData.profile.name }}</h2>
@@ -250,6 +275,18 @@ function badgeClass(color) {
   flex: 1;
   min-width: 0;
   background: #f4f1ec;
+}
+
+.avatar {
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 .portfolio-header {

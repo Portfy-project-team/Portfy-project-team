@@ -1,14 +1,16 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 
 const fileInput = ref(null)
-const avatarPreview = ref('')
+const avatarPreview = ref(localStorage.getItem('studentAvatar') || '')
 const showPasswordModal = ref(false)
 const portfolioDisabled = ref(false)
 const twoFactorEnabled = ref(false)
+const personalSaved = ref(false)
+const academicSaved = ref(false)
 
 const personalForm = reactive({
   firstName: 'Ahmed',
@@ -45,11 +47,24 @@ const passwordForm = reactive({
   confirmPassword: ''
 })
 
+onMounted(() => {
+  const savedPersonalInfo = localStorage.getItem('studentPersonalInfo')
+  const savedAcademicInfo = localStorage.getItem('studentAcademicInfo')
+
+  if (savedPersonalInfo) {
+    Object.assign(personalForm, JSON.parse(savedPersonalInfo))
+  }
+
+  if (savedAcademicInfo) {
+    Object.assign(academicForm, JSON.parse(savedAcademicInfo))
+  }
+})
+
 const initials = computed(() => {
   return `${personalForm.firstName[0] || ''}${personalForm.lastName[0] || ''}`.toUpperCase()
 })
 
-function triggerFileInput() {
+function openPhotoPicker() {
   fileInput.value.click()
 }
 
@@ -58,7 +73,7 @@ function changePhoto(event) {
 
   if (!file) return
 
-  const allowedTypes = ['image/jpeg', 'image/png']
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg']
 
   if (!allowedTypes.includes(file.type)) {
     alert('Veuillez choisir une image JPG ou PNG.')
@@ -70,8 +85,16 @@ function changePhoto(event) {
     return
   }
 
-  avatarPreview.value = URL.createObjectURL(file)
+  const reader = new FileReader()
+
+reader.onload = () => {
+  avatarPreview.value = reader.result
+  localStorage.setItem('studentAvatar', reader.result)
+  window.dispatchEvent(new Event('student-avatar-updated'))
   alert('Photo modifiee avec succes.')
+}
+
+  reader.readAsDataURL(file)
 }
 
 function savePersonalInfo() {
@@ -86,12 +109,26 @@ function savePersonalInfo() {
   }
 
   localStorage.setItem('studentPersonalInfo', JSON.stringify(personalForm))
-  alert('Informations personnelles enregistrees avec succes.')
+
+  window.dispatchEvent(new Event('student-profile-updated'))
+
+  personalSaved.value = true
+
+  setTimeout(() => {
+    personalSaved.value = false
+  }, 2500)
 }
 
 function saveAcademicInfo() {
   localStorage.setItem('studentAcademicInfo', JSON.stringify(academicForm))
-  alert('Informations academiques enregistrees avec succes.')
+
+  window.dispatchEvent(new Event('student-academic-updated'))
+
+  academicSaved.value = true
+
+  setTimeout(() => {
+    academicSaved.value = false
+  }, 2500)
 }
 
 function toggleNotification(key) {
@@ -193,35 +230,35 @@ function deleteAccount() {
               <p class="card-subtitle">Mettez a jour votre profil etudiant</p>
 
               <div class="photo-row">
-                <div class="avatar">
-                  <img
-                    v-if="avatarPreview"
-                    :src="avatarPreview"
-                    alt="Photo profil"
-                  />
-                  <span v-else>{{ initials }}</span>
-                </div>
+  <div class="avatar">
+    <img
+      v-if="avatarPreview"
+      :src="avatarPreview"
+      alt="Photo profil"
+    />
+    <span v-else>{{ initials }}</span>
+  </div>
 
-                <div>
-                  <button
-                    type="button"
-                    class="primary-btn small"
-                    @click="triggerFileInput"
-                  >
-                    Changer la photo
-                  </button>
+  <div>
+    <button
+      type="button"
+      class="primary-btn small"
+      @click="openPhotoPicker"
+    >
+      Changer la photo
+    </button>
 
-                  <input
-                    ref="fileInput"
-                    type="file"
-                    accept="image/png, image/jpeg"
-                    class="hidden-input"
-                    @change="changePhoto"
-                  />
+    <input
+      ref="fileInput"
+      type="file"
+      accept="image/png, image/jpeg, image/jpg"
+      class="hidden-input"
+      @change="changePhoto"
+    />
 
-                  <p class="hint">JPG, PNG. Max 2MB</p>
-                </div>
-              </div>
+    <p class="hint">JPG, PNG. Max 2MB</p>
+  </div>
+</div>
 
               <div class="form-grid">
                 <div class="form-group">
@@ -268,12 +305,15 @@ function deleteAccount() {
               </div>
 
               <button
-                type="button"
-                class="primary-btn"
-                @click="savePersonalInfo"
-              >
-                Enregistrer les modifications
-              </button>
+  type="button"
+  class="primary-btn"
+  @click="savePersonalInfo"
+>
+  Enregistrer les modifications
+</button>
+<p v-if="personalSaved" class="success-message">
+  Modifications enregistrees avec succes.
+</p>
             </section>
 
             <section class="card">
@@ -508,6 +548,13 @@ function deleteAccount() {
 </template>
 
 <style scoped>
+.success-message {
+  margin-top: 12px;
+  color: #16a34a;
+  font-weight: 700;
+  font-size: 14px;
+}
+
 .student-layout {
   display: flex;
   min-height: 100vh;
