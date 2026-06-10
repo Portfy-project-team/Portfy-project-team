@@ -33,8 +33,8 @@ const assertStageEditableByStudent = async (stageId: number, userId: number) => 
   const student = await getStudentOrThrow(userId);
   const stage   = await getStageOrThrow(stageId);
 
-  if (stage.studentId !== student.id)             throw new Error("FORBIDDEN");
-  if (stage.statutV   !== StatutValidation.PENDING) throw new Error("STAGE_LOCKED");
+  if (stage.studentId !== student.id)               throw new Error("FORBIDDEN");
+  if (stage.statutV   !== StatutValidation.PENDING)  throw new Error("STAGE_LOCKED");
 
   return { student, stage };
 };
@@ -44,40 +44,35 @@ const assertStageEditableByStudent = async (stageId: number, userId: number) => 
 // ─────────────────────────────────────────────
 
 export const AjouterStage = async (userId: number, stageData: StageInput) => {
-  try {
-    const student = await getStudentOrThrow(userId);
-    const { encadrantId, ...stageInfo } = stageData;
-    
-    
-    const encadrant = await prisma.prof.findUnique({ where: { id: encadrantId } });
-    
-    if (!encadrant) throw new Error("Encadrant introuvable");
+  const student = await getStudentOrThrow(userId);
+  const { encadrantId, ...stageInfo } = stageData;
 
-    const chevauchement = await prisma.stage.findFirst({
-      where: {
-        studentId: student.id,
-        AND: [
-          { dateDebut: { lte: stageInfo.dateFin } },
-          { dateFin:   { gte: stageInfo.dateDebut } },
-        ],
-      },
-    });
+  const encadrant = await prisma.prof.findUnique({ where: { id: encadrantId } });
+  if (!encadrant) throw new Error("Encadrant introuvable");
 
-    const result = await prisma.stage.create({
-      data: {
-        ...stageInfo,
-        studentId:   student.id,
-        encadrantId: encadrant.id,
-        duree:       calculerDuree(stageInfo.dateDebut, stageInfo.dateFin),
-        statutV:     StatutValidation.PENDING,
-      },
-    });
-    return result;
-    
-  } catch (error) {
-    throw error;
-  }
+  const chevauchement = await prisma.stage.findFirst({
+    where: {
+      studentId: student.id,
+      AND: [
+        { dateDebut: { lte: stageInfo.dateFin } },
+        { dateFin:   { gte: stageInfo.dateDebut } },
+      ],
+    },
+  });
+
+  if (chevauchement) throw new Error("CHEVAUCHEMENT_DATES");
+
+  return prisma.stage.create({
+    data: {
+      ...stageInfo,
+      studentId:   student.id,
+      encadrantId: encadrant.id,
+      duree:       calculerDuree(stageInfo.dateDebut, stageInfo.dateFin),
+      statutV:     StatutValidation.PENDING,
+    },
+  });
 };
+
 export const GetMyStages = async (userId: number) => {
   const student = await getStudentOrThrow(userId);
   return prisma.stage.findMany({
@@ -89,7 +84,7 @@ export const GetMyStages = async (userId: number) => {
 export const GetSubmittedStages = async (profUserId: number) => {
   const prof = await getProfOrThrow(profUserId);
   return prisma.stage.findMany({
-    where:   { statutV: StatutValidation.SUBMITTED, encadrantId:prof.id },
+    where:   { statutV: StatutValidation.SUBMITTED, encadrantId: prof.id },
     include: { Student: { select: { id: true, userId: true } } },
     orderBy: { dateDebut: "desc" },
   });
@@ -124,16 +119,22 @@ export const UpdateStage = async (
   userId:  number,
   data:    Partial<StageInput>
 ) => {
-  await assertStageEditableByStudent(stageId, userId);
+  const { stage } = await assertStageEditableByStudent(stageId, userId);
 
   if (data.encadrantId) {
     const encadrant = await prisma.prof.findUnique({ where: { id: data.encadrantId } });
     if (!encadrant) throw new Error("Encadrant introuvable");
   }
 
+  const dateDebut = data.dateDebut ?? stage.dateDebut;
+  const dateFin   = data.dateFin   ?? stage.dateFin;
+
   return prisma.stage.update({
     where: { id: stageId },
-    data,
+    data:  {
+      ...data,
+      duree: calculerDuree(dateDebut, dateFin),
+    },
   });
 };
 
@@ -162,18 +163,18 @@ const assertStageSubmittedByProf = async (stageId: number, profUserId: number) =
     include: { Student: true },
   });
   if (!stage) throw new Error("Stage introuvable");
-  if (stage.statutV    !== StatutValidation.SUBMITTED) throw new Error("STAGE_NOT_SUBMITTED");
-  if (stage.encadrantId !== prof.id)                   throw new Error("FORBIDDEN");
+  if (stage.statutV     !== StatutValidation.SUBMITTED) throw new Error("STAGE_NOT_SUBMITTED");
+  if (stage.encadrantId !== prof.id)                    throw new Error("FORBIDDEN");
 
   return { prof, stage };
 };
 
 const envoyerNotificationStage = (
-  studentId:  number,
+  studentId:   number,
   _entreprise: string,
-  stageId:    number,
-  type:       "STAGE_VALIDATED" | "STAGE_REJECTED",
-  message:    string
+  stageId:     number,
+  type:        "STAGE_VALIDATED" | "STAGE_REJECTED",
+  message:     string
 ) =>
   prisma.notification.create({
     data: {
@@ -242,4 +243,3 @@ export const GetProfs = async () =>
       specialite:  true,
     },
   });
-

@@ -84,7 +84,7 @@ app.use("/api/letters", letterRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 
 app.use("/api",exportRoute)
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads/avatars", express.static("uploads/avatars"));
 
 // Route de santé (Healthcheck)
 
