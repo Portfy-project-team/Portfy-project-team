@@ -1,21 +1,16 @@
 <template>
   <div class="app-layout">
-    <ProfSidebar />
+    <Sidebar />
     <div class="main-content">
-      <ProfTopbar />
+      <Topbar />
       <router-view />
     </div>
   </div>
 </template>
 
 <script setup>
-// AVANT (erreur)
-// import ProfSidebar from '../components/prof/ProfSidebar.vue'
-// import ProfTopbar  from '../components/prof/ProfTopbar.vue'
-
-// APRÈS (correct — même dossier)
-import ProfSidebar from './ProfSidebar.vue'
-import ProfTopbar  from './ProfTopbar.vue'
+import Sidebar from './Sidebar.vue'
+import Topbar  from './Topbar.vue'
 </script>
 
 <style scoped>

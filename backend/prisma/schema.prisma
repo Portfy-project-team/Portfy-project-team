@@ -123,6 +123,7 @@ model Prof {
   Projet               Projet[]
   Recommendation       Recommendation[]
   Stage                Stage[]
+  portfolioVisits      PortfolioVisit[] 
 }
 
 model Professionnel {
@@ -166,6 +167,21 @@ model Portfolio {
   skills           PortfolioSkill[]
   projets          Projet[]
   Recommendation   Recommendation[]
+  portfolioVisits  PortfolioVisit[]
+}
+
+model PortfolioVisit {
+  id          Int       @id @default(autoincrement())
+  profId      Int
+  portfolioId Int
+  visitedAt   DateTime  @default(now())
+  visitCount  Int       @default(1)
+  bookmarked  Boolean   @default(false)
+
+  prof        Prof      @relation(fields: [profId], references: [id])
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+
+  @@unique([profId, portfolioId])
 }
 
 model Projet {
@@ -267,6 +283,7 @@ model Commentaire {
   Student         Student?          @relation(fields: [authorStudentId], references: [id])
   Portfolio       Portfolio         @relation(fields: [portfolioId], references: [id])
   Projet          Projet?           @relation(fields: [projetId], references: [id])
+  isRead Boolean @default(false)
 }
 
 model Formation {

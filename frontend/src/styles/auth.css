@@ -657,7 +657,7 @@ button {
 }
 
 .input-wrapper input,
-.input-wrapper select
+.input-wrapper select,
 .bio-textarea {
   width: 100%;
   padding: 0.65rem 0.9rem;
@@ -1367,7 +1367,6 @@ button {
   .success-btn { padding: 0.75rem; font-size: 0.88rem; }
 
   .availability { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-<<<<<<< HEAD
 }
 /* ===== LOGIN ONLY ===== */
 
@@ -1409,6 +1408,3 @@ button {
   align-items: center;
   justify-content: center;
 }
-=======
-} 
->>>>>>> b55639c3c3594a37b0b5769ecf641178b722675e

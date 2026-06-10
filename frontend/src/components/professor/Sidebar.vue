@@ -39,6 +39,10 @@
         <Star size="18" />
         <span v-if="isOpen">Recommandations</span>
       </router-link>
+      <router-link to="/professor/generer-lettre" class="nav-item ai-btn" active-class="active ai-btn-active">
+        <Sparkles size="18" />
+        <span v-if="isOpen">Générer une lettre</span>
+      </router-link>
 
       <p v-if="isOpen" class="nav-label">Support</p>
       <router-link to="/professor/commentaires" class="nav-item" active-class="active">
@@ -66,7 +70,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Home, Eye, Star, MessageCircle, Settings, HelpCircle, LogOut, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Home, Eye, Star, MessageCircle, Settings, HelpCircle, LogOut, ChevronLeft, ChevronRight, Sparkles } from 'lucide-vue-next'
 
 const user = { name: 'M. Ghailani', role: 'Professeur · ENSAT', verified: true }
 const router = useRouter()
@@ -306,5 +310,26 @@ const logout = () => router.push('/login')
   flex-shrink: 0;
   stroke-width: 2;
   color: currentColor;
+}
+.nav-item.ai-btn {
+  background: linear-gradient(135deg, rgba(0, 200, 255, 0.12), rgba(0, 120, 200, 0.08));
+  border: 1px solid rgba(0, 200, 255, 0.25);
+  color: #e5b230;
+}
+
+.nav-item.ai-btn:hover {
+  background: linear-gradient(135deg, rgba(0, 200, 255, 0.22), rgba(0, 120, 200, 0.15));
+  color: #e5b230;
+  box-shadow: 0 0 12px rgba(0, 200, 255, 0.2);
+}
+
+.nav-item.ai-btn.active {
+  background: #e5b230;
+  //color: #0f3a4f;
+  //box-shadow: none;
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 0 16px rgba(0, 200, 255, 0.35);
 }
 </style>
