@@ -3,12 +3,12 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 // ── Instance axios partagée ───────────────────────────────────────
 // Importez-la dans vos services : import { api } from '@/store/authStore.js'
 export const api = axios.create({
-  baseURL: `${BASE_URL}/api`,
+  baseURL: `${BASE_URL}`,
   withCredentials: true, // envoie le cookie httpOnly automatiquement
 })
 
@@ -20,7 +20,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true
       try {
-        await axios.post(`${BASE_URL}/api/auth/refresh`, {}, { withCredentials: true })
+        await axios.post(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true })
         return api(original) // rejoue la requête
       } catch {
         // Refresh échoué → déconnexion

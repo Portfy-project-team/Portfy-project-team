@@ -20,40 +20,6 @@ const resend = !isTest
   ? new Resend(RESEND_API_KEY)
   : null;
 
-// // Vérification fail-fast — le serveur refuse de démarrer sans config mail
-// const MAIL_HOST = process.env.MAIL_HOST;
-// const MAIL_PORT = process.env.MAIL_PORT;
-// const MAIL_USER = process.env.MAIL_USER;
-// const MAIL_PASS = process.env.MAIL_PASS;
-// // const MAIL_FROM = process.env.MAIL_FROM ?? "Portfy <no-reply@portfy.ma>";
-
-// const MAIL_FROM = process.env.MAIL_FROM ?? "Portfy <no-reply@portfy.ma>";
-
-
-// // if (!MAIL_HOST || !MAIL_PORT || !MAIL_USER || !MAIL_PASS) {
-// if (!isTest && (!MAIL_HOST || !MAIL_PORT || !MAIL_USER || !MAIL_PASS)) {
-//   throw new Error("CRITICAL: Configuration SMTP manquante dans les variables d'environnement.");
-// }
-
-// // Le transporter est créé UNE seule fois au démarrage
-// // et réutilisé pour tous les emails — pas besoin de recréer à chaque appel
-// // const transporter = nodemailer.createTransport({
-// const transporter = !isTest
-//   ? nodemailer.createTransport({
-//   host: MAIL_HOST,
-//   port: Number(MAIL_PORT),
-//   // false pour Mailtrap (port 587 = STARTTLS)
-//   // true si port 465 (SSL direct) en production
-//   secure: Number(MAIL_PORT) === 465,
-//   auth: {
-//     user: MAIL_USER,
-//     pass: MAIL_PASS,
-//   },
-//    tls: {
-//     rejectUnauthorized: false,
-//   },
-// })
-// : null;
 
 // Interface claire pour les paramètres d'envoi
 interface SendEmailOptions {

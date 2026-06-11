@@ -290,7 +290,7 @@ export const sendVerificationEmail = async (
     },
   });
 
-  const verifyLink = `${process.env.FRONTEND_URL}/verify-email?token=${rawToken}`;
+  const verifyLink = `${process.env.FRONTEND_URL}/api/auth/verify-email?token=${rawToken}`;
   const template   = emailTemplates.verifyEmail(verifyLink);
 
   await sendEmail({ to: email, subject: template.subject, html: template.html });
