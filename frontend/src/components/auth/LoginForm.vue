@@ -160,12 +160,11 @@
 </template>
 
 <script setup>
-import { useAuthStore } from '../../store/authStore'
+import { useAuthStore, api } from '../../store/authStore.js'
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import '../../styles/auth.css' // 👈 مهم
+import '../../styles/auth.css'
 
-import axios from 'axios'
 import PHOTOPF from '../../assets/PHOTOPF.png'
 import logo from '../../assets/logo.png'
 
@@ -217,18 +216,23 @@ async function handleLogin() {
 
   isLoading.value = true
   try {
-    // simulate API
-    const response = await axios.post(
-      'http://localhost:3000/api/auth/login',
-      { email: form.email, password: form.password },
-      { withCredentials: true }
-    )
+    const response = await api.post('/auth/login', {
+      email:    form.email,
+      password: form.password,
+    })
 
-    authStore.login(response.data.user)
-    router.push('/dashboard')
+    const user = response.data.user
+    authStore.login(user)
+
+    // Redirection selon le rôle
+    if (user.role === 'PROF')         router.push('/professor/dashboard')
+    else if (user.role === 'STUDENT') router.push('/student/dashboard')
+    else if (user.role === 'PRO')     router.push('/pro/dashboard')
+    else if (user.role === 'ADMIN')   router.push('/admin/dashboard')
+    else                              router.push('/dashboard')
 
   } catch (err) {
-    serverError.value = "Identifiants incorrects."
+    serverError.value = err.response?.data?.message ?? 'Identifiants incorrects.'
   } finally {
     isLoading.value = false
   }
