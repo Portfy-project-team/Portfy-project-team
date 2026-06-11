@@ -6,16 +6,17 @@ import html2pdf from 'html2pdf.js'
 import Sidebar from '../../components/student/Sidebar.vue'
 import StatusBadge from '../../components/student/StatusBadge.vue'
 
-import { portfolioData } from '../../data/mockData.js'
-
 const router = useRouter()
 
-const activeObjective = ref('Developpeur Web')
+const activeObjective = ref('')
 const activeTemplate = ref('Modern')
 const copied = ref(false)
 const portfolioRef = ref(null)
+const loading = ref(true)
 
-const publicPortfolioPath = '/portfolio/ahmed-alami'
+// DONNÉES DU PORTFOLIO DEPUIS L'API
+const student = ref(null)
+const portfolio = ref(null)
 
 const avatarPreview = ref(localStorage.getItem('studentAvatar') || '')
 
@@ -25,14 +26,38 @@ const updateAvatar = () => {
 
 onMounted(() => {
   window.addEventListener('student-avatar-updated', updateAvatar)
+  loadPortfolioData()
 })
 
 onUnmounted(() => {
   window.removeEventListener('student-avatar-updated', updateAvatar)
 })
 
+// CHARGER LES DONNÉES DU PORTFOLIO
+async function loadPortfolioData() {
+  try {
+    const token = localStorage.getItem('token')
+    
+    const res = await fetch('http://localhost:3000/api/portfolio/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    
+    const json = await res.json()
+    student.value = json.portfolio
+    portfolio.value = json.portfolio.portfolio
+    activeObjective.value = portfolio.value?.objective || ''
+    
+    loading.value = false
+  } catch (err) {
+    console.error('Erreur chargement portfolio:', err)
+    loading.value = false
+  }
+}
+
 function getPublicPortfolioUrl() {
-  return `${window.location.origin}${publicPortfolioPath}`
+  if (!student.value) return ''
+  const slug = `${student.value.prenom}-${student.value.nom}`.toLowerCase().replace(/\s+/g, '-')
+  return `${window.location.origin}/portfolio/${student.value.id}`
 }
 
 function openPublicPreview() {
@@ -65,6 +90,23 @@ async function copyPublicLink() {
   }
 }
 
+async function updateObjective() {
+  try {
+    const token = localStorage.getItem('token')
+    
+    await fetch('http://localhost:3000/api/portfolio/settings', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ objective: activeObjective.value })
+    })
+  } catch (err) {
+    console.error('Erreur mise à jour objectif:', err)
+  }
+}
+
 function exportPDF() {
   const element = portfolioRef.value
 
@@ -75,7 +117,7 @@ function exportPDF() {
 
   const options = {
     margin: 10,
-    filename: 'portfolio-ahmed-alami.pdf',
+    filename: `portfolio-${student.value.prenom}-${student.value.nom}.pdf`,
     image: {
       type: 'jpeg',
       quality: 0.98
@@ -99,6 +141,9 @@ function badgeClass(color) {
   if (color === 'blue') return 'badge-blue'
   return 'badge-default'
 }
+
+const objectives = ['Développeur Web', 'Développeur Mobile', 'Data Scientist', 'DevOps']
+const templates = ['Modern', 'Classic', 'Minimal']
 </script>
 
 <template>
@@ -115,26 +160,26 @@ function badgeClass(color) {
         <div class="header-actions">
           <button class="export-btn" @click="exportPDF">Export PDF</button>
           <button
-  type="button"
-  class="preview-btn"
-  @click="openPublicPreview"
->
-  Apercu public
-</button>
+            type="button"
+            class="preview-btn"
+            @click="openPublicPreview"
+          >
+            Apercu public
+          </button>
         </div>
       </header>
 
-      <main class="portfolio-page">
+      <main class="portfolio-page" v-if="!loading">
         <section class="objective-card">
           <h2>Objectif professionnel</h2>
           <p>Adaptez votre portfolio selon votre profil cible</p>
 
           <div class="objectives-grid">
             <button
-              v-for="objective in portfolioData.objectives"
+              v-for="objective in objectives"
               :key="objective"
               :class="['objective-btn', { active: activeObjective === objective }]"
-              @click="activeObjective = objective"
+              @click="activeObjective = objective; updateObjective()"
             >
               {{ objective }}
             </button>
@@ -142,54 +187,52 @@ function badgeClass(color) {
         </section>
 
         <section class="portfolio-grid">
-          <article class="main-card" ref="portfolioRef">
+          <article class="main-card" ref="portfolioRef" v-if="student">
             <div class="profile-header">
               <div class="avatar">
-                {{ portfolioData.profile.initials }}
-              </div><div class="avatar">
-  <img
-    v-if="avatarPreview"
-    :src="avatarPreview"
-    alt="Photo de profil"
-    class="avatar-img"
-  />
+                <img
+                  v-if="avatarPreview"
+                  :src="avatarPreview"
+                  alt="Photo de profil"
+                  class="avatar-img"
+                />
 
-  <span v-else>
-    {{ portfolioData.profile.initials }}
-  </span>
-</div>
-
-              <div class="profile-info">
-                <h2>{{ portfolioData.profile.name }}</h2>
-                <h3>{{ portfolioData.profile.title }}</h3>
-                <p>{{ portfolioData.profile.school }}</p>
+                <span v-else>
+                  {{ student.prenom?.charAt(0) }}{{ student.nom?.charAt(0) }}
+                </span>
               </div>
 
-              <StatusBadge :status="portfolioData.profile.status" />
+              <div class="profile-info">
+                <h2>{{ student.prenom }} {{ student.nom }}</h2>
+                <h3>{{ student.filiere || 'Étudiant' }}</h3>
+                <p>{{ student.etablissement }}</p>
+              </div>
+
+              <StatusBadge status="VALIDATED" />
             </div>
 
             <div class="separator"></div>
 
             <section class="portfolio-section">
               <h3>A PROPOS</h3>
-              <p>{{ portfolioData.profile.about }}</p>
+              <p>{{ student.bio || 'Aucune biographie pour le moment' }}</p>
             </section>
 
-            <section class="portfolio-section">
-              <h3>PROJETS VALIDES ({{ portfolioData.validatedProjects.length }})</h3>
+            <section class="portfolio-section" v-if="student.portfolio?.projets?.length">
+              <h3>PROJETS VALIDES ({{ student.portfolio.projets.filter(p => p.statusV === 'VALIDATED').length }})</h3>
 
               <div class="projects-list">
                 <div
-                  v-for="project in portfolioData.validatedProjects"
+                  v-for="project in student.portfolio.projets.filter(p => p.statusV === 'VALIDATED')"
                   :key="project.id"
                   class="project-box"
                 >
-                  <h4>{{ project.title }}</h4>
-                  <p>{{ project.meta }}</p>
+                  <h4>{{ project.titre }}</h4>
+                  <p>{{ project.type }}</p>
 
                   <div class="tags">
                     <span
-                      v-for="tag in project.tags"
+                      v-for="tag in (project.skills?.map(s => s.skill.nom) || [])"
                       :key="tag"
                       class="tag"
                     >
@@ -200,16 +243,35 @@ function badgeClass(color) {
               </div>
             </section>
 
-            <section class="portfolio-section">
-              <h3>BADGES OBTENUS</h3>
+            <section class="portfolio-section" v-if="student.Stage?.length">
+              <h3>STAGES EFFECTUES ({{ student.Stage.length }})</h3>
+
+              <div class="projects-list">
+                <div
+                  v-for="stage in student.Stage"
+                  :key="stage.id"
+                  class="project-box"
+                >
+                  <h4>{{ stage.entreprise }}</h4>
+                  <p>{{ stage.mission }}</p>
+
+                  <div class="tags">
+                    <span class="tag">{{ stage.duree }} mois</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="portfolio-section" v-if="student.skills?.length">
+              <h3>COMPETENCES</h3>
 
               <div class="badges-list">
                 <span
-                  v-for="badge in portfolioData.badges"
-                  :key="badge.label"
-                  :class="['portfolio-badge', badgeClass(badge.color)]"
+                  v-for="skill in student.skills"
+                  :key="skill.skill.id"
+                  class="portfolio-badge badge-blue"
                 >
-                  {{ badge.label }}
+                  {{ skill.skill.nom }}
                 </span>
               </div>
             </section>
@@ -220,11 +282,14 @@ function badgeClass(color) {
               <h3>Visibilite</h3>
 
               <ul class="visibility-list">
-                <li
-                  v-for="item in portfolioData.visibility"
-                  :key="item"
-                >
-                  {{ item }}
+                <li v-if="portfolio?.visibilite === 'PUBLIC'">
+                  🌐 Public
+                </li>
+                <li v-else-if="portfolio?.visibilite === 'LINK_ONLY'">
+                  🔗 Lien uniquement
+                </li>
+                <li v-else>
+                  🔒 Privé
                 </li>
               </ul>
             </div>
@@ -234,7 +299,7 @@ function badgeClass(color) {
 
               <div class="template-list">
                 <button
-                  v-for="template in portfolioData.templates"
+                  v-for="template in templates"
                   :key="template"
                   :class="['template-btn', { active: activeTemplate === template }]"
                   @click="activeTemplate = template"
@@ -249,17 +314,21 @@ function badgeClass(color) {
 
               <input type="text" :value="getPublicPortfolioUrl()" readonly/>
 
-<button
-  type="button"
-  class="copy-btn"
-  @click="copyPublicLink"
->
-  {{ copied ? 'Lien copie !' : 'Copier le lien' }}
-</button>
+              <button
+                type="button"
+                class="copy-btn"
+                @click="copyPublicLink"
+              >
+                {{ copied ? 'Lien copie !' : 'Copier le lien' }}
+              </button>
             </div>
           </aside>
         </section>
       </main>
+
+      <div v-else class="loading">
+        Chargement du portfolio...
+      </div>
     </div>
   </div>
 </template>
@@ -328,14 +397,14 @@ function badgeClass(color) {
 
 .export-btn {
   background: #ffffff;
-  color: #082a47;
+  color:  #0f3a4f;
   border: 1px solid #e5e7eb;
 }
 
 .preview-btn {
-  background: #082a47;
+  background:  #0f3a4f;
   color: #ffffff;
-  border: 1px solid #082a47;
+  border: 1px solid  #0f3a4f;
 }
 
 .portfolio-page {
@@ -412,7 +481,7 @@ function badgeClass(color) {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: #082a47;
+  background:  #0f3a4f;
   color: #f0a91f;
   display: flex;
   align-items: center;
@@ -504,7 +573,7 @@ function badgeClass(color) {
 
 .tag {
   background: #eaf3f8;
-  color: #082a47;
+  color:  #0f3a4f;
   padding: 6px 9px;
   border-radius: 7px;
   font-size: 13px;
@@ -526,22 +595,22 @@ function badgeClass(color) {
 
 .badge-yellow {
   background: #fff2d8;
-  color: #082a47;
+  color:  #0f3a4f;
 }
 
 .badge-green {
   background: #d6f7e4;
-  color: #082a47;
+  color:  #0f3a4f;
 }
 
 .badge-blue {
   background: #dff2ff;
-  color: #082a47;
+  color:  #0f3a4f;
 }
 
 .badge-default {
   background: #eef2f7;
-  color: #082a47;
+  color:  #0f3a4f;
 }
 
 .side-panel {
@@ -607,7 +676,7 @@ function badgeClass(color) {
   background: #fff2d8;
   border: 2px solid #f0a91f;
   font-weight: 800;
-  color: #082a47;
+  color:  #0f3a4f;
 }
 
 .side-card input {
@@ -617,7 +686,7 @@ function badgeClass(color) {
   background: #f8fafc;
   border-radius: 8px;
   padding: 0 12px;
-  color: #082a47;
+  color:  #0f3a4f;
   font-size: 14px;
   box-sizing: border-box;
   margin-bottom: 10px;
@@ -628,7 +697,7 @@ function badgeClass(color) {
   height: 42px;
   border: none;
   border-radius: 8px;
-  background: #082a47;
+  background:  #0f3a4f;
   color: #ffffff;
   font-size: 15px;
   font-weight: 800;
@@ -636,7 +705,13 @@ function badgeClass(color) {
 }
 
 .copy-btn:hover {
-  background: #0b3558;
+  background:  #0f3a4f;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
 }
 
 @media (max-width: 1100px) {

@@ -11,22 +11,23 @@ const portfolioDisabled = ref(false)
 const twoFactorEnabled = ref(false)
 const personalSaved = ref(false)
 const academicSaved = ref(false)
+const loading = ref(true)
 
 const personalForm = reactive({
-  firstName: 'Ahmed',
-  lastName: 'Alami',
-  email: 'ahmed@ensat.ac.ma',
-  phone: '+212 6 12 34 56 78',
-  bio: 'Passionne par le developpement web et les nouvelles technologies.',
-  city: 'Tanger',
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: '',
+  bio: '',
+  city: '',
   country: 'Maroc'
 })
 
 const academicForm = reactive({
-  school: 'ENSA Tanger',
-  field: 'Genie Informatique',
-  year: '1ere annee',
-  promotion: '2028'
+  school: '',
+  field: '',
+  year: '',
+  promotion: ''
 })
 
 const notifications = reactive({
@@ -47,18 +48,43 @@ const passwordForm = reactive({
   confirmPassword: ''
 })
 
-onMounted(() => {
-  const savedPersonalInfo = localStorage.getItem('studentPersonalInfo')
-  const savedAcademicInfo = localStorage.getItem('studentAcademicInfo')
-
-  if (savedPersonalInfo) {
-    Object.assign(personalForm, JSON.parse(savedPersonalInfo))
-  }
-
-  if (savedAcademicInfo) {
-    Object.assign(academicForm, JSON.parse(savedAcademicInfo))
-  }
+onMounted(async () => {
+  await loadSettings()
 })
+
+async function loadSettings() {
+  try {
+    const token = localStorage.getItem('token')
+    
+    const res = await fetch('http://localhost:3000/api/settings', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    
+    const json = await res.json()
+    const data = json.data
+
+    // Remplir le formulaire personnel
+    const nameParts = data.fullName?.split(' ') || ['', '']
+    personalForm.firstName = nameParts[0] || ''
+    personalForm.lastName = nameParts.slice(1).join(' ') || ''
+    personalForm.email = data.email || ''
+    personalForm.phone = data.phone || ''
+    personalForm.bio = data.bio || ''
+    personalForm.city = data.city || ''
+    personalForm.country = data.country || 'Maroc'
+
+    // Remplir le formulaire académique
+    academicForm.school = data.etablissement || ''
+    academicForm.field = data.filiere || ''
+    academicForm.year = data.niveau || ''
+    academicForm.promotion = data.anneePromotion || ''
+
+    loading.value = false
+  } catch (err) {
+    console.error('Erreur chargement paramètres:', err)
+    loading.value = false
+  }
+}
 
 const initials = computed(() => {
   return `${personalForm.firstName[0] || ''}${personalForm.lastName[0] || ''}`.toUpperCase()
@@ -87,17 +113,17 @@ function changePhoto(event) {
 
   const reader = new FileReader()
 
-reader.onload = () => {
-  avatarPreview.value = reader.result
-  localStorage.setItem('studentAvatar', reader.result)
-  window.dispatchEvent(new Event('student-avatar-updated'))
-  alert('Photo modifiee avec succes.')
-}
+  reader.onload = () => {
+    avatarPreview.value = reader.result
+    localStorage.setItem('studentAvatar', reader.result)
+    window.dispatchEvent(new Event('student-avatar-updated'))
+    alert('Photo modifiee avec succes.')
+  }
 
   reader.readAsDataURL(file)
 }
 
-function savePersonalInfo() {
+async function savePersonalInfo() {
   if (!personalForm.firstName.trim() || !personalForm.lastName.trim()) {
     alert('Veuillez remplir le prenom et le nom.')
     return
@@ -108,27 +134,68 @@ function savePersonalInfo() {
     return
   }
 
-  localStorage.setItem('studentPersonalInfo', JSON.stringify(personalForm))
+  try {
+    const token = localStorage.getItem('token')
+    
+    await fetch('http://localhost:3000/api/settings/profile', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        firstName: personalForm.firstName,
+        lastName: personalForm.lastName,
+        email: personalForm.email,
+        phone: personalForm.phone,
+        bio: personalForm.bio,
+        city: personalForm.city,
+        country: personalForm.country
+      })
+    })
 
-  window.dispatchEvent(new Event('student-profile-updated'))
+    window.dispatchEvent(new Event('student-profile-updated'))
 
-  personalSaved.value = true
+    personalSaved.value = true
 
-  setTimeout(() => {
-    personalSaved.value = false
-  }, 2500)
+    setTimeout(() => {
+      personalSaved.value = false
+    }, 2500)
+  } catch (err) {
+    console.error('Erreur sauvegarde profil:', err)
+    alert('Erreur lors de la sauvegarde')
+  }
 }
 
-function saveAcademicInfo() {
-  localStorage.setItem('studentAcademicInfo', JSON.stringify(academicForm))
+async function saveAcademicInfo() {
+  try {
+    const token = localStorage.getItem('token')
+    
+    await fetch('http://localhost:3000/api/settings/profile', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        etablissement: academicForm.school,
+        filiere: academicForm.field,
+        niveau: academicForm.year,
+        anneePromotion: academicForm.promotion
+      })
+    })
 
-  window.dispatchEvent(new Event('student-academic-updated'))
+    window.dispatchEvent(new Event('student-academic-updated'))
 
-  academicSaved.value = true
+    academicSaved.value = true
 
-  setTimeout(() => {
-    academicSaved.value = false
-  }, 2500)
+    setTimeout(() => {
+      academicSaved.value = false
+    }, 2500)
+  } catch (err) {
+    console.error('Erreur sauvegarde académique:', err)
+    alert('Erreur lors de la sauvegarde')
+  }
 }
 
 function toggleNotification(key) {
@@ -138,7 +205,7 @@ function toggleNotification(key) {
 
 function saveAppearance() {
   localStorage.setItem('studentAppearance', JSON.stringify(appearance))
-  alert('Preferences d’apparence enregistrees.')
+  alert('Preferences d apparence enregistrees.')
 }
 
 function openPasswordModal() {
@@ -156,7 +223,7 @@ function resetPasswordForm() {
   passwordForm.confirmPassword = ''
 }
 
-function changePassword() {
+async function changePassword() {
   if (
     !passwordForm.currentPassword ||
     !passwordForm.newPassword ||
@@ -176,8 +243,27 @@ function changePassword() {
     return
   }
 
-  alert('Mot de passe change avec succes.')
-  closePasswordModal()
+  try {
+    const token = localStorage.getItem('token')
+    
+    await fetch('http://localhost:3000/api/settings/password', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        current: passwordForm.currentPassword,
+        new: passwordForm.newPassword
+      })
+    })
+
+    alert('Mot de passe change avec succes.')
+    closePasswordModal()
+  } catch (err) {
+    console.error('Erreur changement mot de passe:', err)
+    alert('Erreur : ' + (err.message || 'Impossible de changer le mot de passe'))
+  }
 }
 
 function toggleTwoFactor() {
@@ -199,14 +285,28 @@ function disablePortfolio() {
   alert('Portfolio desactive.')
 }
 
-function deleteAccount() {
+async function deleteAccount() {
   const confirmed = confirm(
     'Action irreversible. Voulez-vous vraiment supprimer votre compte ?'
   )
 
   if (!confirmed) return
 
-  alert('Demande de suppression du compte envoyee.')
+  try {
+    const token = localStorage.getItem('token')
+    
+    await fetch('http://localhost:3000/api/settings/account', {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+
+    alert('Compte supprime. Vous allez etre deconnecte.')
+    localStorage.removeItem('token')
+    window.location.href = '/login'
+  } catch (err) {
+    console.error('Erreur suppression compte:', err)
+    alert('Erreur lors de la suppression du compte')
+  }
 }
 </script>
 
@@ -217,7 +317,7 @@ function deleteAccount() {
     <div class="student-main">
       <Topbar title="Parametres du compte" user-initials="AA" />
 
-      <main class="settings-page">
+      <main class="settings-page" v-if="!loading">
         <section class="page-header">
           <h2>Parametres du compte</h2>
           <p>Gerez votre profil et vos preferences</p>
@@ -230,35 +330,35 @@ function deleteAccount() {
               <p class="card-subtitle">Mettez a jour votre profil etudiant</p>
 
               <div class="photo-row">
-  <div class="avatar">
-    <img
-      v-if="avatarPreview"
-      :src="avatarPreview"
-      alt="Photo profil"
-    />
-    <span v-else>{{ initials }}</span>
-  </div>
+                <div class="avatar">
+                  <img
+                    v-if="avatarPreview"
+                    :src="avatarPreview"
+                    alt="Photo profil"
+                  />
+                  <span v-else>{{ initials }}</span>
+                </div>
 
-  <div>
-    <button
-      type="button"
-      class="primary-btn small"
-      @click="openPhotoPicker"
-    >
-      Changer la photo
-    </button>
+                <div>
+                  <button
+                    type="button"
+                    class="primary-btn small"
+                    @click="openPhotoPicker"
+                  >
+                    Changer la photo
+                  </button>
 
-    <input
-      ref="fileInput"
-      type="file"
-      accept="image/png, image/jpeg, image/jpg"
-      class="hidden-input"
-      @change="changePhoto"
-    />
+                  <input
+                    ref="fileInput"
+                    type="file"
+                    accept="image/png, image/jpeg, image/jpg"
+                    class="hidden-input"
+                    @change="changePhoto"
+                  />
 
-    <p class="hint">JPG, PNG. Max 2MB</p>
-  </div>
-</div>
+                  <p class="hint">JPG, PNG. Max 2MB</p>
+                </div>
+              </div>
 
               <div class="form-grid">
                 <div class="form-group">
@@ -305,15 +405,15 @@ function deleteAccount() {
               </div>
 
               <button
-  type="button"
-  class="primary-btn"
-  @click="savePersonalInfo"
->
-  Enregistrer les modifications
-</button>
-<p v-if="personalSaved" class="success-message">
-  Modifications enregistrees avec succes.
-</p>
+                type="button"
+                class="primary-btn"
+                @click="savePersonalInfo"
+              >
+                Enregistrer les modifications
+              </button>
+              <p v-if="personalSaved" class="success-message">
+                Modifications enregistrees avec succes.
+              </p>
             </section>
 
             <section class="card">
@@ -323,31 +423,17 @@ function deleteAccount() {
               <div class="form-grid">
                 <div class="form-group">
                   <label>Etablissement</label>
-                  <select v-model="academicForm.school">
-                    <option>ENSA Tanger</option>
-                    <option>FSJES Tanger</option>
-                    <option>FST Tanger</option>
-                  </select>
+                  <input v-model="academicForm.school" type="text" />
                 </div>
 
                 <div class="form-group">
                   <label>Filiere</label>
-                  <select v-model="academicForm.field">
-                    <option>Genie Informatique</option>
-                    <option>Genie Reseaux</option>
-                    <option>Genie Industriel</option>
-                  </select>
+                  <input v-model="academicForm.field" type="text" />
                 </div>
 
                 <div class="form-group">
                   <label>Annee d'etudes</label>
-                  <select v-model="academicForm.year">
-                    <option>1ere annee</option>
-                    <option>2eme annee</option>
-                    <option>3eme annee</option>
-                    <option>4eme annee</option>
-                    <option>5eme annee</option>
-                  </select>
+                  <input v-model="academicForm.year" type="text" />
                 </div>
 
                 <div class="form-group">
@@ -363,6 +449,9 @@ function deleteAccount() {
               >
                 Enregistrer
               </button>
+              <p v-if="academicSaved" class="success-message">
+                Modifications enregistrees avec succes.
+              </p>
             </section>
           </div>
 
@@ -487,6 +576,10 @@ function deleteAccount() {
           </aside>
         </div>
       </main>
+
+      <div v-else class="loading">
+        Chargement des paramètres...
+      </div>
     </div>
 
     <div
@@ -633,7 +726,7 @@ function deleteAccount() {
   width: 62px;
   height: 62px;
   border-radius: 50%;
-  background: #082a47;
+  background:  #0f3a4f;
   color: #ffd24a;
   border: 3px dashed #cfe0ea;
   display: flex;
@@ -673,7 +766,7 @@ function deleteAccount() {
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  color: #082a47;
+  color:  #0f3a4f;
   font-size: 14px;
   font-weight: 800;
 }
@@ -706,7 +799,7 @@ function deleteAccount() {
 .primary-btn {
   border: none;
   border-radius: 9px;
-  background: #082a47;
+  background:  #0f3a4f;
   color: #ffffff;
   padding: 14px 22px;
   font-weight: 900;
@@ -715,7 +808,7 @@ function deleteAccount() {
 }
 
 .primary-btn:hover {
-  background: #0b3558;
+  background: #0f3a4f;
 }
 
 .primary-btn.small {
@@ -832,7 +925,7 @@ function deleteAccount() {
   background: #ffffff;
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 24px 60px rgba(8, 42, 71, 0.25);
+  box-shadow: 0 24px 60px  #0f3a4f;
 }
 
 .modal-header {
@@ -875,6 +968,12 @@ function deleteAccount() {
   padding: 14px 18px;
   font-weight: 900;
   cursor: pointer;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
 }
 
 @media (max-width: 1100px) {

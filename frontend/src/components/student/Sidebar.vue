@@ -71,10 +71,7 @@
         <Users size="18" />
         <span v-if="isOpen">Réseau</span>
       </RouterLink>
-      <RouterLink to="/student/recommendations" class="nav-item" active-class="active">
-        <Star size="18" />
-        <span v-if="isOpen">Recommandations</span>
-      </RouterLink>
+
 
       <p v-if="isOpen" class="nav-label">Support</p>
       <RouterLink to="/student/commentaires" class="nav-item" active-class="active">

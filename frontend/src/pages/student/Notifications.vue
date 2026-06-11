@@ -1,13 +1,88 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 
-import { notifications } from '../../data/mockData.js'
-
-const notificationList = ref([...notifications])
+const notificationList = ref([])
 const activeFilter = ref('Toutes')
+const loading = ref(true)
+
+onMounted(async () => {
+  await loadNotifications()
+})
+
+async function loadNotifications() {
+  try {
+    const token = localStorage.getItem('token')
+    
+    const res = await fetch('http://localhost:3000/api/notifications', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    
+    const json = await res.json()
+    
+    // Transformer les données de l'API au format du frontend
+    notificationList.value = json.map(n => ({
+      id: n.id,
+      title: getTitleFromType(n.type),
+      message: n.message,
+      time: formatDate(n.dateC),
+      unread: !n.isRead,
+      color: getColorFromType(n.type),
+      category: getCategoryFromType(n.type)
+    }))
+    
+    loading.value = false
+  } catch (err) {
+    console.error('Erreur chargement notifications:', err)
+    loading.value = false
+  }
+}
+
+function getTitleFromType(type) {
+  const titles = {
+    'PROJECT_SUBMITTED': 'Projet soumis',
+    'PROJECT_VALIDATED': 'Projet validé',
+    'PROJECT_REJECTED': 'Projet rejeté',
+    'STAGE_VALIDATED': 'Stage validé',
+    'STAGE_REJECTED': 'Stage rejeté',
+    'ACTIVITY_VALIDATED': 'Activité validée',
+    'ACTIVITY_REJECTED': 'Activité rejetée',
+    'COMMENT_RECEIVED': 'Nouveau commentaire',
+    'RECOMMENDATION_RECEIVED': 'Nouvelle recommandation',
+    'LETTER_RECEIVED': 'Nouvelle lettre'
+  }
+  return titles[type] || 'Notification'
+}
+
+function getColorFromType(type) {
+  if (type.includes('VALIDATED')) return 'green'
+  if (type.includes('REJECTED')) return 'pink'
+  if (type.includes('COMMENT')) return 'orange'
+  if (type.includes('PROJECT')) return 'purple'
+  if (type.includes('RECOMMENDATION') || type.includes('LETTER')) return 'blue'
+  return 'orange'
+}
+
+function getCategoryFromType(type) {
+  if (type.includes('PROJECT')) return 'Projets'
+  if (type.includes('COMMENT')) return 'Commentaires'
+  if (type.includes('ACTIVITY')) return 'Badges'
+  if (type.includes('STAGE')) return 'Stages'
+  return 'Autres'
+}
+
+function formatDate(dateString) {
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date)
+}
 
 const filters = computed(() => [
   {
@@ -20,15 +95,15 @@ const filters = computed(() => [
   },
   {
     label: 'Projets',
-    count: null
+    count: notificationList.value.filter(item => item.category === 'Projets').length
   },
   {
     label: 'Commentaires',
-    count: null
+    count: notificationList.value.filter(item => item.category === 'Commentaires').length
   },
   {
     label: 'Badges',
-    count: null
+    count: notificationList.value.filter(item => item.category === 'Badges').length
   }
 ])
 
@@ -50,11 +125,22 @@ const unreadCount = computed(() => {
   return notificationList.value.filter((item) => item.unread).length
 })
 
-function markAllAsRead() {
-  notificationList.value = notificationList.value.map((item) => ({
-    ...item,
-    unread: false
-  }))
+async function markAllAsRead() {
+  try {
+    const token = localStorage.getItem('token')
+    
+    await fetch('http://localhost:3000/api/notifications/read-all', {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    
+    notificationList.value = notificationList.value.map((item) => ({
+      ...item,
+      unread: false
+    }))
+  } catch (err) {
+    console.error('Erreur marquage comme lue:', err)
+  }
 }
 </script>
 
@@ -65,7 +151,7 @@ function markAllAsRead() {
     <div class="student-main">
       <Topbar title="Notifications" user-initials="AA" />
 
-      <main class="notifications-page">
+      <main class="notifications-page" v-if="!loading">
         <section class="page-header">
           <div>
             <h2>Toutes les notifications</h2>
@@ -85,7 +171,7 @@ function markAllAsRead() {
             @click="activeFilter = filter.label"
           >
             {{ filter.label }}
-            <span v-if="filter.count !== null">({{ filter.count }})</span>
+            <span>({{ filter.count }})</span>
           </button>
         </section>
 
@@ -108,7 +194,15 @@ function markAllAsRead() {
             </div>
           </article>
         </section>
+
+        <section v-if="filteredNotifications.length === 0" class="empty-state">
+          <p>Aucune notification pour cette catégorie</p>
+        </section>
       </main>
+
+      <div v-else class="loading">
+        Chargement des notifications...
+      </div>
     </div>
   </div>
 </template>
@@ -279,6 +373,21 @@ function markAllAsRead() {
   height: 10px;
   background: #f0a91f;
   border-radius: 50%;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
 }
 
 @media (max-width: 700px) {

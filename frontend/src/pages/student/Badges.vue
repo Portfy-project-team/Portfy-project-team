@@ -131,7 +131,7 @@ const totalBadges = computed(() => {
 }
 
 .level-card {
-  background: linear-gradient(90deg, #082a47, #123f4b);
+  background: linear-gradient(90deg, #0f3a4f, #123f4b);
   border-radius: 16px;
   padding: 22px 26px;
   display: flex;

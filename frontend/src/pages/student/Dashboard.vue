@@ -1,13 +1,54 @@
+```vue
 <script setup>
+import { ref, onMounted, computed } from 'vue'
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 import StatCard from '../../components/student/StatCard.vue'
 
-import {
-  dashboardStats,
-  scoreDetails,
-  recentActivities
-} from '../../data/mockData.js'
+const stats = ref(null)
+const activities = ref([])
+const loading = ref(true)
+
+const dashboardStats = computed(() => {
+  if (!stats.value) return []
+
+  return [
+    {
+      id: 1,
+      title: 'Score',
+      value: stats.value.score || 0,
+      unit: '/100',
+      subtitle: stats.value.level || 'N/A',
+      color: 'blue',
+      subtitleColor: 'green'
+    }
+  ]
+})
+
+const scoreDetails = computed(() => {
+  return stats.value?.details || []
+})
+
+onMounted(async () => {
+  try {
+    const token = localStorage.getItem('token')
+
+    const res = await fetch('http://localhost:3000/api/dashboard', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+
+    const json = await res.json()
+
+    stats.value = json.data?.stats || null
+    activities.value = json.data?.activities || []
+  } catch (e) {
+    console.error('Erreur dashboard', e)
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <template>
@@ -19,8 +60,8 @@ import {
 
       <main class="dashboard-page">
         <section class="welcome-section">
-          <h2>Bonjour Ahmed <span>👋</span></h2>
-          <p>Voici un apercu de votre activite et progression</p>
+          <h2>Bonjour {{ stats?.prenom || 'Utilisateur' }}</h2>
+          <p>Voici un aperçu de votre activité et progression</p>
         </section>
 
         <section class="stats-grid">
@@ -39,15 +80,15 @@ import {
         <section class="dashboard-grid">
           <div class="score-card">
             <div class="card-title">
-              <h3>Score de credibilite</h3>
-              <p>Detail de votre score sur 100</p>
+              <h3>Score de crédibilité</h3>
+              <p>Détail de votre score sur 100</p>
             </div>
 
             <div class="score-content">
               <div class="score-circle">
                 <div>
-                  <strong>82</strong>
-                  <span>Avance</span>
+                  <strong>{{ stats?.score || 0 }}</strong>
+                  <span>{{ stats?.level || 'N/A' }}</span>
                 </div>
               </div>
 
@@ -63,7 +104,7 @@ import {
                   </div>
 
                   <div class="progress-bar">
-                    <span :style="{ width: item.percent * 5 + '%' }"></span>
+                    <span :style="{ width: item.percent + '%' }"></span>
                   </div>
                 </div>
               </div>
@@ -72,22 +113,20 @@ import {
 
           <div class="recent-card">
             <div class="card-title">
-              <h3>Activite recente</h3>
-              <p>Vos dernieres actions</p>
+              <h3>Activité récente</h3>
+              <p>Vos dernières actions</p>
             </div>
 
-            <div class="recent-list">
-              <div
-                v-for="activity in recentActivities"
-                :key="activity.id"
-                class="recent-item"
-              >
-                <span :class="['recent-dot', activity.color]"></span>
+            <div
+              v-for="activity in activities"
+              :key="activity.id"
+              class="recent-item"
+            >
+              <span :class="['recent-dot', activity.color]"></span>
 
-                <div>
-                  <p v-html="formatActivity(activity.text)"></p>
-                  <small>{{ activity.time }}</small>
-                </div>
+              <div>
+                <p>{{ activity.message }}</p>
+                <small>{{ activity.createdAt }}</small>
               </div>
             </div>
           </div>
@@ -96,20 +135,8 @@ import {
     </div>
   </div>
 </template>
+```
 
-<script>
-export default {
-  methods: {
-    formatActivity(text) {
-      return text
-        .replace('API REST', '<strong>API REST</strong>')
-        .replace('Pr. Benali', '<strong>Pr. Benali</strong>')
-        .replace('Web Developer', '<strong>Web Developer</strong>')
-        .replace('OCP Group', '<strong>OCP Group</strong>')
-    }
-  }
-}
-</script>
 
 <style scoped>
 .student-layout {
@@ -191,7 +218,7 @@ export default {
   width: 140px;
   height: 140px;
   border-radius: 50%;
-  background: #082a47;
+  background:  #0f3a4f;
   border: 6px solid #f0a91f;
   display: flex;
   align-items: center;
@@ -245,7 +272,7 @@ export default {
 .progress-bar span {
   display: block;
   height: 100%;
-  background: #082a47;
+  background: #0f3a4f;
   border-radius: 999px;
 }
 

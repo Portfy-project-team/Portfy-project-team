@@ -10,9 +10,12 @@ import userRoutes      from "./modules/user/user.routes.js";
 import adminRoutes     from "./modules/admin/admin.routes.js";
 import recoRoutes      from "./modules/ai-reco/reco.routes.js";
 import dashboardRoutes from "./modules/DashboardProf/dashboard.routes.js"; // ← AJOUT
-
-
+import studentDashboardRoutes from "./modules/DashbordStudent/dashboard.routes.js"
 const app = express();
+app.use("/api/student-dashboard", studentDashboardRoutes)
+
+
+
 
 const isProduction = process.env.NODE_ENV === "production";
 const isTest       = process.env.NODE_ENV === "test";
