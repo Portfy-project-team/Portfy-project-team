@@ -21,35 +21,29 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Rechercher par nom, email..."
+            placeholder="Rechercher par email, role ou statut..."
           />
 
           <select v-model="selectedRole">
             <option value="">Tous roles</option>
-            <option value="Etudiant">Etudiant</option>
-            <option value="Professeur">Professeur</option>
-            <option value="Professionnel">Professionnel</option>
-            <option value="Administrateur">Administrateur</option>
+            <option value="STUDENT">Etudiant</option>
+            <option value="PROF">Professeur</option>
+            <option value="PRO">Professionnel</option>
+            <option value="ADMIN">Administrateur</option>
           </select>
 
           <select v-model="selectedStatus">
             <option value="">Tous statuts</option>
-            <option value="Actif">Actif</option>
-            <option value="En attente">En attente</option>
-            <option value="Suspendu">Suspendu</option>
-          </select>
-
-          <select v-model="selectedEstablishment">
-            <option value="">Toutes ecoles</option>
-            <option
-              v-for="establishment in establishments"
-              :key="establishment"
-              :value="establishment"
-            >
-              {{ establishment }}
-            </option>
+            <option value="ACTIVE">Actif</option>
+            <option value="PENDING">En attente</option>
+            <option value="BLOCKED">Suspendu</option>
+            <option value="REJECTED">Refuse</option>
           </select>
         </section>
+
+        <p v-if="adminStore.error" class="empty">
+          {{ adminStore.error }}
+        </p>
 
         <section class="table-card">
           <table>
@@ -57,87 +51,93 @@
               <tr>
                 <th>Utilisateur</th>
                 <th>Role</th>
-                <th>Etablissement</th>
                 <th>Statut</th>
+                <th>Cree le</th>
                 <th class="actions-head">Actions</th>
               </tr>
             </thead>
 
             <tbody>
-              <tr v-for="user in paginatedUsers" :key="user.id">
-                <td>
-                  <div class="user-cell">
-                    <div class="user-avatar" :class="avatarClass(user.role)">
-                      {{ getInitials(user.name) }}
-                    </div>
-
-                    <div>
-                      <h3>{{ user.name }}</h3>
-                      <p>{{ user.email }}</p>
-                    </div>
-                  </div>
-                </td>
-
-                <td>
-                  <span class="badge" :class="roleClass(user.role)">
-                    {{ user.role }}
-                  </span>
-                </td>
-
-                <td>{{ user.establishment }}</td>
-
-                <td>
-                  <span class="status" :class="statusClass(user.status)">
-                    {{ user.status }}
-                  </span>
-                </td>
-
-                <td>
-                  <div class="actions">
-                    <button class="view" type="button" @click="viewUser(user.id)">
-                      Voir
-                    </button>
-
-                    <button
-                      v-if="user.status === 'Actif'"
-                      class="danger"
-                      type="button"
-                      @click="suspendUser(user.id)"
-                    >
-                      Suspendre
-                    </button>
-
-                    <button
-                      v-else-if="user.status === 'Suspendu'"
-                      class="success"
-                      type="button"
-                      @click="reactivateUser(user.id)"
-                    >
-                      Reactiver
-                    </button>
-
-                    <template v-else>
-                      <button
-                        class="success"
-                        type="button"
-                        @click="validateUser(user.id)"
-                      >
-                        Valider
-                      </button>
-
-                      <button
-                        class="danger"
-                        type="button"
-                        @click="refuseUser(user.id)"
-                      >
-                        Refuser
-                      </button>
-                    </template>
-                  </div>
-                </td>
+              <tr v-if="adminStore.loading">
+                <td colspan="5" class="empty">Chargement...</td>
               </tr>
 
-              <tr v-if="paginatedUsers.length === 0">
+              <template v-else>
+                <tr v-for="user in paginatedUsers" :key="user.id">
+                  <td>
+                    <div class="user-cell">
+                      <div class="user-avatar" :class="avatarClass(user.role)">
+                        {{ getInitials(user.email) }}
+                      </div>
+
+                      <div>
+                        <h3>{{ getDisplayName(user.email) }}</h3>
+                        <p>{{ user.email }}</p>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td>
+                    <span class="badge" :class="roleClass(user.role)">
+                      {{ formatRole(user.role) }}
+                    </span>
+                  </td>
+
+                  <td>
+                    <span class="status" :class="statusClass(user.status)">
+                      {{ formatStatus(user.status) }}
+                    </span>
+                  </td>
+
+                  <td>{{ formatDate(user.createdAt) }}</td>
+
+                  <td>
+                    <div class="actions">
+                      <button class="view" type="button" @click="viewUser(user.id)">
+                        Voir
+                      </button>
+
+                      <button
+                        v-if="user.status === 'ACTIVE'"
+                        class="danger"
+                        type="button"
+                        @click="suspendUser(user.id)"
+                      >
+                        Suspendre
+                      </button>
+
+                      <button
+                        v-else-if="user.status === 'BLOCKED' || user.status === 'REJECTED'"
+                        class="success"
+                        type="button"
+                        @click="reactivateUser(user.id)"
+                      >
+                        Reactiver
+                      </button>
+
+                      <template v-else>
+                        <button
+                          class="success"
+                          type="button"
+                          @click="validateUser(user.id)"
+                        >
+                          Valider
+                        </button>
+
+                        <button
+                          class="danger"
+                          type="button"
+                          @click="refuseUser(user.id)"
+                        >
+                          Refuser
+                        </button>
+                      </template>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+
+              <tr v-if="!adminStore.loading && paginatedUsers.length === 0">
                 <td colspan="5" class="empty">
                   Aucun utilisateur trouve.
                 </td>
@@ -187,28 +187,28 @@
 
         <form class="modal-form" @submit.prevent="addUser">
           <label>
-            Nom complet
-            <input v-model="newUser.name" type="text" required />
-          </label>
-
-          <label>
             Email
             <input v-model="newUser.email" type="email" required />
           </label>
 
           <label>
-            Role
-            <select v-model="newUser.role" required>
-              <option value="Etudiant">Etudiant</option>
-              <option value="Professeur">Professeur</option>
-              <option value="Professionnel">Professionnel</option>
-              <option value="Administrateur">Administrateur</option>
-            </select>
+            Mot de passe
+            <input
+              v-model="newUser.password"
+              type="password"
+              minlength="8"
+              required
+            />
           </label>
 
           <label>
-            Etablissement
-            <input v-model="newUser.establishment" type="text" required />
+            Role
+            <select v-model="newUser.role" required>
+              <option value="STUDENT">Etudiant</option>
+              <option value="PROF">Professeur</option>
+              <option value="PRO">Professionnel</option>
+              <option value="ADMIN">Administrateur</option>
+            </select>
           </label>
 
           <div class="modal-actions">
@@ -216,7 +216,7 @@
               Annuler
             </button>
 
-            <button class="save-btn" type="submit">
+            <button class="save-btn" type="submit" :disabled="adminStore.loading">
               Enregistrer
             </button>
           </div>
@@ -227,7 +227,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import AdminSidebar from '@/components/admin/AdminSidebar.vue'
@@ -240,41 +240,43 @@ const adminStore = useAdminStore()
 const searchQuery = ref('')
 const selectedRole = ref('')
 const selectedStatus = ref('')
-const selectedEstablishment = ref('')
 const currentPage = ref(1)
 const perPage = 4
 const showAddModal = ref(false)
 
 const newUser = reactive({
-  name: '',
   email: '',
-  role: 'Etudiant',
-  establishment: ''
+  password: '',
+  role: 'STUDENT'
+})
+
+onMounted(() => {
+  adminStore.fetchUsers()
 })
 
 const totalDisplayed = computed(() => {
   return adminStore.users.length.toLocaleString('fr-FR')
 })
 
-const establishments = computed(() => {
-  return [...new Set(adminStore.users.map((user) => user.establishment))]
-})
-
 const filteredUsers = computed(() => {
   const query = searchQuery.value.toLowerCase().trim()
 
   return adminStore.users.filter((user) => {
+    const email = user.email || ''
+    const role = user.role || ''
+    const status = user.status || ''
+
     const matchSearch =
-      user.name.toLowerCase().includes(query) ||
-      user.email.toLowerCase().includes(query)
+      email.toLowerCase().includes(query) ||
+      role.toLowerCase().includes(query) ||
+      status.toLowerCase().includes(query) ||
+      formatRole(role).toLowerCase().includes(query) ||
+      formatStatus(status).toLowerCase().includes(query)
 
-    const matchRole = selectedRole.value ? user.role === selectedRole.value : true
-    const matchStatus = selectedStatus.value ? user.status === selectedStatus.value : true
-    const matchEstablishment = selectedEstablishment.value
-      ? user.establishment === selectedEstablishment.value
-      : true
+    const matchRole = selectedRole.value ? role === selectedRole.value : true
+    const matchStatus = selectedStatus.value ? status === selectedStatus.value : true
 
-    return matchSearch && matchRole && matchStatus && matchEstablishment
+    return matchSearch && matchRole && matchStatus
   })
 })
 
@@ -296,13 +298,41 @@ const endItem = computed(() => {
   return Math.min(currentPage.value * perPage, filteredUsers.value.length)
 })
 
-watch([searchQuery, selectedRole, selectedStatus, selectedEstablishment], () => {
+watch([searchQuery, selectedRole, selectedStatus], () => {
   currentPage.value = 1
 })
 
-const getInitials = (name) => {
-  return name
-    .split(' ')
+const formatRole = (role) => {
+  return {
+    STUDENT: 'Etudiant',
+    PROF: 'Professeur',
+    PRO: 'Professionnel',
+    ADMIN: 'Administrateur'
+  }[role] || role
+}
+
+const formatStatus = (status) => {
+  return {
+    ACTIVE: 'Actif',
+    PENDING: 'En attente',
+    BLOCKED: 'Suspendu',
+    REJECTED: 'Refuse'
+  }[status] || status
+}
+
+const formatDate = (date) => {
+  if (!date) return '-'
+  return new Date(date).toLocaleDateString('fr-FR')
+}
+
+const getDisplayName = (email) => {
+  if (!email) return 'Utilisateur'
+  return email.split('@')[0]
+}
+
+const getInitials = (email) => {
+  return getDisplayName(email)
+    .split(/[._-]/)
     .map((word) => word.charAt(0))
     .join('')
     .slice(0, 2)
@@ -311,27 +341,28 @@ const getInitials = (name) => {
 
 const avatarClass = (role) => {
   return {
-    Etudiant: 'student-avatar',
-    Professeur: 'professor-avatar',
-    Professionnel: 'pro-avatar',
-    Administrateur: 'admin-avatar'
+    STUDENT: 'student-avatar',
+    PROF: 'professor-avatar',
+    PRO: 'pro-avatar',
+    ADMIN: 'admin-avatar'
   }[role]
 }
 
 const roleClass = (role) => {
   return {
-    Etudiant: 'role-student',
-    Professeur: 'role-professor',
-    Professionnel: 'role-pro',
-    Administrateur: 'role-admin'
+    STUDENT: 'role-student',
+    PROF: 'role-professor',
+    PRO: 'role-pro',
+    ADMIN: 'role-admin'
   }[role]
 }
 
 const statusClass = (status) => {
   return {
-    Actif: 'status-active',
-    Suspendu: 'status-suspended',
-    'En attente': 'status-pending'
+    ACTIVE: 'status-active',
+    BLOCKED: 'status-suspended',
+    PENDING: 'status-pending',
+    REJECTED: 'status-rejected'
   }[status]
 }
 
@@ -339,20 +370,20 @@ const viewUser = (id) => {
   router.push(`/admin/users/${id}`)
 }
 
-const suspendUser = (id) => {
-  adminStore.updateUser(id, { status: 'Suspendu' })
+const suspendUser = async (id) => {
+  await adminStore.updateUserStatus(id, 'BLOCKED')
 }
 
-const reactivateUser = (id) => {
-  adminStore.updateUser(id, { status: 'Actif' })
+const reactivateUser = async (id) => {
+  await adminStore.updateUserStatus(id, 'ACTIVE')
 }
 
-const validateUser = (id) => {
-  adminStore.updateUser(id, { status: 'Actif' })
+const validateUser = async (id) => {
+  await adminStore.approveUser(id)
 }
 
-const refuseUser = (id) => {
-  adminStore.deleteUser(id)
+const refuseUser = async (id) => {
+  await adminStore.rejectUser(id, 'Refuse par administrateur')
 }
 
 const previousPage = () => {
@@ -373,21 +404,16 @@ const openAddModal = () => {
 
 const closeAddModal = () => {
   showAddModal.value = false
-  newUser.name = ''
   newUser.email = ''
-  newUser.role = 'Etudiant'
-  newUser.establishment = ''
+  newUser.password = ''
+  newUser.role = 'STUDENT'
 }
 
-const addUser = () => {
-  adminStore.users.push({
-    id: Date.now().toString(),
-    name: newUser.name,
+const addUser = async () => {
+  await adminStore.addUser({
     email: newUser.email,
-    role: newUser.role,
-    establishment: newUser.establishment,
-    status: 'En attente',
-    lastLogin: 'Jamais'
+    password: newUser.password,
+    role: newUser.role
   })
 
   closeAddModal()
@@ -451,7 +477,7 @@ const addUser = () => {
   border-radius: 9px;
   padding: 13px;
   display: grid;
-  grid-template-columns: 1fr 150px 150px 150px;
+  grid-template-columns: 1fr 170px 170px;
   gap: 10px;
   margin-bottom: 15px;
 }
@@ -600,6 +626,11 @@ td {
 .status-pending {
   background: #fff0cd;
   color: #c27b00;
+}
+
+.status-rejected {
+  background: #ececec;
+  color: #4f4f4f;
 }
 
 .actions {

@@ -99,7 +99,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 import AdminSidebar from '@/components/admin/AdminSidebar.vue'
@@ -122,28 +122,32 @@ const pendingAttestations = computed(() => attestationStore.pendingAttestations)
 const totalEstablishments = computed(() => establishmentStore.totalEstablishments)
 const urgentItems = computed(() => moderationStore.urgentItems)
 
+onMounted(() => {
+  adminStore.fetchUsers()
+})
+
 const roleStats = computed(() => {
   const total = adminStore.users.length || 1
 
   const roles = [
     {
       label: 'Etudiants',
-      count: adminStore.getUsersByRole('Etudiant').length,
+      count: adminStore.getUsersByRole('STUDENT').length,
       className: 'dark'
     },
     {
       label: 'Professeurs',
-      count: adminStore.getUsersByRole('Professeur').length,
+      count: adminStore.getUsersByRole('PROF').length,
       className: 'orange'
     },
     {
       label: 'Professionnels',
-      count: adminStore.getUsersByRole('Professionnel').length,
+      count: adminStore.getUsersByRole('PRO').length,
       className: 'green'
     },
     {
       label: 'Administrateurs',
-      count: adminStore.getUsersByRole('Administrateur').length,
+      count: adminStore.getUsersByRole('ADMIN').length,
       className: 'red'
     }
   ]

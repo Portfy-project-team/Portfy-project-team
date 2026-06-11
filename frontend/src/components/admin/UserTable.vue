@@ -16,8 +16,8 @@
         <tr>
           <th class="px-6 py-3 text-left font-semibold text-slate-700">Utilisateur</th>
           <th class="px-6 py-3 text-left font-semibold text-slate-700">Rôle</th>
-          <th class="px-6 py-3 text-left font-semibold text-slate-700">Établissement</th>
           <th class="px-6 py-3 text-left font-semibold text-slate-700">Statut</th>
+          <th class="px-6 py-3 text-left font-semibold text-slate-700">Créé le</th>
           <th class="px-6 py-3 text-left font-semibold text-slate-700">Actions</th>
         </tr>
       </thead>
@@ -30,25 +30,25 @@
           <td class="px-6 py-3">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
-                {{ user.name.substring(0, 2).toUpperCase() }}
+                {{ getInitials(user.email) }}
               </div>
               <div>
-                <p class="font-semibold text-slate-900">{{ user.name }}</p>
+                <p class="font-semibold text-slate-900">{{ getDisplayName(user.email) }}</p>
                 <p class="text-xs text-slate-600">{{ user.email }}</p>
               </div>
             </div>
           </td>
           <td class="px-6 py-3">
             <span :class="['px-2 py-1 text-xs font-semibold rounded', getRoleClass(user.role)]">
-              {{ user.role }}
+              {{ formatRole(user.role) }}
             </span>
           </td>
-          <td class="px-6 py-3 text-slate-700">{{ user.establishment }}</td>
           <td class="px-6 py-3">
             <span :class="['px-2 py-1 text-xs font-semibold rounded', getStatusClass(user.status)]">
-              {{ user.status }}
+              {{ formatStatus(user.status) }}
             </span>
           </td>
+          <td class="px-6 py-3 text-slate-700">{{ formatDate(user.createdAt) }}</td>
           <td class="px-6 py-3">
             <button
               @click="selectUser(user.id)"
@@ -61,13 +61,7 @@
       </tbody>
     </table>
     <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
-      <p class="text-sm text-slate-600">Affichage 1-4 sur {{ users.length }}</p>
-      <div class="flex gap-2">
-        <button class="px-3 py-1 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">Précédent</button>
-        <button class="px-3 py-1 bg-slate-900 text-white rounded-lg text-sm font-semibold">1</button>
-        <button class="px-3 py-1 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">2</button>
-        <button class="px-3 py-1 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">Suivant</button>
-      </div>
+      <p class="text-sm text-slate-600">{{ filteredUsers.length }} utilisateur(s)</p>
     </div>
   </div>
 </template>
@@ -77,12 +71,11 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 interface User {
-  id: string
-  name: string
+  id: string | number
   email: string
-  role: string
-  establishment: string
-  status: string
+  role: 'ADMIN' | 'PRO' | 'STUDENT' | 'PROF' | string
+  status: 'PENDING' | 'ACTIVE' | 'REJECTED' | 'BLOCKED' | string
+  createdAt?: string
 }
 
 const props = defineProps<{
@@ -94,31 +87,85 @@ const router = useRouter()
 const searchQuery = ref('')
 
 const filteredUsers = computed(() => {
-  return props.users.filter(user =>
-    user.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.value.toLowerCase())
-  )
+  const query = searchQuery.value.toLowerCase().trim()
+
+  return props.users.filter((user) => {
+    const email = user.email || ''
+    const role = user.role || ''
+    const status = user.status || ''
+
+    return (
+      email.toLowerCase().includes(query) ||
+      role.toLowerCase().includes(query) ||
+      status.toLowerCase().includes(query) ||
+      formatRole(role).toLowerCase().includes(query) ||
+      formatStatus(status).toLowerCase().includes(query)
+    )
+  })
 })
+
+const formatRole = (role: string) => {
+  const roles: Record<string, string> = {
+    STUDENT: 'Etudiant',
+    PROF: 'Professeur',
+    PRO: 'Professionnel',
+    ADMIN: 'Administrateur'
+  }
+
+  return roles[role] || role
+}
+
+const formatStatus = (status: string) => {
+  const statuses: Record<string, string> = {
+    ACTIVE: 'Actif',
+    PENDING: 'En attente',
+    BLOCKED: 'Suspendu',
+    REJECTED: 'Refuse'
+  }
+
+  return statuses[status] || status
+}
+
+const formatDate = (date?: string) => {
+  if (!date) return '-'
+  return new Date(date).toLocaleDateString('fr-FR')
+}
+
+const getDisplayName = (email: string) => {
+  if (!email) return 'Utilisateur'
+  return email.split('@')[0]
+}
+
+const getInitials = (email: string) => {
+  return getDisplayName(email)
+    .split(/[._-]/)
+    .map((word) => word.charAt(0))
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
 
 const getRoleClass = (role: string) => {
   const roleMap: Record<string, string> = {
-    'Étudiant': 'bg-blue-100 text-blue-700',
-    'Professeur': 'bg-purple-100 text-purple-700',
-    'Professionnel': 'bg-green-100 text-green-700'
+    STUDENT: 'bg-blue-100 text-blue-700',
+    PROF: 'bg-purple-100 text-purple-700',
+    PRO: 'bg-green-100 text-green-700',
+    ADMIN: 'bg-slate-100 text-slate-700'
   }
   return roleMap[role] || 'bg-slate-100 text-slate-700'
 }
 
 const getStatusClass = (status: string) => {
   const statusMap: Record<string, string> = {
-    'Actif': 'bg-green-100 text-green-700',
-    'En attente': 'bg-orange-100 text-orange-700',
-    'Suspendu': 'bg-red-100 text-red-700'
+    ACTIVE: 'bg-green-100 text-green-700',
+    PENDING: 'bg-orange-100 text-orange-700',
+    BLOCKED: 'bg-red-100 text-red-700',
+    REJECTED: 'bg-slate-100 text-slate-700'
   }
   return statusMap[status] || 'bg-slate-100 text-slate-700'
 }
 
-const selectUser = (userId: string) => {
+const selectUser = (userId: string | number) => {
   router.push(`/admin/users/${userId}`)
 }
 </script>
