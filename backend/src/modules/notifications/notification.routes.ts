@@ -5,7 +5,7 @@ import {
   markOneReadController,
   markAllReadController,
   deleteNotificationController,
-} from './Notification.controller.js'
+} from './notification.controller.js'
 
 const router = Router()
 

@@ -1,6 +1,6 @@
 import {
   changePasswordSchema,
-} from "../../../src/modules/user/user.validation";
+} from "../../../src/modules/user/user.validation.js";
 
 describe("User Validation", () => {
 

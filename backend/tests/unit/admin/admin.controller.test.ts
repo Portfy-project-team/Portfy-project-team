@@ -1,6 +1,6 @@
 import { jest } from "@jest/globals";
-import { createUser } from "../../../src/modules/admin/admin.controller";
-import { AdminServices } from "../../../src/modules/admin/admin.service";
+import { createUser } from "../../../src/modules/admin/admin.controller.js";
+import { AdminServices } from "../../../src/modules/admin/admin.service.js";
 
 jest.mock("../../../src/modules/admin/admin.service", () => ({
   AdminServices: {

@@ -1,7 +1,7 @@
 import {
   createUserSchema,
   updateUserSchema,
-} from "../../../src/modules/admin/admin.validation";
+} from "../../../src/modules/admin/admin.validation.js";
 
 describe("Admin Validation", () => {
 

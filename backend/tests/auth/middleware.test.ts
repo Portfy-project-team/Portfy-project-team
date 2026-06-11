@@ -40,8 +40,8 @@
 //   });
 // });  
 import request from "supertest";
-import app from "../../src/index";
-import { prisma } from "../../src/utils/prisma";
+import app from "../../src/index.js";
+import { prisma } from "../../src/utils/prisma.js";
 
 describe("Auth Middleware", () => {
 

@@ -1,5 +1,5 @@
 import request from "supertest";
-import app from "../../src/index";
+import app from "../../src/index.js";
 // import { cleanDatabase } from '../helpers/db.helper';
 
 describe("POST /api/auth/register", () => {

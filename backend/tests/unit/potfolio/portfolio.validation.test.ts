@@ -1,4 +1,4 @@
-import { updatePortfolioSettingsSchema } from "../../../src/modules/portfolio/portfolio.validation";
+import { updatePortfolioSettingsSchema } from "../../../src/modules/portfolio/portfolio.validation.js";
 
 describe("Portfolio Validation", () => {
 

@@ -1,6 +1,6 @@
 import request from "supertest";
-import app from "../../src/index";
-import { prisma } from "../../src/utils/prisma";
+import app from "../../src/index.js";
+import { prisma } from "../../src/utils/prisma.js";
 
 describe("PUT /api/user/me/profile", () => {
 
@@ -125,19 +125,19 @@ describe("PUT /api/user/me/profile", () => {
       where: { email: { contains: "@test.com" } },
       select: { id: true },
     });
-    const userIds = testUsers.map((u) => u.id);
+    const userIds = testUsers.map((u: any) => u.id);
 
     const students = await prisma.student.findMany({
       where: { userId: { in: userIds } },
       select: { id: true },
     });
-    const studentIds = students.map((s) => s.id);
+    const studentIds = students.map((s: any) => s.id);
 
     const portfolios = await prisma.portfolio.findMany({
       where: { studentId: { in: studentIds } },
       select: { id: true },
     });
-    const portfolioIds = portfolios.map((p) => p.id);
+    const portfolioIds = portfolios.map((p: any) => p.id);
 
     // Ordre FK correct : enfants avant parents
     await prisma.studentSkill.deleteMany({

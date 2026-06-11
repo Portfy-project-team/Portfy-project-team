@@ -1,4 +1,4 @@
-import { registerSchema } from "../../../src/modules/auth/auth.validation";
+import { registerSchema } from "../../../src/modules/auth/auth.validation.js";
 
 describe("Auth Validation", () => {
 

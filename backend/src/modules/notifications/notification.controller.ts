@@ -4,7 +4,7 @@ import {
   markOneRead,
   markAllRead,
   deleteNotification,
-} from './Notification.service.js'
+} from './notification.service.js'
 
 // GET /api/notifications
 export async function getNotificationsController(

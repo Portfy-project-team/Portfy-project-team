@@ -1,5 +1,5 @@
 import { jest } from "@jest/globals";
-import { getSkills } from "../../../src/modules/user/user.controller";
+import { getSkills } from "../../../src/modules/user/user.controller.js";
 
 describe("User Controller", () => {
 
