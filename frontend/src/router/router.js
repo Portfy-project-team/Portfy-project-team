@@ -4,36 +4,38 @@ import Conditions from '../pages/Conditions.vue'
 import Politique from '../pages/Politique.vue'
 
 const routes = [
-  {
-    path: '/',
-    redirect: '/home'
-  },
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  { path: '/login',           name: 'Login',          component: () => import('../pages/auth/Login.vue') },
+  { path: '/register',        name: 'Register',       component: () => import('../pages/auth/Register.vue') },
+  { path: '/register/google', name: 'RegisterGoogle', component: () => import('../pages/auth/Register.vue') },
+  { path: '/pending',         name: 'Pending',        component: () => import('../pages/auth/PendingValidation.vue') },
+  { path: '/forgot-password', name: 'ForgotPassword', component: () => import('../pages/auth/ForgotPassward.vue') },
 
-  {
-    path: '/login',
-    name: 'login',
-    component: LoginView
-  },
+  // ── Professor ─────────────────────────────────────────────────────────────
+  { path: '/professor/dashboard',           name: 'ProfDashboard',        component: () => import('../pages/professor/Dashboard.vue'),          meta: { requiresAuth: true, role: 'PROF' } },
+  { path: '/professor/portfolios-consultes',name: 'ProfPortfolios',       component: () => import('../pages/professor/PortfoliosConsultes.vue'), meta: { requiresAuth: true, role: 'PROF' } },
+  { path: '/professor/recommandations',     name: 'ProfRecommandations',  component: () => import('../pages/professor/Recommandations.vue'),     meta: { requiresAuth: true, role: 'PROF' } },
+  { path: '/professor/generer-lettre',      name: 'ProfGenererLettre',    component: () => import('../pages/professor/GenererLettre.vue'),       meta: { requiresAuth: true, role: 'PROF' } },
+  { path: '/professor/commentaires',        name: 'ProfCommentaires',     component: () => import('../pages/professor/Commentaires.vue'),        meta: { requiresAuth: true, role: 'PROF' } },
+  { path: '/professor/parametres',          name: 'ProfParametres',       component: () => import('../pages/professor/Parametres.vue'),          meta: { requiresAuth: true, role: 'PROF' } },
+  { path: '/professor/aide',                name: 'ProfAide',             component: () => import('../pages/professor/Aide.vue'),                meta: { requiresAuth: true, role: 'PROF' } },
 
-  {
-    path: '/register',
-    name: 'register',
-    component: () => import('../pages/auth/Register.vue')
-  },
+  // ── Admin ─────────────────────────────────────────────────────────────────
+  { path: '/admin/dashboard',       name: 'AdminDashboard',       component: () => import('../pages/admin/AdminDashboard.vue'),       meta: { requiresAuth: true, role: 'ADMIN' } },
+  { path: '/admin/users',           name: 'AdminUsers',           component: () => import('../pages/admin/AdminUsers.vue'),          meta: { requiresAuth: true, role: 'ADMIN' } },
+  { path: '/admin/users/:id',       name: 'AdminUserDetail',      component: () => import('../pages/admin/AdminUserDetail.vue'),     meta: { requiresAuth: true, role: 'ADMIN' } },
+  { path: '/admin/moderation',      name: 'AdminModeration',      component: () => import('../pages/admin/AdminModeration.vue'),     meta: { requiresAuth: true, role: 'ADMIN' } },
+  { path: '/admin/etablissements',  name: 'AdminEtablissements',  component: () => import('../pages/admin/AdminEtablissements.vue'), meta: { requiresAuth: true, role: 'ADMIN' } },
+  { path: '/admin/statistiques',    name: 'AdminStatistiques',    component: () => import('../pages/admin/AdminStatistiques.vue'),   meta: { requiresAuth: true, role: 'ADMIN' } },
+  { path: '/admin/attestations',    name: 'AdminAttestations',    component: () => import('../pages/admin/AdminAttestations.vue'),   meta: { requiresAuth: true, role: 'ADMIN' } },
+  { path: '/admin/parametres',      name: 'AdminParametres',      component: () => import('../pages/admin/AdminParametres.vue'),     meta: { requiresAuth: true, role: 'ADMIN' } },
 
-  {
-    path: '/pending',                                                          // ← ajoute ici
-    name: 'pending',
-    component: () => import('../pages/auth/PendingValidation.vue')
-  },
+  // ── Redirections ──────────────────────────────────────────────────────────
+  { path: '/',                redirect: '/login' },
+  { path: '/:pathMatch(.*)*', redirect: '/login' },
 
-  {
-    path: '/forgot-password',
-    name: 'forgot-password',
-    component: () => import('../pages/auth/ForgotPassward.vue')
-  },
 
-  {
+    {
   path: '/dashboard',
   redirect: () => {
     const user = JSON.parse(localStorage.getItem('user'))
@@ -152,89 +154,30 @@ const routes = [
     component: () => import('../pages/student/PublicPortfolio.vue')
   },
 
-  // PROFESSOR ROUTES
-  {
-    path: '/professor/recommandations',
-    name: 'professor-recommandations',
-    component: () => import('../pages/professor/Recommandations.vue')
-  },
-  {
-    path: '/professor/portfolios-consultes',
-    name: 'professor-portfolios-consultes',
-    component: () => import('../pages/professor/PortfoliosConsultes.vue')
-  },
-  {
-    path: '/professor/commentaires',
-    name: 'professor-commentaires',
-    component: () => import('../pages/professor/Commentaires.vue')
-  },
-  {
-    path: '/professor/parametres',
-    name: 'professor-parametres',
-    component: () => import('../pages/professor/Parametres.vue')
-  },
-  {
-    path: '/professor/aide',
-    name: 'professor-aide',
-    component: () => import('../pages/professor/Aide.vue')
-  },
-
-  // ADMIN ROUTES
-  {
-    path: '/admin',
-    redirect: '/admin/dashboard'
-  },
-  {
-    path: '/admin/dashboard',
-    name: 'admin-dashboard',
-    component: () => import('../pages/admin/Dashboard.vue')
-  },
-  {
-    path: '/admin/users',
-    name: 'admin-users',
-    component: () => import('../pages/admin/Users.vue')
-  },
-  {
-    path: '/admin/users/:id',
-    name: 'admin-user-detail',
-    component: () => import('../pages/admin/UserDetail.vue')
-  },
-  {
-    path: '/admin/establishments',
-    name: 'admin-establishments',
-    component: () => import('../pages/admin/Establishments.vue')
-  },
-  {
-    path: '/admin/moderation',
-    name: 'admin-moderation',
-    component: () => import('../pages/admin/Moderation.vue')
-  },
-  {
-    path: '/admin/attestations',
-    name: 'admin-attestations',
-    component: () => import('../pages/admin/Attestations.vue')
-  },
-  {
-    path: '/admin/statistics',
-    name: 'admin-statistics',
-    component: () => import('../pages/admin/Statistics.vue')
-  },
-  {
-    path: '/admin/settings',
-    name: 'admin-settings',
-    component: () => import('../pages/admin/Settings.vue')
-  },
-
-  // 404 ROUTE — toujours dernière route
-  {
-    path: '/:pathMatch(.*)*',
-    redirect: '/home'
-  }
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
-  routes
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes,
+})
+
+// ── Guard global ──────────────────────────────────────────────────────────────
+router.beforeEach((to, _from, next) => {
+  if (!to.meta.requiresAuth) { next(); return }
+
+  const raw  = localStorage.getItem('portfy_user')
+  const user = raw ? JSON.parse(raw) : null
+
+  if (!user) { next({ name: 'Login' }); return }
+
+  // Redirige selon le rôle si la route est protégée par un rôle spécifique
+  if (to.meta.role && user.role !== to.meta.role) {
+    if (user.role === 'PROF')    { next({ name: 'ProfDashboard'  }); return }
+    if (user.role === 'ADMIN')   { next({ name: 'AdminDashboard' }); return }
+    next({ name: 'Login' }); return
+  }
+
+  next()
 })
 
 export default router

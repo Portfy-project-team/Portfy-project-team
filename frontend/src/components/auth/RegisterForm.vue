@@ -807,18 +807,14 @@ try {
             </div>
 
             <div class="checkbox">
-              <input v-model="accepted" type="checkbox" id="terms">
-              <label for="terms">
-                J’accepte les 
-                  <router-link to="/conditions" class="inline-link">
-                  conditions d’utilisation
-                  </router-link>
-                  et la 
-                  <router-link to="/politique" class="inline-link">
-                  politique de confidentialité
-                  </router-link>.
-              </label>
-            </div>
+  <input v-model="accepted" type="checkbox" id="terms" />
+  <label for="terms">
+    J'accepte les 
+    <router-link to="/conditions" class="inline-link">conditions d'utilisation</router-link>
+    et la 
+    <router-link to="/politique" class="inline-link">politique de confidentialité</router-link>.
+  </label>
+</div>
             <span v-if="errors.accepted" class="field-error">{{ errors.accepted }}</span>
            
           </div>
@@ -1570,5 +1566,38 @@ select {
   font-size: 14px;
   color: #0f766e;
   font-weight: 600;
+}
+.linkedin-input {
+  display: flex;
+  width: 100%;
+  height: 50px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #eef3f5;
+}
+
+.linkedin-input span {
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  color: #6b8498;
+  font-size: 16px;
+  border-right: 1px solid #d7e1e6;
+  background: #eef3f5;
+}
+
+.linkedin-input input {
+  flex: 1;
+  border: none !important;
+  outline: none;
+  background: transparent !important;
+  padding: 0 18px;
+  font-size: 16px;
+  color: #003344;
+  box-shadow: none !important;
+}
+
+.linkedin-input input::placeholder {
+  color: #94a3b8;
 }
 </style>

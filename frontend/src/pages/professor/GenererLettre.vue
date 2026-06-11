@@ -313,6 +313,7 @@
 import { ref } from 'vue'
 import Sidebar from '../../components/professor/Sidebar.vue'
 import Topbar from '../../components/professor/Topbar.vue'
+import { Search, Bell, Sparkles, CheckCheck, ChevronLeft, ChevronRight, Copy, Download } from 'lucide-vue-next'
 
 const currentStep = ref(0)
 const steps = ref(['Informations de base', 'Appréciation & Contexte'])
