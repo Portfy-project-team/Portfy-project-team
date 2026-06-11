@@ -9,6 +9,8 @@ import authRoutes      from "./modules/auth/auth.routes.js";
 import userRoutes      from "./modules/user/user.routes.js";
 import adminRoutes     from "./modules/admin/admin.routes.js";
 import recoRoutes      from "./modules/ai-reco/reco.routes.js";
+import stageRoutes      from "./modules/stages/stage.routes.js";
+import projectRoutes     from "./modules/projects/project.routes.js";
 import dashboardRoutes from "./modules/DashboardProf/dashboard.routes.js"; // ← AJOUT
 import studentDashboardRoutes from "./modules/DashbordStudent/dashboard.routes.js"
 const app = express();
@@ -61,7 +63,8 @@ if (!isTest && !isK6) {
   app.use(globalLimiter);
 }
 
-
+app.use('/api/stages', stageRoutes)
+app.use('/api/projects', projectRoutes)
 app.use("/api/auth",      authRoutes);
 app.use("/api/user",      userRoutes);
 app.use("/api/admin",     adminRoutes);

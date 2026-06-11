@@ -1,26 +1,137 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 import StatusBadge from '../../components/student/StatusBadge.vue'
 import ActivityModal from '../../components/student/modals/ActivityModal.vue'
 
-import { activities } from '../../data/mockData.js'
+// ─── API ──────────────────────────────────────────────────────────────────────
 
-const activityList = ref([...activities])
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const ACTIVITIES_URL = `${BASE_URL}/api/activities`
+
+function authHeaders() {
+  const token = localStorage.getItem('token')
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  }
+}
+
+async function handleResponse(res) {
+  const data = await res.json()
+  if (!res.ok) {
+    const err = new Error(data?.message || `Erreur ${res.status}`)
+    err.statusCode = res.status
+    throw err
+  }
+  return data
+}
+
+async function apiFetchMyActivities() {
+  const res = await fetch(`${ACTIVITIES_URL}/me`, { headers: authHeaders() })
+  const data = await handleResponse(res)
+  return data.activities
+}
+
+async function apiCreateActivity(payload) {
+  const res = await fetch(ACTIVITIES_URL, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  })
+  const data = await handleResponse(res)
+  return data.activity
+}
+
+async function apiUpdateActivity(id, payload) {
+  const res = await fetch(`${ACTIVITIES_URL}/${id}`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  })
+  const data = await handleResponse(res)
+  return data.activity
+}
+
+async function apiDeleteActivity(id) {
+  const res = await fetch(`${ACTIVITIES_URL}/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  })
+  return handleResponse(res)
+}
+
+// ─── Mapping back → UI ────────────────────────────────────────────────────────
+
+const TYPE_CLASS_MAP = {
+  Hackathon: 'type-hackathon',
+  Club: 'type-club',
+  Evenement: 'type-event',
+  Compétition: 'type-competition',
+  Association: 'type-association',
+}
+
+function mapActivity(raw) {
+  return {
+    id: raw.id,
+    title: raw.nom,
+    role: raw.description ?? '',
+    type: raw.type ?? '',
+    typeClass: TYPE_CLASS_MAP[raw.type] ?? 'type-club',
+    organisation: raw.type ?? '',
+    periode: '',
+    status: raw.statutV === 'VALIDATED'
+      ? 'Verifiee'
+      : raw.statutV === 'REJECTED'
+        ? 'Rejetee'
+        : 'En attente',
+    statutV: raw.statutV,
+    attestationUrl: raw.attestationUrl ?? null,
+    nom: raw.nom,
+    description: raw.description,
+  }
+}
+
+// ─── État ─────────────────────────────────────────────────────────────────────
+
+const activityList = ref([])
+const loading = ref(false)
+const error = ref(null)
 const showActivityModal = ref(false)
 const selectedActivity = ref(null)
 
+// ─── Stats ────────────────────────────────────────────────────────────────────
+
 const totalActivities = computed(() => activityList.value.length)
 
-const verifiedActivities = computed(() => {
-  return activityList.value.filter((activity) => activity.status === 'Verifiee').length
-})
+const verifiedActivities = computed(() =>
+  activityList.value.filter((a) => a.statutV === 'VALIDATED').length,
+)
 
-const pendingActivities = computed(() => {
-  return activityList.value.filter((activity) => activity.status === 'En attente').length
-})
+const pendingActivities = computed(() =>
+  activityList.value.filter((a) => a.statutV === 'PENDING').length,
+)
+
+// ─── Chargement ───────────────────────────────────────────────────────────────
+
+async function loadActivities() {
+  loading.value = true
+  error.value = null
+  try {
+    const raw = await apiFetchMyActivities()
+    activityList.value = raw.map(mapActivity)
+  } catch (err) {
+    error.value = err.message || 'Impossible de charger les activités.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadActivities)
+
+// ─── Modal ────────────────────────────────────────────────────────────────────
 
 function openAddActivity() {
   selectedActivity.value = null
@@ -32,38 +143,56 @@ function openEditActivity(activity) {
   showActivityModal.value = true
 }
 
-function saveActivity(activityData) {
-  if (selectedActivity.value) {
-    const index = activityList.value.findIndex((activity) => activity.id === activityData.id)
-
-    if (index !== -1) {
-      activityList.value[index] = activityData
-    }
-  } else {
-    activityList.value.unshift(activityData)
-  }
-
-  closeActivityModal()
-}
-
 function closeActivityModal() {
   showActivityModal.value = false
   selectedActivity.value = null
 }
 
+async function saveActivity(activityData) {
+  error.value = null
+  try {
+    const payload = {
+      nom: activityData.nom,
+      description: activityData.description || undefined,
+      type: activityData.type || undefined,
+      attestationUrl: activityData.attestationUrl || undefined,
+    }
+
+    if (selectedActivity.value) {
+      const updated = await apiUpdateActivity(selectedActivity.value.id, payload)
+      const idx = activityList.value.findIndex((a) => a.id === updated.id)
+      if (idx !== -1) activityList.value[idx] = mapActivity(updated)
+    } else {
+      const created = await apiCreateActivity(payload)
+      activityList.value.unshift(mapActivity(created))
+    }
+    closeActivityModal()
+  } catch (err) {
+    error.value = err.message || 'Une erreur est survenue.'
+  }
+}
+
+// ─── Suppression ──────────────────────────────────────────────────────────────
+
+async function removeActivity(activity) {
+  if (!confirm(`Supprimer « ${activity.title} » ?`)) return
+  error.value = null
+  try {
+    await apiDeleteActivity(activity.id)
+    activityList.value = activityList.value.filter((a) => a.id !== activity.id)
+  } catch (err) {
+    error.value = err.message || "Impossible de supprimer l'activité."
+  }
+}
+
+// ─── Attestation ──────────────────────────────────────────────────────────────
+
 function viewAttestation(activity) {
-  if (activity.proofFile) {
-    const fileUrl = URL.createObjectURL(activity.proofFile)
-    window.open(fileUrl, '_blank')
+  if (activity.attestationUrl) {
+    window.open(activity.attestationUrl, '_blank')
     return
   }
-
-  if (activity.proofFileName) {
-    alert(`Attestation ajoutee : ${activity.proofFileName}`)
-    return
-  }
-
-  alert("Aucune attestation disponible pour cette activite pour le moment.")
+  alert('Aucune attestation disponible pour cette activité.')
 }
 </script>
 
@@ -81,108 +210,98 @@ function viewAttestation(activity) {
             <p>Clubs, evenements, hackathons et engagements associatifs</p>
           </div>
 
-          <button
-            type="button"
-            class="primary-btn"
-            @click="openAddActivity"
-          >
+          <button type="button" class="primary-btn" @click="openAddActivity">
             Nouvelle activite
           </button>
         </section>
 
-        <section class="stats-grid">
-          <StatCard
-            title="Total activites"
-            :value="totalActivities"
-            color="cream"
-            subtitle=""
-          />
+        <div v-if="error" class="error-banner">
+          {{ error }}
+        </div>
 
-          <StatCard
-            title="Verifiees"
-            :value="verifiedActivities"
-            color="green"
-            subtitle=""
-          />
+        <div v-if="loading" class="loading-state">
+          Chargement des activités…
+        </div>
 
-          <StatCard
-            title="En attente"
-            :value="pendingActivities"
-            color="yellow"
-            subtitle=""
-          />
-        </section>
+        <template v-else>
+          <section class="stats-grid">
+            <StatCard title="Total activites" :value="totalActivities" color="cream" subtitle="" />
+            <StatCard title="Verifiees" :value="verifiedActivities" color="green" subtitle="" />
+            <StatCard title="En attente" :value="pendingActivities" color="yellow" subtitle="" />
+          </section>
 
-        <section class="table-card">
-          <table class="activities-table">
-            <thead>
-              <tr>
-                <th>ACTIVITE</th>
-                <th>TYPE</th>
-                <th>ORGANISATION</th>
-                <th>PERIODE</th>
-                <th>STATUT</th>
-                <th>ACTIONS</th>
-              </tr>
-            </thead>
+          <section class="table-card">
+            <div v-if="activityList.length === 0" class="empty-state">
+              Aucune activité pour le moment. Ajoutez-en une !
+            </div>
 
-            <tbody>
-              <tr
-                v-for="activity in activityList"
-                :key="activity.id"
-              >
-                <td>
-                  <div class="activity-name">
-                    {{ activity.title }}
-                  </div>
+            <table v-else class="activities-table">
+              <thead>
+                <tr>
+                  <th>ACTIVITE</th>
+                  <th>TYPE</th>
+                  <th>ORGANISATION</th>
+                  <th>PERIODE</th>
+                  <th>STATUT</th>
+                  <th>ACTIONS</th>
+                </tr>
+              </thead>
 
-                  <div class="activity-role">
-                    {{ activity.role }}
-                  </div>
-                </td>
+              <tbody>
+                <tr v-for="activity in activityList" :key="activity.id">
+                  <td>
+                    <div class="activity-name">{{ activity.title }}</div>
+                    <div class="activity-role">{{ activity.role }}</div>
+                  </td>
 
-                <td>
-                  <span :class="['type-badge', activity.typeClass]">
-                    {{ activity.type }}
-                  </span>
-                </td>
+                  <td>
+                    <span :class="['type-badge', activity.typeClass]">
+                      {{ activity.type }}
+                    </span>
+                  </td>
 
-                <td>
-                  {{ activity.organisation }}
-                </td>
+                  <td>{{ activity.organisation }}</td>
+                  <td>{{ activity.periode }}</td>
 
-                <td>
-                  {{ activity.periode }}
-                </td>
+                  <td>
+                    <StatusBadge :status="activity.status" />
+                  </td>
 
-                <td>
-                  <StatusBadge :status="activity.status" />
-                </td>
+                  <td>
+                    <div class="actions">
+                      <button
+                        v-if="activity.statutV === 'VALIDATED'"
+                        type="button"
+                        class="action-btn"
+                        @click="viewAttestation(activity)"
+                      >
+                        Attestation
+                      </button>
 
-                <td>
-                  <div class="actions">
-                    <button
-                      v-if="activity.status === 'Verifiee' || activity.status === 'Vérifiée'"
-                      type="button"
-                      class="action-btn"
-                      @click="viewAttestation(activity)"
-                    >
-                      Attestation
-                    </button>
+                      <button
+                        v-if="activity.statutV !== 'VALIDATED'"
+                        type="button"
+                        class="action-btn"
+                        @click="openEditActivity(activity)"
+                      >
+                        Modifier
+                      </button>
 
-                    <button
-                      type="button"
-                      class="action-btn"
-                      @click="openEditActivity(activity)"
-                    >
-                      Modifier
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
+                      <button
+                        v-if="activity.statutV !== 'VALIDATED'"
+                        type="button"
+                        class="action-btn action-btn--danger"
+                        @click="removeActivity(activity)"
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </template>
       </main>
     </div>
 
@@ -194,6 +313,7 @@ function viewAttestation(activity) {
     />
   </div>
 </template>
+
 <style scoped>
 .student-layout {
   display: flex;
@@ -232,23 +352,23 @@ function viewAttestation(activity) {
   font-size: 17px;
 }
 
-.actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 18px;
-}
-
-.action-btn {
-  background: transparent;
-  border: none;
-  color: #f59e0b;
+.error-banner {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  border-radius: 10px;
+  padding: 14px 20px;
+  margin-bottom: 20px;
   font-size: 15px;
-  font-weight: 800;
-  cursor: pointer;
+  font-weight: 600;
 }
 
-.action-btn:hover {
-  text-decoration: underline;
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #64748b;
+  font-size: 16px;
 }
 
 .primary-btn {
@@ -328,30 +448,11 @@ function viewAttestation(activity) {
   white-space: nowrap;
 }
 
-.type-hackathon {
-  background: #fff1cc;
-  color: #c77a00;
-}
-
-.type-club {
-  background: #dff2ff;
-  color: #1d4ed8;
-}
-
-.type-event {
-  background: #ebe7ff;
-  color: #6d5dfc;
-}
-
-.type-competition {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.type-association {
-  background: #d6f7e4;
-  color: #078143;
-}
+.type-hackathon   { background: #fff1cc; color: #c77a00; }
+.type-club        { background: #dff2ff; color: #1d4ed8; }
+.type-event       { background: #ebe7ff; color: #6d5dfc; }
+.type-competition { background: #fee2e2; color: #dc2626; }
+.type-association { background: #d6f7e4; color: #078143; }
 
 .actions {
   display: flex;
@@ -370,35 +471,21 @@ function viewAttestation(activity) {
   padding: 0;
 }
 
-.action-btn:hover {
-  text-decoration: underline;
+.action-btn:hover { text-decoration: underline; }
+
+.action-btn--danger {
+  color: #dc2626;
 }
 
 @media (max-width: 1100px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .table-card {
-    overflow-x: auto;
-  }
-
-  .activities-table {
-    min-width: 950px;
-  }
+  .stats-grid { grid-template-columns: 1fr; }
+  .table-card { overflow-x: auto; }
+  .activities-table { min-width: 950px; }
 }
 
 @media (max-width: 700px) {
-  .activities-page {
-    padding: 22px;
-  }
-
-  .page-header {
-    flex-direction: column;
-  }
-
-  .primary-btn {
-    width: 100%;
-  }
+  .activities-page { padding: 22px; }
+  .page-header { flex-direction: column; }
+  .primary-btn { width: 100%; }
 }
 </style>

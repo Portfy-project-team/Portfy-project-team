@@ -1,14 +1,13 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { ref, onMounted, computed, reactive } from 'vue'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 import StatCard from '../../components/student/StatCard.vue'
 
-import { recommendationLetters } from '../../data/mockData.js'
-
-const letterList = ref([...recommendationLetters])
+const letterList = ref([])
 const showLetterModal = ref(false)
+const loading = ref(true)
 
 const form = reactive({
   professor: '',
@@ -17,6 +16,46 @@ const form = reactive({
   visibility: 'Privee',
   message: ''
 })
+
+onMounted(async () => {
+  await loadLetters()
+})
+
+async function loadLetters() {
+  try {
+    const token = localStorage.getItem('token')
+    
+    const res = await fetch('http://localhost:3000/api/letters/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    
+    const json = await res.json()
+    
+    // Transformer les données de l'API au format du frontend
+    letterList.value = json.letters.map(letter => ({
+      id: letter.id,
+      initials: `${letter.Prof.prenom[0] || ''}${letter.Prof.nom[0] || ''}`.toUpperCase(),
+      professor: `Pr. ${letter.Prof.prenom} ${letter.Prof.nom}`,
+      meta: letter.Prof.departement || 'ENSA Tanger',
+      status: letter.visibilite === 'PRIVATE' ? 'En attente' : 'Validee',
+      visibility: letter.visibilite === 'PUBLIC' ? 'Publique' : letter.visibilite === 'DOWNLOADABLE' ? 'Telechargeable' : 'Privee',
+      quote: letter.contenu?.substring(0, 200) || '',
+      object: letter.type || '',
+      date: new Date(letter.date).toLocaleDateString('fr-FR'),
+      requestText: `Demande reçue le ${new Date(letter.date).toLocaleDateString('fr-FR')}`,
+      avatarColor: letter.Prof.specialite ? 'blue' : 'yellow',
+      purpose: letter.type || '',
+      message: letter.contenu || '',
+      profId: letter.Prof.id,
+      visibiliteActuelle: letter.visibilite
+    }))
+    
+    loading.value = false
+  } catch (err) {
+    console.error('Erreur chargement lettres:', err)
+    loading.value = false
+  }
+}
 
 const totalLetters = computed(() => letterList.value.length)
 
@@ -60,6 +99,7 @@ function visibilityClass(visibility) {
   const v = normalize(visibility)
 
   if (v.includes('publique')) return 'visibility-public'
+  if (v.includes('telechargeable')) return 'visibility-public'
   if (v.includes('privee')) return 'visibility-private'
 
   return 'visibility-default'
@@ -90,36 +130,53 @@ function resetForm() {
   form.message = ''
 }
 
-function addLetter() {
-  if (!isFormValid.value) return
-
-  const initials = form.professor
-    .replace('Pr.', '')
-    .trim()
-    .split(' ')
-    .map((word) => word[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-
-  const newLetter = {
-    id: Date.now(),
-    initials: initials || 'PR',
-    professor: form.professor,
-    meta: 'ENSA Tanger',
-    status: 'En attente',
-    visibility: form.visibility,
-    quote: '',
-    object: form.subject,
-    date: '',
-    requestText: "Demande envoyee aujourd'hui - En attente de redaction",
-    avatarColor: 'yellow',
-    purpose: form.purpose,
-    message: form.message
+async function updateVisibility(letter, newVisibility) {
+  try {
+    const token = localStorage.getItem('token')
+    
+    const visibilityMap = {
+      'Privee': 'PRIVATE',
+      'Publique': 'PUBLIC',
+      'Telechargeable': 'DOWNLOADABLE'
+    }
+    
+    await fetch(`http://localhost:3000/api/letters/${letter.id}/visibility`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        visibilite: visibilityMap[newVisibility]
+      })
+    })
+    
+    letter.visibility = newVisibility
+    letter.status = newVisibility === 'Privee' ? 'En attente' : 'Validee'
+    alert('Visibilité mise à jour.')
+  } catch (err) {
+    console.error('Erreur mise à jour visibilité:', err)
+    alert('Erreur lors de la mise à jour')
   }
+}
 
-  letterList.value.unshift(newLetter)
-  closeLetterModal()
+async function deleteLetter(letter) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer cette lettre ?')) return
+  
+  try {
+    const token = localStorage.getItem('token')
+    
+    await fetch(`http://localhost:3000/api/letters/${letter.id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    
+    letterList.value = letterList.value.filter(l => l.id !== letter.id)
+    alert('Lettre supprimée.')
+  } catch (err) {
+    console.error('Erreur suppression lettre:', err)
+    alert('Erreur lors de la suppression')
+  }
 }
 
 function openLetterPdf(letter) {
@@ -212,7 +269,7 @@ function openLetterPdf(letter) {
   const win = window.open('', '_blank')
 
   if (!win) {
-    alert('Impossible d’ouvrir le PDF. Autorisez les pop-ups dans le navigateur.')
+    alert('Impossible d\'ouvrir le PDF. Autorisez les pop-ups dans le navigateur.')
     return
   }
 
@@ -228,20 +285,12 @@ function openLetterPdf(letter) {
     <div class="student-main">
       <Topbar title="Lettres de recommandation" user-initials="AA" />
 
-      <main class="letters-page">
+      <main class="letters-page" v-if="!loading">
         <section class="page-header">
           <div>
             <h2>Mes lettres</h2>
             <p>Gerez vos lettres pour vos candidatures</p>
           </div>
-
-          <button
-            type="button"
-            class="primary-btn"
-            @click="openLetterModal"
-          >
-            Demander une lettre
-          </button>
         </section>
 
         <section class="stats-grid">
@@ -250,7 +299,7 @@ function openLetterPdf(letter) {
           <StatCard title="En attente" :value="pendingLetters" color="yellow" subtitle="" />
         </section>
 
-        <section class="letters-list">
+        <section class="letters-list" v-if="letterList.length > 0">
           <article
             v-for="letter in letterList"
             :key="letter.id"
@@ -280,18 +329,30 @@ function openLetterPdf(letter) {
                 </div>
               </div>
 
-              <button
-                v-if="!normalize(letter.status).includes('attente')"
-                type="button"
-                class="pdf-btn"
-                @click="openLetterPdf(letter)"
-              >
-                PDF
-              </button>
+              <div class="letter-actions">
+                <button
+                  v-if="!normalize(letter.status).includes('attente')"
+                  type="button"
+                  class="pdf-btn"
+                  @click="openLetterPdf(letter)"
+                  title="Télécharger en PDF"
+                >
+                  PDF
+                </button>
+
+                <button
+                  type="button"
+                  class="delete-btn"
+                  @click="deleteLetter(letter)"
+                  title="Supprimer"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             <div v-if="letter.quote" class="quote-box">
-              "{{ letter.quote }}"
+              "{{ letter.quote.substring(0, 150) }}..."
             </div>
 
             <div v-if="letter.object || letter.date" class="letter-footer">
@@ -304,86 +365,15 @@ function openLetterPdf(letter) {
             </p>
           </article>
         </section>
+
+        <section v-else class="empty-state">
+          <p>Aucune lettre de recommandation pour le moment.</p>
+          <p>Les professeurs peuvent vous envoyer des lettres.</p>
+        </section>
       </main>
-    </div>
 
-    <div
-      v-if="showLetterModal"
-      class="modal-overlay"
-      @click.self="closeLetterModal"
-    >
-      <div class="modal-card">
-        <div class="modal-header">
-          <div>
-            <h2>Demander une lettre</h2>
-            <p>Envoyez une demande de recommandation a un enseignant</p>
-          </div>
-
-          <button type="button" class="close-btn" @click="closeLetterModal">
-            ×
-          </button>
-        </div>
-
-        <div class="form-group">
-          <label>Enseignant</label>
-          <input
-            v-model="form.professor"
-            type="text"
-            placeholder="Ex: Pr. Mohamed Benali"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Objet de la lettre</label>
-          <input
-            v-model="form.subject"
-            type="text"
-            placeholder="Ex: Candidature Master"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>Objectif</label>
-          <select v-model="form.purpose">
-            <option value="">Selectionner...</option>
-            <option>Candidature Master</option>
-            <option>Stage</option>
-            <option>Double diplomation</option>
-            <option>Bourse</option>
-            <option>Emploi</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Visibilite</label>
-          <select v-model="form.visibility">
-            <option>Privee</option>
-            <option>Publique</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Message</label>
-          <textarea
-            v-model="form.message"
-            placeholder="Expliquez rapidement pourquoi vous demandez cette lettre..."
-          ></textarea>
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" class="cancel-btn" @click="closeLetterModal">
-            Annuler
-          </button>
-
-          <button
-            type="button"
-            class="submit-btn"
-            :disabled="!isFormValid"
-            @click="addLetter"
-          >
-            Envoyer la demande
-          </button>
-        </div>
+      <div v-else class="loading">
+        Chargement des lettres...
       </div>
     </div>
   </div>
@@ -425,22 +415,6 @@ function openLetterPdf(letter) {
   margin: 0;
   color: #64748b;
   font-size: 17px;
-}
-
-.primary-btn {
-  min-width: 220px;
-  height: 54px;
-  border: none;
-  border-radius: 9px;
-  background: #082a47;
-  color: #ffffff;
-  font-size: 16px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.primary-btn:hover {
-  background: #0b3558;
 }
 
 .stats-grid {
@@ -566,20 +540,38 @@ function openLetterPdf(letter) {
   color: #475569;
 }
 
-.pdf-btn {
-  min-width: 70px;
-  height: 42px;
+.letter-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pdf-btn,
+.delete-btn {
+  min-width: 40px;
+  height: 40px;
   border: 1px solid #e5e7eb;
-  border-radius: 9px;
+  border-radius: 8px;
   background: #ffffff;
   color: #082a47;
   font-size: 15px;
   font-weight: 900;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .pdf-btn:hover {
   border-color: #082a47;
+}
+
+.delete-btn {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.delete-btn:hover {
+  background: #fef2f2;
 }
 
 .quote-box {
@@ -609,119 +601,23 @@ function openLetterPdf(letter) {
   font-size: 15px;
 }
 
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(8, 42, 71, 0.62);
-  backdrop-filter: blur(2px);
-  z-index: 3000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-
-.modal-card {
-  width: 100%;
-  max-width: 560px;
+.empty-state {
+  text-align: center;
+  padding: 60px 40px;
   background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 16px;
-  padding: 26px;
-  box-shadow: 0 24px 60px rgba(8, 42, 71, 0.25);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 22px;
-}
-
-.modal-header h2 {
-  margin: 0 0 6px;
-  font-size: 24px;
-  font-weight: 800;
-  color: #050505;
-}
-
-.modal-header p {
-  margin: 0;
   color: #64748b;
 }
 
-.close-btn {
-  border: none;
-  background: transparent;
+.empty-state p {
+  margin: 8px 0;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
   color: #64748b;
-  font-size: 30px;
-  cursor: pointer;
-}
-
-.form-group {
-  margin-bottom: 16px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  color: #082a47;
-  font-weight: 800;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #e5e7eb;
-  border-radius: 9px;
-  padding: 12px 14px;
-  font-size: 15px;
-  outline: none;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  border-color: #f0a91f;
-  box-shadow: 0 0 0 3px rgba(240, 169, 31, 0.18);
-}
-
-.form-group textarea {
-  min-height: 90px;
-  resize: vertical;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.cancel-btn,
-.submit-btn {
-  border-radius: 9px;
-  padding: 13px 18px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.cancel-btn {
-  background: #ffffff;
-  color: #64748b;
-  border: 1px solid #e5e7eb;
-}
-
-.submit-btn {
-  background: #082a47;
-  color: #ffffff;
-  border: 1px solid #082a47;
-}
-
-.submit-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 @media (max-width: 1100px) {
@@ -739,16 +635,18 @@ function openLetterPdf(letter) {
     flex-direction: column;
   }
 
-  .primary-btn {
-    width: 100%;
-  }
-
   .letter-top {
     flex-direction: column;
   }
 
-  .pdf-btn {
+  .letter-actions {
     width: 100%;
+    justify-content: flex-end;
+  }
+
+  .pdf-btn,
+  .delete-btn {
+    flex: 1;
   }
 
   .letter-footer {

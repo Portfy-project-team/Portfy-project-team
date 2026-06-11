@@ -21,14 +21,14 @@ const routes = [
   { path: '/professor/aide',                name: 'ProfAide',             component: () => import('../pages/professor/Aide.vue'),                meta: { requiresAuth: true, role: 'PROF' } },
 
   // ── Admin ─────────────────────────────────────────────────────────────────
-  { path: '/admin/dashboard',       name: 'AdminDashboard',       component: () => import('../pages/admin/AdminDashboard.vue'),       meta: { requiresAuth: true, role: 'ADMIN' } },
-  { path: '/admin/users',           name: 'AdminUsers',           component: () => import('../pages/admin/AdminUsers.vue'),          meta: { requiresAuth: true, role: 'ADMIN' } },
-  { path: '/admin/users/:id',       name: 'AdminUserDetail',      component: () => import('../pages/admin/AdminUserDetail.vue'),     meta: { requiresAuth: true, role: 'ADMIN' } },
-  { path: '/admin/moderation',      name: 'AdminModeration',      component: () => import('../pages/admin/AdminModeration.vue'),     meta: { requiresAuth: true, role: 'ADMIN' } },
-  { path: '/admin/etablissements',  name: 'AdminEtablissements',  component: () => import('../pages/admin/AdminEtablissements.vue'), meta: { requiresAuth: true, role: 'ADMIN' } },
-  { path: '/admin/statistiques',    name: 'AdminStatistiques',    component: () => import('../pages/admin/AdminStatistiques.vue'),   meta: { requiresAuth: true, role: 'ADMIN' } },
-  { path: '/admin/attestations',    name: 'AdminAttestations',    component: () => import('../pages/admin/AdminAttestations.vue'),   meta: { requiresAuth: true, role: 'ADMIN' } },
-  { path: '/admin/parametres',      name: 'AdminParametres',      component: () => import('../pages/admin/AdminParametres.vue'),     meta: { requiresAuth: true, role: 'ADMIN' } },
+  //{ path: '/admin/dashboard',       name: 'AdminDashboard',       component: () => import('../pages/admin/AdminDashboard.vue'),       meta: { requiresAuth: true, role: 'ADMIN' } },
+  //{ path: '/admin/users',           name: 'AdminUsers',           component: () => import('../pages/admin/AdminUsers.vue'),          meta: { requiresAuth: true, role: 'ADMIN' } },
+  //{ path: '/admin/users/:id',       name: 'AdminUserDetail',      component: () => import('../pages/admin/AdminUserDetail.vue'),     meta: { requiresAuth: true, role: 'ADMIN' } },
+  //{ path: '/admin/moderation',      name: 'AdminModeration',      component: () => import('../pages/admin/AdminModeration.vue'),     meta: { requiresAuth: true, role: 'ADMIN' } },
+  //{ path: '/admin/etablissements',  name: 'AdminEtablissements',  component: () => import('../pages/admin/AdminEtablissements.vue'), meta: { requiresAuth: true, role: 'ADMIN' } },
+  //{ path: '/admin/statistiques',    name: 'AdminStatistiques',    component: () => import('../pages/admin/AdminStatistiques.vue'),   meta: { requiresAuth: true, role: 'ADMIN' } },
+  //{ path: '/admin/attestations',    name: 'AdminAttestations',    component: () => import('../pages/admin/AdminAttestations.vue'),   meta: { requiresAuth: true, role: 'ADMIN' } },
+  //{ path: '/admin/parametres',      name: 'AdminParametres',      component: () => import('../pages/admin/AdminParametres.vue'),     meta: { requiresAuth: true, role: 'ADMIN' } },
 
   // ── Redirections ──────────────────────────────────────────────────────────
   { path: '/',                redirect: '/login' },
