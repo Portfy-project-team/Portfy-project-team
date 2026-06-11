@@ -32,8 +32,6 @@ const badgeClass = computed(() => {
   </span>
 </template>
 
-<<<<<<< HEAD
-=======
 <style scoped>
 .status-badge {
   display: inline-flex;
@@ -84,4 +82,3 @@ const badgeClass = computed(() => {
   color: #475569;
 }
 </style>
->>>>>>> a032c28552d4a135d15a49edf044f7e07108f4cf
