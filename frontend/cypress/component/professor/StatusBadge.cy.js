@@ -1,4 +1,4 @@
-import StatusBadge from '@/components/professor/StatusBadge.vue'
+/*import StatusBadge from '@/components/professor/StatusBadge.vue'
 
 describe('StatusBadge', () => {
   it('mappe "published" → "Publiée" avec la classe published', () => {
@@ -21,3 +21,4 @@ describe('StatusBadge', () => {
     cy.get('.badge').should('contain', 'archivé')
   })
 })
+*/

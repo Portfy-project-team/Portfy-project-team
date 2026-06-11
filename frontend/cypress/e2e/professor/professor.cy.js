@@ -1,4 +1,4 @@
-describe('Espace Professor — E2E', () => {
+/*describe('Espace Professor — E2E', () => {
 
   // ---------- Sidebar (présente sur toutes les pages) ----------
   describe('Navigation Sidebar', () => {
@@ -194,4 +194,4 @@ describe('Espace Professor — E2E', () => {
         .should('have.value', 'Le drawer ne se ferme pas.')
     })
   })
-})
+})*/

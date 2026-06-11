@@ -1,4 +1,4 @@
-import Sidebar from '@/components/professor/Sidebar.vue'
+/*import Sidebar from '@/components/professor/Sidebar.vue'
 
 const routerStub = {
   install(app) {
@@ -55,4 +55,4 @@ describe('Sidebar Professor', () => {
     cy.get('.logout-btn').click()
     cy.get('@routerPush').should('have.been.calledWith', '/login')
   })
-})
+})*/

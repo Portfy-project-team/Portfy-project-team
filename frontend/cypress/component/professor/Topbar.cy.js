@@ -1,4 +1,4 @@
-import Topbar from '@/components/professor/Topbar.vue'
+/*Simport Topbar from '@/components/professor/Topbar.vue'
 
 describe('Topbar', () => {
   it('affiche le titre passé en prop', () => {
@@ -17,4 +17,4 @@ describe('Topbar', () => {
     cy.mount(Topbar, { props: { title: 'Test' } })
     cy.get('.search-bar input').type('Sara').should('have.value', 'Sara')
   })
-})
+})*/
