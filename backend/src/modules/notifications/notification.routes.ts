@@ -1,15 +1,19 @@
-import { Router } from "express";
+import { Router } from 'express'
+import { verifyToken } from '../../middlewares/auth.middleware.js'
 import {
-  GetMyNotificationsController,
-  MarkAsReadController,
-  MarkAllAsReadController,
-} from "./notification.controller.js";
-import { verifyToken } from "../../middlewares/auth.middleware.js";
+  getNotificationsController,
+  markOneReadController,
+  markAllReadController,
+  deleteNotificationController,
+} from './Notification.controller.js'
 
-const router = Router();
+const router = Router()
 
-router.get("/",         verifyToken, GetMyNotificationsController);
-router.put("/read-all", verifyToken, MarkAllAsReadController);  
-router.put("/:id/read", verifyToken, MarkAsReadController);
+router.use(verifyToken)
 
-export default router;
+router.get('/',                  getNotificationsController)   // GET    /api/notifications
+router.patch('/read-all',        markAllReadController)        // PATCH  /api/notifications/read-all
+router.patch('/:id/read',        markOneReadController)        // PATCH  /api/notifications/:id/read
+router.delete('/:id',            deleteNotificationController) // DELETE /api/notifications/:id
+
+export default router

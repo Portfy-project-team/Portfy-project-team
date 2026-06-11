@@ -1,246 +1,350 @@
-<script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Search, Bell, Check, X, MessageCircle, Eye, Folder, BellRing } from 'lucide-vue-next'
-
-const props = defineProps({
-  title: { type: String, default: 'Dashboard' },
-  userInitials: { type: String, default: 'AA' }
-})
-
-const notifOpen = ref(false)
-const notifRef = ref(null)
-
-const notifications = ref([
-  { id: 1, text: 'Sara Benali a posté un nouveau commentaire.', time: 'Il y a 5 min', read: false, type: 'comment' },
-  { id: 2, text: 'Youssef Khalil a consulté votre recommandation.', time: 'Il y a 1h', read: false, type: 'view' },
-  { id: 3, text: 'Nouveau portfolio disponible : Ahmed Alami.', time: 'Il y a 2h', read: true, type: 'portfolio' },
-  { id: 4, text: 'Rappel : 3 commentaires en attente de réponse.', time: 'Hier', read: true, type: 'reminder' },
-])
-
-const unreadCount = computed(() => notifications.value.filter(n => !n.read).length)
-
-function toggleNotif() {
-  notifOpen.value = !notifOpen.value
-}
-
-function markAsRead(id) {
-  const n = notifications.value.find(n => n.id === id)
-  if (n) n.read = true
-}
-
-function markAllRead() {
-  notifications.value.forEach(n => n.read = true)
-}
-
-function dismiss(id) {
-  notifications.value = notifications.value.filter(n => n.id !== id)
-}
-
-function handleOutsideClick(e) {
-  if (notifRef.value && !notifRef.value.contains(e.target)) {
-    notifOpen.value = false
-  }
-}
-
-onMounted(() => document.addEventListener('mousedown', handleOutsideClick))
-onUnmounted(() => document.removeEventListener('mousedown', handleOutsideClick))
-
-const typeIcon = { comment: MessageCircle, view: Eye, portfolio: Folder, reminder: BellRing }
-const typeColor = { comment: '#4f46e5', view: '#0891b2', portfolio: '#059669', reminder: '#f5a623' }
-</script>
-
 <template>
   <header class="topbar">
-    <h1 class="topbar-title">{{ title }}</h1>
-    <div class="topbar-actions">
-      <div class="search-box">
-        <Search size="18" />
-        <input type="text" placeholder="Rechercher" />
+    <div class="topbar-left">
+      <h1 class="topbar-title">{{ title }}</h1>
+    </div>
+    <div class="topbar-right">
+
+      <!-- Search -->
+      <div class="search-wrapper" ref="searchWrapper">
+        <div class="search-box" :class="{ focused: isFocused }">
+          <Search size="16" color="#aaa" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Rechercher un étudiant..."
+            @focus="isFocused = true"
+            @input="onInput"
+            @keydown.escape="closeSearchDropdown"
+          />
+          <div v-if="searchQuery" class="clear-btn" @click="clearSearch">
+            <X size="14" />
+          </div>
+        </div>
+
+        <!-- Search Dropdown -->
+        <div v-if="showSearchDropdown" class="search-dropdown">
+          <div v-if="searchLoading" class="dropdown-loading">
+            <div class="spinner"></div>
+            <span>Recherche en cours...</span>
+          </div>
+          <template v-else-if="searchResults.length > 0">
+            <div class="dropdown-header">{{ searchResults.length }} résultat{{ searchResults.length > 1 ? 's' : '' }}</div>
+            <div v-for="r in searchResults" :key="r.id" class="dropdown-item" @click="selectResult(r)">
+              <div class="result-avatar" :style="{ background: r.color }">{{ r.initials }}</div>
+              <div class="result-info">
+                <span class="result-name">{{ r.studentName }}</span>
+                <span class="result-meta">{{ r.school }}{{ r.filiere ? ' · ' + r.filiere : '' }}</span>
+              </div>
+              <div class="result-tags">
+                <span v-for="tag in r.tags.slice(0, 2)" :key="tag" class="result-tag">{{ tag }}</span>
+              </div>
+            </div>
+          </template>
+          <div v-else class="dropdown-empty">
+            <span>Aucun résultat pour "{{ searchQuery }}"</span>
+          </div>
+        </div>
       </div>
 
-      <!-- Notification Bell -->
-      <div class="notif-wrapper" ref="notifRef">
-        <button class="notif-btn" :class="{ active: notifOpen }" @click="toggleNotif" title="Notifications">
-          <Bell size="18" />
-          <span v-if="unreadCount > 0" class="notif-badge">{{ unreadCount }}</span>
+      <!-- Notif Bell -->
+      <div class="notif-wrapper" ref="notifWrapper">
+        <button class="notif-btn" @click="toggleNotifDropdown">
+          <Bell size="20" />
+          <span v-if="unreadCount > 0" class="notif-badge">{{ unreadCount > 9 ? '9+' : unreadCount }}</span>
         </button>
 
-        <!-- Dropdown -->
-        <transition name="dropdown">
-          <div v-if="notifOpen" class="notif-dropdown">
-            <div class="notif-header">
-              <span class="notif-title">Notifications</span>
-              <button v-if="unreadCount > 0" class="mark-all-btn" @click="markAllRead">
-                <Check size="13" /> Tout marquer lu
+        <!-- Notif Dropdown -->
+        <div v-if="showNotifDropdown" class="notif-dropdown">
+          <div class="notif-dropdown-header">
+            <span>Notifications</span>
+            <button v-if="unreadCount > 0" class="mark-all-btn" @click="handleMarkAllRead">
+              Tout marquer lu
+            </button>
+          </div>
+
+          <div v-if="notifLoading" class="dropdown-loading">
+            <div class="spinner"></div>
+            <span>Chargement...</span>
+          </div>
+
+          <template v-else-if="notifications.length > 0">
+            <div
+              v-for="n in notifications"
+              :key="n.id"
+              class="notif-item"
+              :class="{ unread: !n.read }"
+              @click="handleMarkOneRead(n)"
+            >
+              <div class="notif-icon" :class="n.type">
+                <MessageCircle v-if="n.type === 'comment'" size="14" />
+                <Eye v-else-if="n.type === 'view'" size="14" />
+                <Folder v-else-if="n.type === 'portfolio'" size="14" />
+                <BellRing v-else size="14" />
+              </div>
+              <div class="notif-body">
+                <p class="notif-text">{{ n.text }}</p>
+                <span class="notif-time">{{ n.time }}</span>
+              </div>
+              <div v-if="!n.read" class="notif-dot-unread"></div>
+              <button class="notif-delete" @click.stop="handleDelete(n.id)" title="Supprimer">
+                <X size="12" />
               </button>
             </div>
+          </template>
 
-            <div class="notif-list">
-              <div
-                v-for="notif in notifications"
-                :key="notif.id"
-                class="notif-item"
-                :class="{ unread: !notif.read }"
-                @click="markAsRead(notif.id)"
-              >
-                <div class="notif-type-icon" :style="{ background: typeColor[notif.type] + '18', color: typeColor[notif.type] }">
-                  <component :is="typeIcon[notif.type]" size="15" />
-                </div>
-                <div class="notif-body">
-                  <p class="notif-text">{{ notif.text }}</p>
-                  <p class="notif-time">{{ notif.time }}</p>
-                </div>
-                <button class="dismiss-btn" @click.stop="dismiss(notif.id)" title="Supprimer">
-                  <X size="13" />
-                </button>
-              </div>
-
-              <div v-if="notifications.length === 0" class="notif-empty">
-                <Bell size="28" />
-                <p>Aucune notification</p>
-              </div>
-            </div>
+          <div v-else class="dropdown-empty">
+            <span>Aucune notification</span>
           </div>
-        </transition>
+        </div>
       </div>
 
-      <div class="profile-btn">{{ userInitials }}</div>
+      <!-- Avatar -->
+      <div class="topbar-avatar">{{ initials }}</div>
     </div>
   </header>
 </template>
 
+<script setup>
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
+import { Search, Bell, X, MessageCircle, Eye, Folder, BellRing } from 'lucide-vue-next'
+import { useAuthStore } from '@/store/authStore.js'
+import { api } from '@/store/authStore.js'
+import { searchService } from '../../services/professor/search.service.js'
+
+const props = defineProps({ title: String })
+const router = useRouter()
+const auth = useAuthStore()
+
+// ── Auth ────────────────────────────────────────────────────────
+const initials = ref(auth.initials || 'MG')
+
+// ── Search ──────────────────────────────────────────────────────
+const searchQuery = ref('')
+const searchResults = ref([])
+const searchLoading = ref(false)
+const isFocused = ref(false)
+const showSearchDropdown = ref(false)
+const searchWrapper = ref(null)
+let debounceTimer = null
+
+function onInput() {
+  clearTimeout(debounceTimer)
+  if (searchQuery.value.trim().length < 2) {
+    searchResults.value = []
+    showSearchDropdown.value = false
+    return
+  }
+  searchLoading.value = true
+  showSearchDropdown.value = true
+  debounceTimer = setTimeout(async () => {
+    try {
+      const res = await searchService.search(searchQuery.value.trim())
+      searchResults.value = res.data.data
+    } catch (err) {
+      console.error('Erreur recherche:', err)
+      searchResults.value = []
+    } finally {
+      searchLoading.value = false
+    }
+  }, 350)
+}
+
+function selectResult(r) {
+  closeSearchDropdown()
+  router.push('/professor/portfolios-consultes')
+}
+
+function clearSearch() {
+  searchQuery.value = ''
+  searchResults.value = []
+  showSearchDropdown.value = false
+}
+
+function closeSearchDropdown() {
+  showSearchDropdown.value = false
+  isFocused.value = false
+}
+
+// ── Notifications ───────────────────────────────────────────────
+const notifications = ref([])
+const unreadCount = ref(0)
+const notifLoading = ref(false)
+const showNotifDropdown = ref(false)
+const notifWrapper = ref(null)
+
+async function fetchNotifications() {
+  notifLoading.value = true
+  try {
+    const res = await api.get('/notifications')
+    notifications.value = res.data.data.notifications
+    unreadCount.value = res.data.data.unreadCount
+  } catch (err) {
+    console.error('Erreur notifications:', err)
+  } finally {
+    notifLoading.value = false
+  }
+}
+
+function toggleNotifDropdown() {
+  showNotifDropdown.value = !showNotifDropdown.value
+  if (showNotifDropdown.value) fetchNotifications()
+}
+
+async function handleMarkOneRead(n) {
+  if (n.read) return
+  try {
+    await api.patch(`/notifications/${n.id}/read`)
+    n.read = true
+    unreadCount.value = Math.max(0, unreadCount.value - 1)
+  } catch (err) {
+    console.error('Erreur mark read:', err)
+  }
+}
+
+async function handleMarkAllRead() {
+  try {
+    await api.patch('/notifications/read-all')
+    notifications.value.forEach(n => n.read = true)
+    unreadCount.value = 0
+  } catch (err) {
+    console.error('Erreur mark all read:', err)
+  }
+}
+
+async function handleDelete(id) {
+  try {
+    await api.delete(`/notifications/${id}`)
+    const n = notifications.value.find(n => n.id === id)
+    if (n && !n.read) unreadCount.value = Math.max(0, unreadCount.value - 1)
+    notifications.value = notifications.value.filter(n => n.id !== id)
+  } catch (err) {
+    console.error('Erreur delete notif:', err)
+  }
+}
+
+// ── Click outside ───────────────────────────────────────────────
+function handleClickOutside(e) {
+  if (searchWrapper.value && !searchWrapper.value.contains(e.target)) {
+    closeSearchDropdown()
+  }
+  if (notifWrapper.value && !notifWrapper.value.contains(e.target)) {
+    showNotifDropdown.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', handleClickOutside)
+  fetchNotifications() // charger le count au montage
+})
+onBeforeUnmount(() => document.removeEventListener('mousedown', handleClickOutside))
+</script>
+
 <style scoped>
 .topbar {
-  height: 60px;
-  background: #fff;
-  border-bottom: 1px solid #f1f5f9;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 32px;
-  width: 100%;
-  font-family: 'Inter', sans-serif;
-  position: relative;
-  z-index: 100;
+  height: 60px; background: #fff; display: flex; align-items: center;
+  justify-content: space-between; padding: 0 24px;
+  border-bottom: 1px solid #f0f0f0; position: sticky; top: 0; z-index: 50;
 }
-.topbar-title { font-size: 1.3rem; font-weight: 700; color: #0f172a; margin: 0; }
-.topbar-actions { display: flex; align-items: center; gap: 16px; }
+.topbar-title { font-size: 1rem; font-weight: 600; color: #0f172a; margin: 0; }
+.topbar-right { display: flex; align-items: center; gap: 14px; position: relative; }
 
-.search-box { display: flex; align-items: center; background: #f8f9fb; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; gap: 8px; }
-.search-box input { border: none; background: transparent; outline: none; font-size: 0.875rem; width: 180px; color: #0f172a; }
-.search-box input::placeholder { color: #94a3b8; }
-.search-box :deep(svg) { flex-shrink: 0; stroke-width: 2; color: #64748b; }
+/* Search */
+.search-wrapper { position: relative; }
+.search-box {
+  display: flex; align-items: center; gap: 8px;
+  background: #f4f6fa; border: 1.5px solid transparent;
+  border-radius: 10px; padding: 7px 12px; width: 240px; transition: all 0.2s;
+}
+.search-box.focused { background: #fff; border-color: #e5b230; box-shadow: 0 0 0 3px rgba(229,178,48,0.1); }
+.search-box input { border: none; background: none; outline: none; font-size: 0.875rem; color: #0f172a; flex: 1; }
+.search-box input::placeholder { color: #aaa; }
+.clear-btn { cursor: pointer; color: #94a3b8; display: flex; align-items: center; transition: color 0.2s; }
+.clear-btn:hover { color: #475569; }
 
-/* Notification Bell */
+.search-dropdown {
+  position: absolute; top: calc(100% + 8px); left: 0; width: 360px;
+  background: #fff; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  border: 1px solid #e2e8f0; overflow: hidden; z-index: 100;
+}
+.dropdown-header { padding: 8px 14px; font-size: 0.75rem; color: #94a3b8; border-bottom: 1px solid #f1f5f9; }
+.dropdown-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; transition: background 0.15s; }
+.dropdown-item:hover { background: #f8fafc; }
+.result-avatar { width: 36px; height: 36px; border-radius: 50%; color: #fff; font-weight: 700; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.result-info { flex: 1; min-width: 0; }
+.result-name { display: block; font-weight: 600; font-size: 0.875rem; color: #0f172a; }
+.result-meta { font-size: 0.75rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-tags { display: flex; gap: 4px; flex-shrink: 0; }
+.result-tag { font-size: 0.65rem; padding: 2px 6px; background: #f1f5f9; color: #475569; border-radius: 4px; }
+
+/* Notif */
 .notif-wrapper { position: relative; }
-
 .notif-btn {
-  width: 36px; height: 36px;
-  border: none; background: none;
-  color: #64748b; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s;
-  padding: 0; border-radius: 8px;
-  position: relative;
+  position: relative; background: none; border: none; cursor: pointer;
+  padding: 6px; color: #475569; display: flex; align-items: center;
+  border-radius: 8px; transition: background 0.2s;
 }
-.notif-btn:hover, .notif-btn.active { background: #f1f5f9; color: #0f172a; }
-.notif-btn :deep(svg) { flex-shrink: 0; stroke-width: 2; color: currentColor; }
-
+.notif-btn:hover { background: #f1f5f9; }
 .notif-badge {
-  position: absolute;
-  top: 4px; right: 4px;
-  min-width: 16px; height: 16px;
-  background: #ef4444;
-  color: #fff;
-  font-size: 0.65rem;
-  font-weight: 700;
-  border-radius: 20px;
+  position: absolute; top: 0; right: 0;
+  min-width: 16px; height: 16px; padding: 0 4px;
+  background: #e05260; color: #fff;
+  font-size: 0.6rem; font-weight: 700;
+  border-radius: 10px; border: 2px solid #fff;
   display: flex; align-items: center; justify-content: center;
-  padding: 0 3px;
-  border: 2px solid #fff;
 }
 
-/* Dropdown */
 .notif-dropdown {
-  position: absolute;
-  top: calc(100% + 12px);
-  right: 0;
-  width: 360px;
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 8px 32px rgba(0,0,0,.12);
-  border: 1px solid #e2e8f0;
-  overflow: hidden;
-  z-index: 9999;
+  position: absolute; top: calc(100% + 8px); right: 0; width: 340px;
+  background: #fff; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  border: 1px solid #e2e8f0; overflow: hidden; z-index: 100;
 }
-
-.notif-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 16px 12px;
-  border-bottom: 1px solid #f1f5f9;
+.notif-dropdown-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 14px; border-bottom: 1px solid #f1f5f9;
+  font-size: 0.875rem; font-weight: 600; color: #0f172a;
 }
-.notif-title { font-size: 0.95rem; font-weight: 700; color: #0f172a; }
-.mark-all-btn {
-  display: flex; align-items: center; gap: 4px;
-  background: none; border: none; color: #f5a623;
-  font-size: 0.75rem; font-weight: 600; cursor: pointer;
-  padding: 4px 8px; border-radius: 6px;
-}
-.mark-all-btn:hover { background: #fff7ed; }
-.mark-all-btn :deep(svg) { flex-shrink: 0; stroke-width: 2.5; color: currentColor; }
-
-.notif-list { max-height: 320px; overflow-y: auto; }
+.mark-all-btn { font-size: 0.75rem; color: #e5b230; background: none; border: none; cursor: pointer; font-weight: 500; }
+.mark-all-btn:hover { text-decoration: underline; }
 
 .notif-item {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px 16px;
-  cursor: pointer;
-  transition: background .15s;
-  border-bottom: 1px solid #f8f9fb;
+  display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px;
+  cursor: pointer; transition: background 0.15s; position: relative;
 }
-.notif-item:hover { background: #f8f9fb; }
-.notif-item.unread { background: #fffbf0; }
-.notif-item.unread:hover { background: #fef3c7; }
+.notif-item:hover { background: #f8fafc; }
+.notif-item.unread { background: #fffbeb; }
 
-.notif-type-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-.notif-body { flex: 1; min-width: 0; }
-.notif-text { font-size: 0.85rem; color: #0f172a; margin: 0 0 3px; line-height: 1.4; }
-.notif-item.unread .notif-text { font-weight: 600; }
-.notif-time { font-size: 0.75rem; color: #94a3b8; margin: 0; }
-
-.dismiss-btn {
-  background: none; border: none; color: #94a3b8;
-  cursor: pointer; padding: 2px; border-radius: 4px;
-  display: flex; align-items: center; flex-shrink: 0;
-  opacity: 0; transition: opacity .2s;
-}
-.notif-item:hover .dismiss-btn { opacity: 1; }
-.dismiss-btn:hover { color: #ef4444; }
-.dismiss-btn :deep(svg) { flex-shrink: 0; stroke-width: 2.5; color: currentColor; }
-
-.notif-empty { text-align: center; padding: 32px 16px; color: #94a3b8; }
-.notif-empty :deep(svg) { margin-bottom: 8px; opacity: 0.4; stroke-width: 2; }
-.notif-empty p { margin: 0; font-size: 0.875rem; }
-
-/* Dropdown animation */
-.dropdown-enter-active, .dropdown-leave-active { transition: all .2s ease; }
-.dropdown-enter-from, .dropdown-leave-to { opacity: 0; transform: translateY(-8px) scale(0.97); }
-
-.profile-btn {
-  width: 36px; height: 36px;
-  border-radius: 50%; background: #6e98e4;
-  color: #fff; font-weight: 700;
+.notif-icon {
+  width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 0.8rem; cursor: pointer; transition: background 0.2s;
 }
-.profile-btn:hover { background: #5347e1; }
+.notif-icon.comment { background: #ede9fe; color: #7c3aed; }
+.notif-icon.view { background: #dbeafe; color: #0891b2; }
+.notif-icon.portfolio { background: #dcfce7; color: #059669; }
+.notif-icon.reminder { background: #ffedd5; color: #ea580c; }
+
+.notif-body { flex: 1; min-width: 0; }
+.notif-text { font-size: 0.8rem; color: #0f172a; margin: 0 0 2px; line-height: 1.4; }
+.notif-time { font-size: 0.7rem; color: #94a3b8; }
+.notif-dot-unread { width: 8px; height: 8px; border-radius: 50%; background: #e5b230; flex-shrink: 0; margin-top: 4px; }
+
+.notif-delete {
+  background: none; border: none; cursor: pointer; color: #cbd5e1;
+  padding: 2px; display: flex; align-items: center; opacity: 0; transition: opacity 0.2s;
+}
+.notif-item:hover .notif-delete { opacity: 1; }
+.notif-delete:hover { color: #e05260; }
+
+/* Common */
+.dropdown-loading { display: flex; align-items: center; gap: 10px; padding: 16px 14px; color: #94a3b8; font-size: 0.875rem; }
+.spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #e2e8f0; border-top-color: #e5b230; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.dropdown-empty { padding: 24px 14px; text-align: center; color: #94a3b8; font-size: 0.875rem; }
+
+.topbar-avatar {
+  width: 34px; height: 34px; border-radius: 50%; background: #6c63ff;
+  color: #fff; font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
 </style>

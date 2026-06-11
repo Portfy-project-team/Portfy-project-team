@@ -15,7 +15,7 @@
     <!-- Welcome Banner -->
     <div class="welcome-card">
       <div class="welcome-text">
-        <h1>Bonjour, {{ store.user?.name ? 'M. ' + store.user.name : 'M. Ghailani' }}</h1>
+        <h1>Bonjour, {{ store.user?.name ? 'M. ' + store.user.name : store.user?.prenom ? 'M. ' + store.user.prenom : 'Professeur' }}</h1>
         <p>Ajoutez vos projets, stages et compétences pour obtenir un portfolio validé par votre institution. Impressionnez les recruteurs avec des preuves vérifiables.</p>
         <div class="header-actions">
           <button class="btn-primary"><Eye :size="14" /> Parcourir les portfolios</button>
@@ -131,11 +131,20 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted , computed } from 'vue'
 import { Eye, Mail, MessageCircle, Star, PlusCircle, CheckCircle } from 'lucide-vue-next'
 import { useDashboardStore } from '@/store/dashboardStore.js'
 
 const store = useDashboardStore()
+const welcomeName = computed(() => {
+  const user = store.user
+  if (!user) return 'Professeur'
+  const prenom = user.prenom || ''
+  const nom    = user.name || user.nom || ''
+  if (prenom) return `M. ${prenom} ${nom}`.trim()
+  if (nom)    return `M. ${nom}`
+  return 'Professeur'
+})
 
 const statsMeta = [
   { icon: PlusCircle,    iconBg: '#eef0ff', iconColor: '#6c63ff' },
