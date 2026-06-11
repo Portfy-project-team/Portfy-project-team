@@ -12,7 +12,7 @@ export const useModerationStore = defineStore('moderation', () => {
       flags: 3,
       reason: 'Ce projet semble être une copie. Le code est identique à un projet partagé sur GitHub.',
       date: '2024-06-10',
-      status: 'URGENT'
+      status: 'URGENT',
     },
     {
       id: '2',
@@ -23,8 +23,8 @@ export const useModerationStore = defineStore('moderation', () => {
       flags: 2,
       reason: 'Contenu juge offensant par plusieurs utilisateurs.',
       date: '2024-06-10',
-      status: 'EN ATTENTE'
-    }
+      status: 'PENDING',
+    },
   ])
 
   const totalItems = computed(() => items.value.length)
@@ -34,19 +34,27 @@ export const useModerationStore = defineStore('moderation', () => {
   })
 
   const pendingItems = computed(() => {
-    return items.value.filter((item) => item.status === 'EN ATTENTE').length
+    return items.value.filter((item) => item.status === 'PENDING').length
   })
 
+  const resolvedItems = computed(() => {
+    return items.value.filter((item) => item.status === 'RESOLVED').length
+  })
+
+  const getModerationItemById = (id) => {
+    return items.value.find((item) => String(item.id) === String(id))
+  }
+
   const resolveModerationItem = (id) => {
-    const item = items.value.find((item) => item.id === id)
+    const item = getModerationItemById(id)
 
     if (item) {
-      item.status = 'RESOLUE'
+      item.status = 'RESOLVED'
     }
   }
 
   const removeModerationItem = (id) => {
-    items.value = items.value.filter((item) => item.id !== id)
+    items.value = items.value.filter((item) => String(item.id) !== String(id))
   }
 
   return {
@@ -54,7 +62,9 @@ export const useModerationStore = defineStore('moderation', () => {
     totalItems,
     urgentItems,
     pendingItems,
+    resolvedItems,
+    getModerationItemById,
     resolveModerationItem,
-    removeModerationItem
+    removeModerationItem,
   }
 })

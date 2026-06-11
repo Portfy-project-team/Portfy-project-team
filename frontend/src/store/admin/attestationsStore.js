@@ -11,7 +11,7 @@ export const useAttestationStore = defineStore('attestation', () => {
       establishment: 'ENSA Tanger',
       submittedDate: '2024-05-28',
       status: 'A_VALIDER',
-      filePath: 'attestation_ocp_2024.pdf'
+      filePath: 'attestation_ocp_2024.pdf',
     },
     {
       id: '2',
@@ -21,7 +21,7 @@ export const useAttestationStore = defineStore('attestation', () => {
       establishment: 'ENSA Fes',
       submittedDate: '2024-05-27',
       status: 'A_VALIDER',
-      filePath: 'aws_certification.pdf'
+      filePath: 'aws_certification.pdf',
     },
     {
       id: '3',
@@ -31,18 +31,30 @@ export const useAttestationStore = defineStore('attestation', () => {
       establishment: 'ENSA Marrakech',
       submittedDate: '2024-05-25',
       status: 'A_VALIDER',
-      filePath: 'diplome_bac_2024.pdf'
-    }
+      filePath: 'diplome_bac_2024.pdf',
+    },
   ])
+
+  const totalAttestations = computed(() => attestations.value.length)
 
   const pendingAttestations = computed(() => {
     return attestations.value.filter((attestation) => attestation.status === 'A_VALIDER').length
   })
 
-  const totalAttestations = computed(() => attestations.value.length)
+  const validatedAttestations = computed(() => {
+    return attestations.value.filter((attestation) => attestation.status === 'VALIDEE').length
+  })
+
+  const rejectedAttestations = computed(() => {
+    return attestations.value.filter((attestation) => attestation.status === 'REJETEE').length
+  })
+
+  const getAttestationById = (id) => {
+    return attestations.value.find((attestation) => String(attestation.id) === String(id))
+  }
 
   const validateAttestation = (id) => {
-    const attestation = attestations.value.find((attestation) => attestation.id === id)
+    const attestation = getAttestationById(id)
 
     if (attestation) {
       attestation.status = 'VALIDEE'
@@ -50,7 +62,7 @@ export const useAttestationStore = defineStore('attestation', () => {
   }
 
   const rejectAttestation = (id) => {
-    const attestation = attestations.value.find((attestation) => attestation.id === id)
+    const attestation = getAttestationById(id)
 
     if (attestation) {
       attestation.status = 'REJETEE'
@@ -59,9 +71,12 @@ export const useAttestationStore = defineStore('attestation', () => {
 
   return {
     attestations,
-    pendingAttestations,
     totalAttestations,
+    pendingAttestations,
+    validatedAttestations,
+    rejectedAttestations,
+    getAttestationById,
     validateAttestation,
-    rejectAttestation
+    rejectAttestation,
   }
 })
