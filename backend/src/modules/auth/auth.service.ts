@@ -1,8 +1,6 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../../utils/prisma.js";
-<<<<<<< HEAD
 import { Prisma, UserStatus } from '@prisma/client';
-
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -18,13 +16,8 @@ const DUMMY_HASH =
   "$2a$12$LQv3c1yqBWVHxkd0LQ1Ns.sGKJnbHzGj0WkSTrMBxU7q5F3e1A/S2";
 
 // ── Register ──────────────────────────────────────────────────────
-export const registerUser = async (data: RegisterInput) => {
-  const { email, password, role="STUDENT" } = data;
-
-
-  // Hash EN PREMIER — temps de reponse constant que l'email existe ou non
-  // Sans ca : reponse immediate w(~1ms) si email existe, ~400ms si non
-  // → un attaquant detecte les emails enregistres par le temps de reponse
+export const registerUser = async (data: RegisterInput, verificationDocumentUrl: string | null = null) => {
+  const { email, password, role } = data;
 
   const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
@@ -41,27 +34,76 @@ export const registerUser = async (data: RegisterInput) => {
 
 return await prisma.$transaction(
   async (tx: Prisma.TransactionClient) => {
+    // STUDENT → ACTIVE (pas besoin de validation admin)
+    // PROF / PRO → PENDING (validation admin requise)
 
     const status =
       role === "STUDENT"
         ? UserStatus.ACTIVE
         : UserStatus.PENDING;
+        const anneeEntree =
+  data.anneeEntree != null
+    ? Number(data.anneeEntree)
+    : null;
+
+const diplomePrevu =
+  data.diplomePrevu != null
+    ? Number(data.diplomePrevu)
+    : null;
 
     return await tx.user.create({
       data: {
         email,
         password: hashedPassword,
         role,
-
+        status,
+// ── STUDENT
         ...(role === "STUDENT" && {
-          student: { create: {} },
+          student: { create: {
+            nom:           data.name,
+              prenom:        data.prenom,
+              filiere:       data.filiere       ?? null,
+              formationType: data.formationType ?? null,
+              niveau:        data.niveau        ?? null,
+              anneeEntree,
+              diplomePrevu,
+              bio:           data.bio           ?? null,
+              disponibilite: data.disponibilite ?? null,
+              linkedin:      data.linkedin      ?? null,
+              etablissement: data.etablissement ?? null,
+              skillsTexte: data.skills && data.skills.length > 0
+                            ? data.skills.join(',')
+                            : null, 
+          },
+        },
+        }),
+        // ── PROF
+        ...(role === "PROF" && {
+          prof: {
+            create: {
+              nom:           data.name,
+              prenom:        data.prenom,
+              departement:   data.departement   ?? null,
+              specialite:    data.specialite    ?? null,
+              bio:           data.bioProf       ?? null,  // bioProf → bio dans Prisma
+              linkedin:      data.linkedin      ?? null,
+              etablissement: data.etablissement ?? null,
+            },
+          },
         }),
 
         ...(role === "PRO" && {
-          professionnel: { create: {} },
+          professionnel: { create: {
+            nom:                   data.name,
+            prenom:                data.prenom,
+            entreprise:            data.entreprise            ?? null,
+            poste:                 data.poste                 ?? null,
+            secteur:               data.secteur               ?? null,
+            localisation:          data.localisation          ?? null,
+            descriptionEntreprise: data.descriptionEntreprise ?? null,
+            siteEntreprise:        data.siteEntreprise        ?? null,
+          } },
         }),
-
-        status
       },
 
       select: {
@@ -91,11 +133,7 @@ export const loginUser = async (
       isEmailVerified: true,
     },
   });
-if (user && !user.password) {
-  const error: any = new Error("Utilisez Google pour vous connecter");
-  error.statusCode = 403;
-  throw error;
-}
+
   const isValid = await bcrypt.compare(
     password,
     user?.password ?? DUMMY_HASH
@@ -254,9 +292,8 @@ export const sendVerificationEmail = async (
 
   const verifyLink = `${process.env.FRONTEND_URL}/verify-email?token=${rawToken}`;
   const template   = emailTemplates.verifyEmail(verifyLink);
-  console.log("seding email")
-  const res = await sendEmail({ to: email, subject: template.subject, html: template.html });
-  console.log(res)
+
+  await sendEmail({ to: email, subject: template.subject, html: template.html });
 };
 
 // ── Resend Verification Email ─────────────────────────────────────
@@ -388,85 +425,3 @@ export const resetPasswordService = async (
     }),
   ]);
 };
-
-=======
-
-type RegisterData = {
-  email: string;
-  password: string;
-};
-
-export const registerUser = async ({
-  email,
-  password,
-}: RegisterData) => {
-
-  // Check existing user
-  const existingUser = await prisma.user.findUnique({
-    where: {
-      email,
-    },
-  });
-
-  if (existingUser) {
-    throw new Error("User already exists");
-  }
-
-  // Detect role from email
-  let role: "STUDENT" | "PROF" | "PRO";
-
-  if (email.endsWith("@etu.uae.ac.ma")) {
-
-    role = "STUDENT";
-
-  } else if (
-    email.endsWith("@uae.ac.ma") &&
-    !email.endsWith("@etu.uae.ac.ma")
-  ) {
-
-    role = "PROF";
-
-  } else {
-
-    role = "PRO";
-
-  }
-
-  // Hash password
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  // Create user
-  const user = await prisma.user.create({
-    data: {
-      email,
-      password: hashedPassword,
-      role,
-
-      // Create related profile automatically
-      ...(role === "STUDENT" && {
-        student: {
-          create: {},
-        },
-      }),
-
-      ...(role === "PROF" && {
-        prof: {
-          create: {},
-        },
-      }),
-
-      ...(role === "PRO" && {
-        professionnel: {
-          create: {},
-        },
-      }),
-    },
-  });
-
-  return {
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  };
-};
->>>>>>> a032c28552d4a135d15a49edf044f7e07108f4cf

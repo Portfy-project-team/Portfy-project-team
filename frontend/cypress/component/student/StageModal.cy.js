@@ -1,127 +1,149 @@
+import StageModal from '@/components/student/modals/StageModal.vue'
+
 describe('StageModal Component', () => {
-  it('renders with correct title for new stage', () => {
-    cy.mount({
-      template: '<StageModal @close="onClose" @save="onSave" />',
-      components: { StageModal: require('../../src/components/student/modals/StageModal.vue').default },
-      methods: {
-        onClose() {},
-        onSave(data) {}
-      }
+  const mountComponent = (props = {}) => {
+    const onClose = cy.stub().as('closeStub')
+    const onSave = cy.stub().as('saveStub')
+
+    cy.mount(StageModal, {
+      props: {
+        ...props,
+        onClose,
+        onSave,
+      },
     })
+  }
+
+  const fillRequiredFields = () => {
+    cy.get('input[placeholder*="OCP"]').type('Google')
+    cy.get('input[placeholder*="Developpeur"]').type('Software Engineer')
+    cy.get('input[placeholder*="Casablanca"]').type('London')
+    cy.get('input[placeholder*="2 mois"]').type('1 month')
+    cy.get('input[placeholder*="Juillet"]').type('June 2025 - July 2025')
+  }
+
+  it('renders with correct title for new stage', () => {
+    mountComponent()
 
     cy.get('.modal-card h2').should('contain', 'Ajouter un stage')
     cy.get('.modal-header p').should('contain', 'professionnelle')
   })
 
-  it('has all required form fields for stage', () => {
-    cy.mount({
-      template: '<StageModal @close="onClose" @save="onSave" />',
-      components: { StageModal: require('../../src/components/student/modals/StageModal.vue').default },
-      methods: {
-        onClose() {},
-        onSave(data) {}
-      }
+  it('renders with edit title when editing', () => {
+    mountComponent({
+      stageToEdit: {
+        id: 1,
+        company: 'OCP',
+        position: 'Developpeur',
+        location: 'Casablanca',
+        duration: '2 mois',
+        period: 'Juillet 2024',
+      },
     })
 
-    cy.get('label').should('contain', "Organisme d'accueil")
-    cy.get('label').should('contain', 'Poste occupe')
-    cy.get('label').should('contain', 'Ville')
-    cy.get('label').should('contain', 'Periode')
-    cy.get('label').should('contain', 'Missions')
-    cy.get('label').should('contain', 'Encadrant')
+    cy.get('.modal-card h2').should('contain', 'Modifier le stage')
+  })
+
+  it('has all required form fields for stage', () => {
+    mountComponent()
+
+    cy.contains('label', "Organisme d'accueil").should('exist')
+    cy.contains('label', 'Poste occupe').should('exist')
+    cy.contains('label', 'Ville').should('exist')
+    cy.contains('label', 'Duree').should('exist')
+    cy.contains('label', 'Periode').should('exist')
+    cy.contains('label', 'Missions realisees').should('exist')
+    cy.contains('label', 'Technologies utilisees').should('exist')
+    cy.contains('label', 'Encadrant entreprise').should('exist')
+    cy.contains('label', 'Encadrant academique').should('exist')
   })
 
   it('submit button is disabled when required fields are empty', () => {
-    cy.mount({
-      template: '<StageModal @close="onClose" @save="onSave" />',
-      components: { StageModal: require('../../src/components/student/modals/StageModal.vue').default },
-      methods: {
-        onClose() {},
-        onSave(data) {}
-      }
-    })
+    mountComponent()
 
     cy.get('.submit-btn').should('be.disabled')
   })
 
   it('enables submit when all required fields are filled', () => {
-    cy.mount({
-      template: '<StageModal @close="onClose" @save="onSave" />',
-      components: { StageModal: require('../../src/components/student/modals/StageModal.vue').default },
-      methods: {
-        onClose() {},
-        onSave(data) {}
-      }
-    })
-
-    cy.get('input[placeholder*="OCP"]').type('Google')
-    cy.get('input[placeholder*="Développeur"]').type('Software Engineer')
-    cy.get('input[placeholder*="Casablanca"]').type('London')
-    cy.get('input[placeholder*="Juillet"]').type('June 2025 - July 2025')
-    cy.get('input[placeholder*="2 mois"]').type('1 month')
+    mountComponent()
+    fillRequiredFields()
 
     cy.get('.submit-btn').should('not.be.disabled')
   })
 
-  it('shows save as draft button for new stage', () => {
-    cy.mount({
-      template: '<StageModal @close="onClose" @save="onSave" />',
-      components: { StageModal: require('../../src/components/student/modals/StageModal.vue').default },
-      methods: {
-        onClose() {},
-        onSave(data) {}
-      }
-    })
+  it('emits save event when submitting valid stage', () => {
+    mountComponent()
+    fillRequiredFields()
 
-    cy.get('.draft-btn').should('exist').should('contain', 'Enregistrer comme brouillon')
+    cy.get('.submit-btn').click()
+
+    cy.get('@saveStub').should('have.been.calledOnce')
+    cy.get('@saveStub').should('have.been.calledWithMatch', {
+      company: 'Google',
+      position: 'Software Engineer',
+      location: 'London',
+      duration: '1 month',
+      period: 'June 2025 - July 2025',
+      status: 'En attente',
+    })
+  })
+
+  it('shows save as draft button for new stage', () => {
+    mountComponent()
+
+    cy.get('.draft-btn')
+      .should('exist')
+      .should('contain', 'Enregistrer comme brouillon')
+  })
+
+  it('emits save event as draft', () => {
+    mountComponent()
+    fillRequiredFields()
+
+    cy.get('.draft-btn').click()
+
+    cy.get('@saveStub').should('have.been.calledOnce')
+    cy.get('@saveStub').should('have.been.calledWithMatch', {
+      status: 'Brouillon',
+    })
   })
 
   it('hides draft button when editing', () => {
-    const stageToEdit = {
-      id: 1,
-      company: 'OCP',
-      position: 'Développeur'
-    }
-
-    cy.mount({
-      template: '<StageModal :stageToEdit="stage" @close="onClose" @save="onSave" />',
-      components: { StageModal: require('../../src/components/student/modals/StageModal.vue').default },
-      data() {
-        return { stage: stageToEdit }
+    mountComponent({
+      stageToEdit: {
+        id: 1,
+        company: 'OCP',
+        position: 'Developpeur',
+        location: 'Casablanca',
+        duration: '2 mois',
+        period: 'Juillet 2024',
       },
-      methods: {
-        onClose() {},
-        onSave(data) {}
-      }
     })
 
     cy.get('.draft-btn').should('not.exist')
   })
 
   it('has file upload section for report', () => {
-    cy.mount({
-      template: '<StageModal @close="onClose" @save="onSave" />',
-      components: { StageModal: require('../../src/components/student/modals/StageModal.vue').default },
-      methods: {
-        onClose() {},
-        onSave(data) {}
-      }
-    })
+    mountComponent()
 
-    cy.get('label').should('contain', 'Rapport de stage')
+    cy.contains('label', 'Rapport de stage').should('exist')
     cy.get('input[type="file"]').should('have.attr', 'accept', 'application/pdf')
   })
 
-  it('has supervisor selectors', () => {
-    cy.mount({
-      template: '<StageModal @close="onClose" @save="onSave" />',
-      components: { StageModal: require('../../src/components/student/modals/StageModal.vue').default },
-      methods: {
-        onClose() {},
-        onSave(data) {}
-      }
-    })
+  it('has academic supervisor selector', () => {
+    mountComponent()
 
-    cy.get('select').should('have.length.at.least', 1)
+    cy.get('select')
+      .first()
+      .should('contain', 'Pr. Benali')
+      .should('contain', 'Pr. Idrissi')
+      .should('contain', 'Pr. Rachid')
+  })
+
+  it('emits close event when close button clicked', () => {
+    mountComponent()
+
+    cy.get('.close-btn').click()
+    cy.get('@closeStub').should('have.been.calledOnce')
   })
 })

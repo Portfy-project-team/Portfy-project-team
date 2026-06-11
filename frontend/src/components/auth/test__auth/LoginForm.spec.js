@@ -1,37 +1,40 @@
-import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
-import { nextTick } from 'vue'
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import Login from '../LoginForm.vue'
-import { useAuthStore } from '../../../store/authStore'
+// @vitest-environment jsdom
 
-const mocks = vi.hoisted(() => {
-  return {
-    push: vi.fn()
+import { mount, flushPromises } from '@vue/test-utils'
+import { describe, expect, test, vi, beforeEach } from 'vitest'
+import LoginForm from '../LoginForm.vue'
+
+const mocks = vi.hoisted(() => ({
+  push: vi.fn(),
+  login: vi.fn(),
+  axiosPost: vi.fn()
+}))
+
+vi.mock('vue-router', () => ({
+  useRouter: () => ({
+    push: mocks.push
+  })
+}))
+
+vi.mock('axios', () => ({
+  default: {
+    post: mocks.axiosPost
   }
-})
+}))
 
-vi.mock('vue-router', async () => {
-  const actual = await vi.importActual('vue-router')
+vi.mock('../../../store/authStore', () => ({
+  useAuthStore: () => ({
+    login: mocks.login
+  })
+}))
 
-  return {
-    ...actual,
-    useRouter: () => ({
-      push: mocks.push
-    })
-  }
-})
-
-function mountLogin() {
-  const pinia = createPinia()
-  setActivePinia(pinia)
-
-  return mount(Login, {
+const mountLogin = () => {
+  return mount(LoginForm, {
     global: {
-      plugins: [pinia],
       stubs: {
         RouterLink: {
-          template: '<a><slot /></a>'
+          props: ['to'],
+          template: '<a class="router-link-stub" :href="to"><slot /></a>'
         }
       }
     }
@@ -40,80 +43,115 @@ function mountLogin() {
 
 describe('LoginForm.vue', () => {
   beforeEach(() => {
-    mocks.push.mockReset()
+    mocks.push.mockClear()
+    mocks.login.mockClear()
+    mocks.axiosPost.mockReset()
   })
 
-  afterEach(() => {
-    vi.useRealTimers()
-  })
-
-  test('affiche le formulaire de connexion', () => {
+  test('affiche la page login', () => {
     const wrapper = mountLogin()
 
+    expect(wrapper.text()).toContain('Portfy')
     expect(wrapper.text()).toContain('Bon retour')
-    expect(wrapper.find('#email').exists()).toBe(true)
-    expect(wrapper.find('#password').exists()).toBe(true)
-    expect(wrapper.find('button[type="submit"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Connectez-vous à votre espace Portfy.')
+    expect(wrapper.text()).toContain('Se connecter')
   })
 
-  test('affiche les erreurs si email et mot de passe sont vides', async () => {
+  test('affiche les liens register et forgot password', () => {
     const wrapper = mountLogin()
 
-    await wrapper.find('form').trigger('submit')
+    const links = wrapper.findAll('.router-link-stub')
+    const hrefs = links.map((link) => link.attributes('href'))
+
+    expect(hrefs).toContain('/register')
+    expect(hrefs).toContain('/forgot-password')
+  })
+
+  test('affiche erreurs si email et password sont vides', async () => {
+    const wrapper = mountLogin()
+
+    await wrapper.find('form').trigger('submit.prevent')
 
     expect(wrapper.text()).toContain("L'adresse e-mail est requise.")
     expect(wrapper.text()).toContain('Le mot de passe est requis.')
-    expect(mocks.push).not.toHaveBeenCalled()
+    expect(mocks.axiosPost).not.toHaveBeenCalled()
   })
 
-  test('affiche les erreurs si email invalide et mot de passe court', async () => {
+  test('affiche erreurs si email invalide et mot de passe court', async () => {
     const wrapper = mountLogin()
 
-    await wrapper.find('#email').setValue('email-invalide')
+    await wrapper.find('#email').setValue('test.com')
     await wrapper.find('#password').setValue('123')
-    await wrapper.find('form').trigger('submit')
+
+    await wrapper.find('form').trigger('submit.prevent')
 
     expect(wrapper.text()).toContain('Veuillez entrer une adresse e-mail valide.')
     expect(wrapper.text()).toContain('Le mot de passe doit comporter au moins 6 caractères.')
-    expect(mocks.push).not.toHaveBeenCalled()
+    expect(mocks.axiosPost).not.toHaveBeenCalled()
   })
 
-  test('affiche et masque le mot de passe', async () => {
+  test('toggle password change le type input', async () => {
     const wrapper = mountLogin()
 
-    expect(wrapper.find('#password').element.type).toBe('password')
+    const passwordInput = wrapper.find('#password')
+
+    expect(passwordInput.attributes('type')).toBe('password')
 
     await wrapper.find('.toggle-password').trigger('click')
 
-    expect(wrapper.find('#password').element.type).toBe('text')
-
-    await wrapper.find('.toggle-password').trigger('click')
-
-    expect(wrapper.find('#password').element.type).toBe('password')
+    expect(wrapper.find('#password').attributes('type')).toBe('text')
   })
 
-  test('connecte utilisateur et redirige vers dashboard si formulaire valide', async () => {
-    vi.useFakeTimers()
+  test('login success appelle API, store login et redirect dashboard', async () => {
+    mocks.axiosPost.mockResolvedValue({
+      data: {
+        user: {
+          id: 1,
+          name: 'Ahmed',
+          role: 'STUDENT'
+        }
+      }
+    })
 
     const wrapper = mountLogin()
-    const authStore = useAuthStore()
 
-    await wrapper.find('#email').setValue('test@institution.ma')
+    await wrapper.find('#email').setValue('ahmed@test.com')
     await wrapper.find('#password').setValue('123456')
-    await wrapper.find('form').trigger('submit')
-    await nextTick()
 
-    expect(wrapper.find('.btn-submit').attributes('disabled')).toBeDefined()
+    await wrapper.find('form').trigger('submit.prevent')
+    await flushPromises()
 
-    await vi.advanceTimersByTimeAsync(1000)
-    await nextTick()
+    expect(mocks.axiosPost).toHaveBeenCalledWith(
+      'http://localhost:3000/api/auth/login',
+      {
+        email: 'ahmed@test.com',
+        password: '123456'
+      },
+      {
+        withCredentials: true
+      }
+    )
 
-    expect(authStore.isAuthenticated).toBe(true)
-    expect(authStore.user).toEqual({
-      email: 'test@institution.ma'
+    expect(mocks.login).toHaveBeenCalledWith({
+      id: 1,
+      name: 'Ahmed',
+      role: 'STUDENT'
     })
 
     expect(mocks.push).toHaveBeenCalledWith('/dashboard')
-    expect(wrapper.find('.btn-submit').attributes('disabled')).toBeUndefined()
+  })
+
+  test('login failed affiche message erreur serveur', async () => {
+    mocks.axiosPost.mockRejectedValue(new Error('invalid credentials'))
+
+    const wrapper = mountLogin()
+
+    await wrapper.find('#email').setValue('ahmed@test.com')
+    await wrapper.find('#password').setValue('123456')
+
+    await wrapper.find('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Identifiants incorrects.')
   })
 })

@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../pages/auth/Login.vue'
+import Conditions from '../pages/Conditions.vue'
+import Politique from '../pages/Politique.vue'
 
 const routes = [
   {
@@ -20,9 +22,9 @@ const routes = [
   },
 
   {
-    path: '/home',
-    name: 'home',
-    component: () => import('../pages/PageHome.vue')
+    path: '/pending',                                                          // ← ajoute ici
+    name: 'pending',
+    component: () => import('../pages/auth/PendingValidation.vue')
   },
 
   {
@@ -32,9 +34,38 @@ const routes = [
   },
 
   {
-    path: '/pagehome',
-    name: 'pagehome',
-    component: () => import('../pages/PageHome.vue')
+  path: '/dashboard',
+  redirect: () => {
+    const user = JSON.parse(localStorage.getItem('user'))
+    if (user?.role === 'PROF')    return '/professor/dashboard'
+    if (user?.role === 'STUDENT') return '/student/dashboard'
+    return '/login'
+  }
+},
+{
+  path: '/professor',
+  component: () => import('../components/professor/ProfLayout.vue'),
+  children: [
+    {
+      path: 'dashboard',
+      name: 'prof-dashboard',
+      component: () => import('../pages/professor/Dashboard.vue'),
+    }
+  ]
+},
+  {
+    path: '/conditions',
+    name: 'conditions',
+    component: () => import('../pages/Conditions.vue')
+  },
+  {
+    path: '/politique',
+    name: 'politique',
+    component: () => import('../pages/Politique.vue')
+  },
+  { path: '/professor/generer-lettre', 
+    name: 'professor-generer-lettre', 
+    component: () => import('../pages/professor/GenererLettre.vue') 
   },
 
   // STUDENT ROUTES

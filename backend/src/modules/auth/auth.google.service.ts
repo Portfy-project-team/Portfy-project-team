@@ -8,6 +8,9 @@ import {
   generateRefreshToken,
 } from "../../utils/jwt.js";
 
+<<<<<<< HEAD
+
+=======
 // ── Types ──────────────────────────────────────────────────────────
 interface GoogleCallbackMeta {
   ip?:       string;
@@ -165,6 +168,7 @@ export const loginOrRegisterWithGoogle = async (
     refreshToken,
   };
 };
+>>>>>>> b55639c3c3594a37b0b5769ecf641178b722675e
 
 // Vérifie le token Supabase et retourne les infos Google
 // Sans créer de compte — utilisé pour la première étape

@@ -83,6 +83,15 @@ model Student {
   prenom           String?
   dateC            DateTime?
   filiere          String?
+  formationType String?
+  niveau        String?
+  anneeEntree   Int?
+  diplomePrevu  Int?
+  bio           String?
+  disponibilite String?
+  linkedin      String?
+  etablissement String?
+  skillsTexte String?
   userId           Int                @unique
   id               Int                @id @default(autoincrement())
   Commentaire      Commentaire[]
@@ -100,6 +109,9 @@ model Student {
 model Prof {
   departement          String?
   specialite           String?
+  bio           String?   // stocke bioProf
+  linkedin      String?
+  etablissement String?
   prenom               String?
   nom                  String?
   userId               Int                    @unique
@@ -111,6 +123,7 @@ model Prof {
   Projet               Projet[]
   Recommendation       Recommendation[]
   Stage                Stage[]
+  portfolioVisits      PortfolioVisit[] 
 }
 
 model Professionnel {
@@ -119,6 +132,10 @@ model Professionnel {
   nom            String?
   prenom         String?
   statusV        StatutValidation @default(PENDING)
+  secteur               String?
+  localisation          String?
+  descriptionEntreprise String?
+  siteEntreprise        String?
   userId         Int              @unique
   id             Int              @id @default(autoincrement())
   Commentaire    Commentaire[]
@@ -150,6 +167,21 @@ model Portfolio {
   skills           PortfolioSkill[]
   projets          Projet[]
   Recommendation   Recommendation[]
+  portfolioVisits  PortfolioVisit[]
+}
+
+model PortfolioVisit {
+  id          Int       @id @default(autoincrement())
+  profId      Int
+  portfolioId Int
+  visitedAt   DateTime  @default(now())
+  visitCount  Int       @default(1)
+  bookmarked  Boolean   @default(false)
+
+  prof        Prof      @relation(fields: [profId], references: [id])
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+
+  @@unique([profId, portfolioId])
 }
 
 model Projet {
@@ -177,7 +209,7 @@ model Projet {
 
 model Skill {
   categorie  String?
-  nom        String
+  nom        String           @unique
   id         Int              @id @default(autoincrement())
   portfolios PortfolioSkill[]
   projets    ProjetSkill[]
@@ -251,6 +283,7 @@ model Commentaire {
   Student         Student?          @relation(fields: [authorStudentId], references: [id])
   Portfolio       Portfolio         @relation(fields: [portfolioId], references: [id])
   Projet          Projet?           @relation(fields: [projetId], references: [id])
+  isRead Boolean @default(false)
 }
 
 model Formation {

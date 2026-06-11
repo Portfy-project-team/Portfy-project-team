@@ -7,12 +7,12 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    }
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
   },
 
   css: {
-    postcss: null
+    postcss: null,
   },
 
   test: {
@@ -21,7 +21,6 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      reportsDirectory: 'coverage'
-    }
-  }
+    },
+  },
 })

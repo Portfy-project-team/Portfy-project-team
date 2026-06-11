@@ -1,8 +1,14 @@
+import StatCard from '@/components/student/StatCard.vue'
+
 describe('StatCard Component', () => {
   it('renders with title and value', () => {
-    cy.mount({
-      template: '<StatCard title="Projets" value="12" unit="en cours" subtitle="3 validés" />',
-      components: { StatCard: require('../../src/components/student/StatCard.vue').default }
+    cy.mount(StatCard, {
+      props: {
+        title: 'Projets',
+        value: '12',
+        unit: 'en cours',
+        subtitle: '3 validés',
+      },
     })
 
     cy.get('.stat-header h3').should('contain', 'Projets')
@@ -11,53 +17,74 @@ describe('StatCard Component', () => {
     cy.get('.stat-subtitle').should('contain', '3 validés')
   })
 
-  it('applies correct color class', () => {
-    cy.mount({
-      template: '<StatCard title="Formations" value="5" color="green" subtitleColor="green" />',
-      components: { StatCard: require('../../src/components/student/StatCard.vue').default }
+  it('applies green color classes', () => {
+    cy.mount(StatCard, {
+      props: {
+        title: 'Formations',
+        value: '5',
+        color: 'green',
+        subtitleColor: 'green',
+        subtitle: 'Validé',
+      },
     })
 
-    cy.get('.square-green').should('exist')
-    cy.get('.subtitle-green').should('exist')
+    cy.get('.stat-square').should('have.class', 'square-green')
+    cy.get('.stat-subtitle').should('have.class', 'subtitle-green')
   })
 
-  it('applies yellow color styling', () => {
-    cy.mount({
-      template: '<StatCard title="Stages" value="2" color="yellow" subtitleColor="orange" />',
-      components: { StatCard: require('../../src/components/student/StatCard.vue').default }
+  it('applies yellow and orange color classes', () => {
+    cy.mount(StatCard, {
+      props: {
+        title: 'Stages',
+        value: '2',
+        color: 'yellow',
+        subtitleColor: 'orange',
+        subtitle: 'En attente',
+      },
     })
 
-    cy.get('.square-yellow').should('exist')
-    cy.get('.subtitle-orange').should('exist')
+    cy.get('.stat-square').should('have.class', 'square-yellow')
+    cy.get('.stat-subtitle').should('have.class', 'subtitle-orange')
   })
 
-  it('applies blue color styling', () => {
-    cy.mount({
-      template: '<StatCard title="Compétences" value="18" color="blue" subtitleColor="gray" />',
-      components: { StatCard: require('../../src/components/student/StatCard.vue').default }
+  it('applies blue and gray color classes', () => {
+    cy.mount(StatCard, {
+      props: {
+        title: 'Compétences',
+        value: '18',
+        color: 'blue',
+        subtitleColor: 'gray',
+        subtitle: 'Total',
+      },
     })
 
-    cy.get('.square-blue').should('exist')
-    cy.get('.subtitle-gray').should('exist')
+    cy.get('.stat-square').should('have.class', 'square-blue')
+    cy.get('.stat-subtitle').should('have.class', 'subtitle-gray')
   })
 
-  it('renders card with proper styling', () => {
-    cy.mount({
-      template: '<StatCard title="Test" value="100" />',
-      components: { StatCard: require('../../src/components/student/StatCard.vue').default }
+  it('renders card with default styling classes', () => {
+    cy.mount(StatCard, {
+      props: {
+        title: 'Test',
+        value: '100',
+      },
     })
 
-    cy.get('.stat-card')
-      .should('have.css', 'border-radius', '16px')
-      .should('have.css', 'background', 'rgb(255, 255, 255)')
+    cy.get('.stat-card').should('exist')
+    cy.get('.stat-square').should('have.class', 'square-cream')
+    cy.get('.stat-subtitle').should('have.class', 'subtitle-gray')
   })
 
-  it('displays large font for value', () => {
-    cy.mount({
-      template: '<StatCard title="Test" value="999" />',
-      components: { StatCard: require('../../src/components/student/StatCard.vue').default }
+  it('does not show unit when unit is empty', () => {
+    cy.mount(StatCard, {
+      props: {
+        title: 'Test',
+        value: '999',
+        unit: '',
+      },
     })
 
-    cy.get('.value').should('have.css', 'font-size', '34px')
+    cy.get('.value').should('contain', '999')
+    cy.get('.unit').should('not.exist')
   })
 })

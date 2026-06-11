@@ -1,263 +1,185 @@
-// ─────────────────────────────────────────────────────────────
-//  TESTS E2E — AUTHENTIFICATION (focus : Professeur)
-//  cypress/e2e/auth/auth.cy.js
-// ─────────────────────────────────────────────────────────────
-
-describe('🔐 Authentification — Professeur', () => {
-  let users
-
-  before(() => {
-    cy.fixture('users').then((data) => {
-      users = data
-    })
-  })
-
-  beforeEach(() => {
-    cy.visit('/auth/login')
-  })
-
-  // ──────────────────────────────────────────────────────────
-  //  1. AFFICHAGE DE LA PAGE DE LOGIN
-  // ──────────────────────────────────────────────────────────
-  describe('Page de connexion — UI', () => {
-    it('affiche correctement le formulaire de connexion', () => {
-      cy.get('[data-cy="login-email"]').should('be.visible')
-      cy.get('[data-cy="login-password"]').should('be.visible')
-      cy.get('[data-cy="login-submit"]').should('be.visible').and('not.be.disabled')
+describe('Auth Pages - E2E', () => {
+  describe('Login Page', () => {
+    beforeEach(() => {
+      cy.visit('/login')
     })
 
-    it('affiche un lien "Mot de passe oublié"', () => {
-      cy.get('[data-cy="forgot-password-link"]').should('exist')
+    it('affiche la page login', () => {
+      cy.contains('Bon retour').should('be.visible')
+      cy.contains('Se connecter').should('be.visible')
+      cy.get('input[type="email"]').should('be.visible')
+      cy.get('input[type="password"]').should('be.visible')
     })
 
-    it('masque le mot de passe par défaut', () => {
-      cy.get('[data-cy="login-password"]').should('have.attr', 'type', 'password')
+    it('affiche les erreurs si les champs sont vides', () => {
+      cy.contains('button', 'Se connecter').click()
+
+      cy.contains("L'adresse e-mail est requise.").should('be.visible')
+      cy.contains('Le mot de passe est requis.').should('be.visible')
     })
 
-    it('permet de basculer la visibilité du mot de passe', () => {
-      cy.get('[data-cy="toggle-password"]').click()
-      cy.get('[data-cy="login-password"]').should('have.attr', 'type', 'text')
-      cy.get('[data-cy="toggle-password"]').click()
-      cy.get('[data-cy="login-password"]').should('have.attr', 'type', 'password')
-    })
-  })
+    it('affiche erreur si email invalide', () => {
+      cy.get('input[type="email"]').type('email-faux')
+      cy.get('input[type="password"]').type('Password1!')
 
-  // ──────────────────────────────────────────────────────────
-  //  2. CONNEXION RÉUSSIE — PROFESSEUR
-  // ──────────────────────────────────────────────────────────
-  describe('Connexion réussie', () => {
-    it('connecte le professeur avec des identifiants valides', () => {
-      cy.intercept('POST', '**/auth/login', {
+      cy.contains('button', 'Se connecter').click()
+
+      cy.contains('Veuillez entrer une adresse e-mail valide.').should('be.visible')
+    })
+
+    it('connecte utilisateur avec succès', () => {
+      cy.intercept('POST', '**/api/auth/login', {
         statusCode: 200,
         body: {
-          token: 'fake-jwt-token-professor',
           user: {
             id: 1,
-            role: 'professor',
-            firstName: users.professor.firstName,
-            lastName: users.professor.lastName,
-            email: users.professor.email,
+            name: 'Youssef',
+            email: 'test@gmail.com',
+            role: 'STUDENT',
           },
         },
       }).as('loginRequest')
 
-      cy.loginUI(users.professor.email, users.professor.password)
+      cy.get('input[type="email"]').type('test@gmail.com')
+      cy.get('input[type="password"]').type('Password1!')
 
-      cy.wait('@loginRequest').its('request.body').should('deep.include', {
-        email: users.professor.email,
-        password: users.professor.password,
-      })
+      cy.contains('button', 'Se connecter').click()
 
-      // Redirigé vers le dashboard professeur
-      cy.url().should('include', '/professor/dashboard')
-    })
-
-    it('stocke le token dans le localStorage après connexion', () => {
-      cy.intercept('POST', '**/auth/login', {
-        statusCode: 200,
-        body: { token: 'fake-jwt-token', user: { role: 'professor' } },
-      }).as('loginRequest')
-
-      cy.loginUI(users.professor.email, users.professor.password)
       cy.wait('@loginRequest')
-
-      cy.window()
-        .its('localStorage')
-        .invoke('getItem', 'token')
-        .should('eq', 'fake-jwt-token')
+      cy.location('pathname').should('include', '/dashboard')
     })
 
-    it('affiche le nom du professeur dans le topbar après connexion', () => {
-      cy.intercept('POST', '**/auth/login', {
+    it('redirige vers register', () => {
+      cy.contains('Créer un compte').click()
+      cy.location('pathname').should('include', '/register')
+    })
+
+    it('redirige vers forgot password', () => {
+      cy.contains('Mot de passe oublié ?').click()
+      cy.location('pathname').should('include', '/forgot-password')
+    })
+  })
+
+  describe('Register Page', () => {
+    beforeEach(() => {
+      cy.visit('/register')
+    })
+
+    it('affiche la page register', () => {
+      cy.contains('Créez votre compte').should('be.visible')
+      cy.contains('Continuer').should('be.visible')
+      cy.get('input[placeholder="Votre nom"]').should('be.visible')
+      cy.get('input[placeholder="Votre prénom"]').should('be.visible')
+    })
+
+    it('affiche les erreurs si formulaire vide', () => {
+      cy.contains('button', 'Continuer').click()
+
+      cy.contains('Nom obligatoire').should('be.visible')
+      cy.contains('Prénom obligatoire').should('be.visible')
+      cy.contains('Email obligatoire').should('be.visible')
+      cy.contains('Mot de passe obligatoire').should('be.visible')
+      cy.contains('Confirmation obligatoire').should('be.visible')
+      cy.contains('Choisissez un rôle').should('be.visible')
+      cy.contains('Veuillez accepter les conditions').should('be.visible')
+    })
+
+    it('affiche erreur email invalide', () => {
+      fillRegisterStep1('email-faux')
+
+      cy.contains('button', 'Continuer').click()
+
+      cy.contains('Email invalide').should('be.visible')
+    })
+
+    it('passe vers étape 2 étudiant', () => {
+      fillRegisterStep1()
+
+      cy.contains('button', 'Continuer').click()
+
+      cy.contains('Votre formation').should('be.visible')
+      cy.contains('Type de formation').should('be.visible')
+    })
+
+    it('redirige vers login', () => {
+      cy.contains('Connexion').click()
+      cy.location('pathname').should('include', '/login')
+    })
+  })
+
+  describe('Forgot Password Page', () => {
+    beforeEach(() => {
+      cy.visit('/forgot-password')
+    })
+
+    it('affiche la page forgot password', () => {
+      cy.contains('Retour à la connexion').should('be.visible')
+      cy.contains('Envoyer le code').should('be.visible')
+      cy.get('input[type="email"]').should('be.visible')
+    })
+
+    it('affiche erreur si email vide', () => {
+      cy.contains('button', 'Envoyer le code').click()
+
+      cy.contains('Email obligatoire').should('be.visible')
+    })
+
+    it('affiche erreur si email invalide', () => {
+      cy.get('input[type="email"]').type('email-faux')
+
+      cy.contains('button', 'Envoyer le code').click()
+
+      cy.contains('Veuillez entrer un email valide').should('be.visible')
+    })
+
+    it('passe vers étape OTP si email valide', () => {
+      cy.intercept('POST', '**/api/auth/forgot-password', {
         statusCode: 200,
         body: {
-          token: 'fake-jwt-token',
-          user: {
-            role: 'professor',
-            firstName: 'Ahmed',
-            lastName: 'Benali',
-          },
+          message: 'Code envoyé',
         },
-      }).as('loginRequest')
+      }).as('forgotRequest')
 
-      cy.loginUI(users.professor.email, users.professor.password)
-      cy.wait('@loginRequest')
+      cy.get('input[type="email"]').type('test@gmail.com')
+      cy.contains('button', 'Envoyer le code').click()
 
-      cy.get('[data-cy="topbar-username"]')
-        .should('be.visible')
-        .and('contain', 'Ahmed')
+      cy.wait('@forgotRequest')
+
+      cy.contains('Un code à 6 chiffres').should('be.visible')
+      cy.get('.otp-input').should('have.length', 6)
+    })
+
+    it('redirige vers login', () => {
+      cy.contains('Retour à la connexion').click()
+      cy.location('pathname').should('include', '/login')
     })
   })
 
-  // ──────────────────────────────────────────────────────────
-  //  3. CONNEXION ÉCHOUÉE — CAS D'ERREUR
-  // ──────────────────────────────────────────────────────────
-  describe('Connexion échouée', () => {
-    it('affiche une erreur avec un mot de passe incorrect', () => {
-      cy.intercept('POST', '**/auth/login', {
-        statusCode: 401,
-        body: { message: 'Identifiants incorrects' },
-      }).as('loginFailed')
-
-      cy.loginUI(users.professorInvalid.email, users.professorInvalid.password)
-      cy.wait('@loginFailed')
-
-      cy.get('[data-cy="login-error"]')
-        .should('be.visible')
-        .and('contain', 'Identifiants incorrects')
-
-      // Reste sur la page de login
-      cy.url().should('include', '/auth/login')
-    })
-
-    it("affiche une erreur si l'email est inconnu", () => {
-      cy.intercept('POST', '**/auth/login', {
-        statusCode: 404,
-        body: { message: 'Utilisateur introuvable' },
-      }).as('loginNotFound')
-
-      cy.loginUI(users.professorUnknown.email, users.professorUnknown.password)
-      cy.wait('@loginNotFound')
-
-      cy.get('[data-cy="login-error"]').should('be.visible')
-      cy.url().should('include', '/auth/login')
-    })
-
-    it('affiche une erreur de validation si les champs sont vides', () => {
-      cy.get('[data-cy="login-submit"]').click()
-
-      cy.get('[data-cy="error-email"]').should('be.visible')
-      cy.get('[data-cy="error-password"]').should('be.visible')
-
-      // Pas d'appel API si validation front échoue
-      cy.get('@loginRequest').should('not.exist')
-    })
-
-    it('affiche une erreur de format pour un email invalide', () => {
-      cy.get('[data-cy="login-email"]').type('pasunemail')
-      cy.get('[data-cy="login-submit"]').click()
-
-      cy.get('[data-cy="error-email"]')
-        .should('be.visible')
-        .and('contain', 'email valide')
-    })
-
-    it('désactive le bouton pendant la requête en cours', () => {
-      cy.intercept('POST', '**/auth/login', (req) => {
-        req.reply({ delay: 1000, statusCode: 200, body: { token: 'tok', user: { role: 'professor' } } })
-      }).as('loginSlow')
-
-      cy.loginUI(users.professor.email, users.professor.password)
-
-      cy.get('[data-cy="login-submit"]').should('be.disabled')
-      cy.wait('@loginSlow')
-    })
-  })
-
-  // ──────────────────────────────────────────────────────────
-  //  4. DÉCONNEXION
-  // ──────────────────────────────────────────────────────────
-  describe('Déconnexion', () => {
+  describe('Pending Validation Page', () => {
     beforeEach(() => {
-      // Setup : simuler une session professeur active
-      cy.intercept('POST', '**/auth/login', {
-        statusCode: 200,
-        body: { token: 'fake-jwt-token', user: { role: 'professor', firstName: 'Ahmed' } },
-      }).as('loginRequest')
-
-      cy.loginUI(users.professor.email, users.professor.password)
-      cy.wait('@loginRequest')
-      cy.url().should('include', '/professor/dashboard')
+      cy.visit('/pending-validation')
     })
 
-    it('déconnecte et redirige vers la page de login', () => {
-      cy.intercept('POST', '**/auth/logout', { statusCode: 200 }).as('logoutRequest')
-
-      cy.logout()
-
-      cy.url().should('include', '/auth/login')
+    it('affiche la page compte en attente', () => {
+      cy.contains('Compte en attente de validation').should('be.visible')
+      cy.contains('Votre dossier a bien été reçu').should('be.visible')
+      cy.contains('24 à 48h').should('be.visible')
     })
 
-    it('supprime le token du localStorage après déconnexion', () => {
-      cy.intercept('POST', '**/auth/logout', { statusCode: 200 }).as('logoutRequest')
-
-      cy.get('[data-cy="topbar-logout"], [data-cy="sidebar-logout"]').first().click()
-
-      cy.window()
-        .its('localStorage')
-        .invoke('getItem', 'token')
-        .should('be.null')
-    })
-
-    it('ne permet pas de revenir au dashboard après déconnexion (route protégée)', () => {
-      cy.intercept('POST', '**/auth/logout', { statusCode: 200 }).as('logoutRequest')
-
-      cy.get('[data-cy="topbar-logout"], [data-cy="sidebar-logout"]').first().click()
-      cy.url().should('include', '/auth/login')
-
-      // Tentative de retour arrière ou accès direct
-      cy.visit('/professor/dashboard')
-      cy.url().should('include', '/auth/login')
-    })
-  })
-
-  // ──────────────────────────────────────────────────────────
-  //  5. PERSISTANCE DE SESSION
-  // ──────────────────────────────────────────────────────────
-  describe('Persistance de session', () => {
-    it('redirige vers le dashboard si déjà connecté et visite /login', () => {
-      // Simuler un token déjà présent
-      cy.window().then((win) => {
-        win.localStorage.setItem('token', 'fake-jwt-token')
-        win.localStorage.setItem(
-          'user',
-          JSON.stringify({ role: 'professor', firstName: 'Ahmed' })
-        )
-      })
-
-      cy.intercept('GET', '**/auth/me', {
-        statusCode: 200,
-        body: { role: 'professor', firstName: 'Ahmed' },
-      }).as('meRequest')
-
-      cy.visit('/auth/login')
-
-      cy.url().should('include', '/professor/dashboard')
-    })
-
-    it('expire la session et redirige vers login si le token est invalide', () => {
-      cy.window().then((win) => {
-        win.localStorage.setItem('token', 'expired-token')
-      })
-
-      cy.intercept('GET', '**/auth/me', {
-        statusCode: 401,
-        body: { message: 'Token expiré' },
-      }).as('meExpired')
-
-      cy.visit('/professor/dashboard')
-
-      cy.url().should('include', '/auth/login')
+    it('redirige vers login', () => {
+      cy.contains('Retour à la connexion').click()
+      cy.location('pathname').should('include', '/login')
     })
   })
 })
+
+function fillRegisterStep1(email = 'test@gmail.com') {
+  cy.get('input[placeholder="Votre nom"]').type('Zailachi')
+  cy.get('input[placeholder="Votre prénom"]').type('Youssef')
+  cy.get('input[placeholder="votre.email@institution.ma"]').type(email)
+  cy.get('input[placeholder="Mot de passe"]').type('Password1!')
+  cy.get('input[placeholder="Confirmer le mot de passe"]').type('Password1!')
+
+  cy.get('select').first().select('STUDENT')
+  cy.get('#terms').check()
+}
