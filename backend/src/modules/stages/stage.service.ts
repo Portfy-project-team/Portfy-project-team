@@ -118,7 +118,7 @@ export const UpdateStage = async (
   userId:  number,
   data:    Partial<StageInput>
 ) => {
-  await assertStageEditableByStudent(stageId, userId);
+ const { stage } =  await assertStageEditableByStudent(stageId, userId);
 
   if (data.encadrantId) {
     const encadrant = await prisma.prof.findUnique({
@@ -126,6 +126,8 @@ export const UpdateStage = async (
     });
     if (!encadrant) throw new Error("Encadrant introuvable");
   }
+  const dateDebut = data.dateDebut ?? stage.dateDebut;
+  const dateFin   = data.dateFin   ?? stage.dateFin;
 
   return prisma.stage.update({ where: { id: stageId }, data });
 };

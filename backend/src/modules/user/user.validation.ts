@@ -68,7 +68,7 @@ export const changePasswordSchema = z.object({
     .max(72),
   newPassword: z
     .string()
-    .min(12, "Le mot de passe doit contenir au moins 12 caractères")
+    .min(8, "Le mot de passe doit contenir au moins 8 caractères")
     .max(72)
     .regex(
       /^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])/,

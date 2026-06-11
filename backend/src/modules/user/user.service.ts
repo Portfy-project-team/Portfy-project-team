@@ -10,70 +10,135 @@ import fs     from "fs";
 import path   from "path";
 
 export const UserService = {
-
   async getFullProfile(userId: number) {
-    return prisma.user.findUnique({
-      where:  { id: userId },
-      select: {
-        id:        true,
-        email:     true,
-        role:      true,
-        status:    true,
-        avatarUrl: true,
-        createdAt: true,
-        updatedAt: true,
-        // password, googleId, emailVerificationToken exclus
-        student: {
-          select: {
-            id:            true,
-            nom:           true,
-            prenom:        true,
-            avatarUrl:     true,
-            filiere:       true,
-            bio:           true,
-            formationType: true,
-            niveau:        true,
-            anneeEntree:   true,
-            diplomePrevu:  true,
-            disponibilite: true,
-            linkedin:      true,
-            etablissement: true,
-            skillsTexte:   true,
-            dateC:         true,
-            skills: { include: { skill: true } },
-          },
-        },
-        prof: {
-          select: {
-            id:            true,
-            nom:           true,
-            prenom:        true,
-            avatarUrl:     true,
-            departement:   true,
-            specialite:    true,
-            bio:           true,
-            linkedin:      true,
-            etablissement: true,
-          },
-        },
-        professionnel: {
-          select: {
-            id:                    true,
-            nom:                   true,
-            prenom:                true,
-            avatarUrl:             true,
-            entreprise:            true,
-            poste:                 true,
-            secteur:               true,
-            localisation:          true,
-            descriptionEntreprise: true,
-            siteEntreprise:        true,
-            statusV:               true,
-          },
+  const user = await prisma.user.findUnique({
+    where:  { id: userId },
+    select: {
+      id:        true,
+      email:     true,
+      role:      true,
+      status:    true,
+      avatarUrl: true,
+      createdAt: true,
+      updatedAt: true,
+      student: {
+        select: {
+          id:            true,
+          nom:           true,
+          prenom:        true,
+          avatarUrl:     true,
+          filiere:       true,
+          bio:           true,
+          formationType: true,
+          niveau:        true,
+          anneeEntree:   true,
+          diplomePrevu:  true,
+          disponibilite: true,
+          linkedin:      true,
+          etablissement: true,
+          skillsTexte:   true,
+          dateC:         true,
+          skills: { include: { skill: true } },
         },
       },
-    });
-  },
+      prof: {
+        select: {
+          id:            true,
+          nom:           true,
+          prenom:        true,
+          avatarUrl:     true,
+          departement:   true,
+          specialite:    true,
+          bio:           true,
+          linkedin:      true,
+          etablissement: true,
+        },
+      },
+      professionnel: {
+        select: {
+          id:                    true,
+          nom:                   true,
+          prenom:                true,
+          avatarUrl:             true,
+          entreprise:            true,
+          poste:                 true,
+          secteur:               true,
+          localisation:          true,
+          descriptionEntreprise: true,
+          siteEntreprise:        true,
+          statusV:               true,
+        },
+      },
+    },
+  });
+
+  return user ?? null;  // ← ICI, après l'await, pas après le return
+},
+
+  // async getFullProfile(userId: number) {
+  //   return prisma.user.findUnique({
+  //     where:  { id: userId },
+  //     select: {
+  //       id:        true,
+  //       email:     true,
+  //       role:      true,
+  //       status:    true,
+  //       avatarUrl: true,
+  //       createdAt: true,
+  //       updatedAt: true,
+  //       // password, googleId, emailVerificationToken exclus
+  //       student: {
+  //         select: {
+  //           id:            true,
+  //           nom:           true,
+  //           prenom:        true,
+  //           avatarUrl:     true,
+  //           filiere:       true,
+  //           bio:           true,
+  //           formationType: true,
+  //           niveau:        true,
+  //           anneeEntree:   true,
+  //           diplomePrevu:  true,
+  //           disponibilite: true,
+  //           linkedin:      true,
+  //           etablissement: true,
+  //           skillsTexte:   true,
+  //           dateC:         true,
+  //           skills: { include: { skill: true } },
+  //         },
+  //       },
+  //       prof: {
+  //         select: {
+  //           id:            true,
+  //           nom:           true,
+  //           prenom:        true,
+  //           avatarUrl:     true,
+  //           departement:   true,
+  //           specialite:    true,
+  //           bio:           true,
+  //           linkedin:      true,
+  //           etablissement: true,
+  //         },
+  //       },
+  //       professionnel: {
+  //         select: {
+  //           id:                    true,
+  //           nom:                   true,
+  //           prenom:                true,
+  //           avatarUrl:             true,
+  //           entreprise:            true,
+  //           poste:                 true,
+  //           secteur:               true,
+  //           localisation:          true,
+  //           descriptionEntreprise: true,
+  //           siteEntreprise:        true,
+  //           statusV:               true,
+  //         },
+  //       },
+  //     },
+  //   });
+  //   return user ?? null;
+  // },
 
   async upsertStudentProfile(userId: number, data: UpdateStudentInput) {
     const { skills, ...studentData } = data;

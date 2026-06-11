@@ -9,6 +9,18 @@ import {
 } from "./user.validation.js";
 import { prisma } from "../../utils/prisma.js";
 
+// export const getMe = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ): Promise<void> => {
+//   try {
+//     const profile = await UserService.getFullProfile(req.user!.id);
+//     res.status(200).json({ user: profile });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
 export const getMe = async (
   req: Request,
   res: Response,
@@ -16,6 +28,12 @@ export const getMe = async (
 ): Promise<void> => {
   try {
     const profile = await UserService.getFullProfile(req.user!.id);
+
+    if (!profile) {
+      res.status(404).json({ message: "Profil introuvable" });
+      return;
+    }
+
     res.status(200).json({ user: profile });
   } catch (err) {
     next(err);

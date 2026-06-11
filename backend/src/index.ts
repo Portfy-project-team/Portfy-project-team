@@ -18,14 +18,7 @@ import activityRoutes from "./modules/activities/activity.routes.js";
 import stageRoutes from "./modules/stages/stage.routes.js";
 import notificationRoutes from "./modules/notifications/notification.routes.js" ;
 
-// import authRoutes         from "./modules/auth/auth.routes.js";
-// import userRoutes         from "./modules/user/user.routes.js";
-// import adminRoutes        from "./modules/admin/admin.routes.js";
-// import portfolioRoutes    from "./modules/portfolio/portfolio.routes.js";
-// import projectRoutes      from "./modules/projects/project.routes.js";
-// import letterRoutes       from "./modules/letters/letter.routes.js";
-// import stageRoutes        from "./modules/stages/stage.routes.js";
-// import notificationRoutes from "./modules/notifications/notification.routes.js";
+
 import exportRoute        from "./modules/export_pdf/export-portfolio.routes.js";
 import commentRoutes        from "./modules/comments/comment.routes.js";
 import recommendationRoutes from "./modules/recommendations/recommendation.routes.js";
