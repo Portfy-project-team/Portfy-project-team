@@ -100,7 +100,11 @@
       </div>
 
       <!-- Avatar -->
-      <div class="topbar-avatar">{{ initials }}</div>
+      <!-- Avatar -->
+<div class="topbar-avatar" v-if="auth.user?.avatarUrl">
+  <img :src="auth.user.avatarUrl" alt="avatar" class="avatar-img" />
+</div>
+<div class="topbar-avatar" v-else>{{ auth.initials }}</div>
     </div>
   </header>
 </template>
@@ -346,5 +350,11 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', handleClickOutsi
   width: 34px; height: 34px; border-radius: 50%; background: #6c63ff;
   color: #fff; font-size: 12px; font-weight: 700;
   display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
 }
 </style>

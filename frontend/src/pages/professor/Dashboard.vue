@@ -78,7 +78,7 @@
         <div class="card">
           <div class="card-header">
             <h2>Mes recommandations</h2>
-            <button class="btn-add">+ Ajouter</button>
+            <button class="btn-add" @click="router.push('/professor/recommandations')">+ Ajouter</button>
           </div>
           <div v-if="store.recommendations.length === 0" class="empty-state">
             Aucune recommandation.
@@ -134,6 +134,9 @@
 import { onMounted , computed } from 'vue'
 import { Eye, Mail, MessageCircle, Star, PlusCircle, CheckCircle } from 'lucide-vue-next'
 import { useDashboardStore } from '@/store/dashboardStore.js'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const store = useDashboardStore()
 const welcomeName = computed(() => {
