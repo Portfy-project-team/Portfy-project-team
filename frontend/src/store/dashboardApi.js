@@ -1,11 +1,11 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 function getToken() {
   return localStorage.getItem('token')
 }
 
 export async function fetchDashboard() {
-  const res = await fetch(`${BASE_URL}/api/dashboard`, {
+  const res = await fetch(`${BASE_URL}/dashboard`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
