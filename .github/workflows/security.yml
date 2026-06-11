@@ -1,0 +1,127 @@
+name: Security Scan — Portfy
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:  
+
+jobs:
+
+  # ── SonarQube Backend ──────────────────────────────────────────
+  sonarqube-backend:
+    name: SonarQube Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm install
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v2
+        with:
+          projectBaseDir: ./backend
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+  # ── SonarQube Frontend ─────────────────────────────────────────
+  sonarqube-frontend:
+    name: SonarQube Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v2
+        with:
+          projectBaseDir: ./frontend
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+  # ── OWASP ZAP Backend ─────────────────────────────────────────
+  zap-backend:
+    name: OWASP ZAP Backend
+    runs-on: ubuntu-latest
+    needs: sonarqube-backend
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: portfy_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install and build backend
+        working-directory: ./backend
+        run: |
+          npm install
+          npx prisma generate
+          npx prisma migrate deploy
+          npm run build
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/portfy_test
+          NODE_ENV: test
+
+      - name: Start backend
+        working-directory: ./backend
+        run: node dist/index.js &
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/portfy_test
+          JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
+          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+          JWT_EXPIRES_IN: 15m
+          JWT_REFRESH_EXPIRES_IN: 7d
+          NODE_ENV: test
+          PORT: 3000
+
+      - name: Wait for backend
+        run: |
+          for i in {1..15}; do
+            curl -s http://localhost:3000/health && break
+            sleep 2
+          done
+
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: http://localhost:3000
+          rules_file_name: .zap/rules.tsv
+          fail_action: false
+          artifact_name: zap-report-backend
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report-backend
+          path: report_html.html
