@@ -8,7 +8,7 @@ import StageModal from '../../components/student/modals/StageModal.vue'
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
 
-const API_BASE = import.meta.env.VITE_API_URL ?? '/api'
+const API_BASE = (import.meta.env.VITE_API_URL ?? '') + '/api'
 
 async function apiFetch(path, options = {}) {
   const token = localStorage.getItem('token')
