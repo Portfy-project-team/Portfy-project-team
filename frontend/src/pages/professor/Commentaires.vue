@@ -1,6 +1,5 @@
 <template>
   <div class="professor-layout">
-    <Sidebar :user="user" :comment-count="unreadCount" />
     <div class="main-content">
       <Topbar title="Commentaires" />
 
@@ -147,13 +146,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import Sidebar from '../../components/professor/Sidebar.vue'
-import Topbar  from '../../components/professor/Topbar.vue'
+import Topbar from '../../components/professor/Topbar.vue'
 import { MessageCircle, CheckCircle, AlertCircle, Search, Circle, Reply, Trash2 } from 'lucide-vue-next'
 import { fetchComments, markAsReadApi, deleteCommentApi, replyToCommentApi }
   from '@/services/professor/commentsApi.js'
-
-const user = { name: 'M. Ghailani', role: 'Professeur · ENSAT', verified: true }
 
 const comments        = ref([])
 const loading         = ref(false)

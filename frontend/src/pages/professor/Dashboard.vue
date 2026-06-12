@@ -7,10 +7,10 @@
     </div>
 
     <!-- Error -->
-    <div v-if="store.error" class="error-banner">
+    <!--<div v-if="store.error" class="error-banner">
       ⚠️ {{ store.error }}
       <button @click="store.loadDashboard()">Réessayer</button>
-    </div>
+    </div>-->
 
     <!-- Welcome Banner -->
     <div class="welcome-card">

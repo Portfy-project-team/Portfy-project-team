@@ -1,119 +1,105 @@
 <template>
-  <div class="professor-layout">
-    <Sidebar :user="user" :comment-count="3" />
-    <div class="main-content">
-      <Topbar title="Portfolios consultés" />
-
-      <div class="page-content">
-        <div class="page-header">
-          <div>
-            <h2 class="page-title">Portfolios consultés</h2>
-            <p class="page-subtitle">Historique des portfolios que vous avez visités</p>
-          </div>
-          <div class="header-right">
-            <div class="search-box">
-              <Search size="18" />
-              <input v-model="search" type="text" placeholder="Rechercher..." />
-            </div>
-          </div>
-        </div>
-
-        <!-- Stats -->
-        <div class="stats-row">
-          <div class="stat-card">
-            <div class="stat-icon blue"><Eye size="20" /></div>
-            <div>
-              <p class="stat-label">Total consultés</p>
-              <p class="stat-value">{{ stats.total ?? 0 }}</p>
-              <p class="stat-trend positive"><TrendingUp size="12" /> +{{ stats.weeklyNewVisits ?? 0 }} cette semaine</p>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon purple"><Star size="20" /></div>
-            <div>
-              <p class="stat-label">Recommandés</p>
-              <p class="stat-value">{{ stats.recommended ?? 0 }}</p>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon orange"><MessageCircle size="20" /></div>
-            <div>
-              <p class="stat-label">Commentés</p>
-              <p class="stat-value">{{ stats.commented ?? 0 }}</p>
-              <p class="stat-trend positive"><TrendingUp size="12" /> +{{ stats.weeklyNewComments ?? 0 }} cette semaine</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Filters + Sort -->
-        <div class="filters-bar">
-          <button
-            v-for="f in filters"
-            :key="f.value"
-            class="filter-btn"
-            :class="{ active: activeFilter === f.value }"
-            @click="activeFilter = f.value"
-          >
-            {{ f.label }}
-          </button>
-          <div class="sort-box">
-            <select v-model="sortBy">
-              <option value="recent">Plus récents</option>
-              <option value="name">Nom</option>
-              <option value="visits">Nombre de visites</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Loading -->
-        <div v-if="loading" class="empty-state">
-          <p>Chargement...</p>
-        </div>
-
-        <!-- Portfolio cards grid -->
-        <div v-else class="portfolio-grid">
-          <div
-            v-for="p in portfolios"
-            :key="p.id"
-            class="portfolio-card"
-            @click="openPortfolio(p)"
-          >
-            <div class="card-header">
-              <div class="student-avatar" :style="{ background: p.color }">{{ p.initials }}</div>
-              <div class="student-info">
-                <span class="student-name">{{ p.studentName }}</span>
-                <span class="student-school">{{ p.school }}</span>
-              </div>
-              <button class="bookmark-btn" :class="{ active: p.bookmarked }" @click.stop="toggleBookmark(p)">
-                <Bookmark size="18" :fill="p.bookmarked ? 'currentColor' : 'none'" />
-              </button>
-            </div>
-
-            <div class="card-tags">
-              <span v-for="tag in p.tags" :key="tag" class="tag">{{ tag }}</span>
-            </div>
-
-            <div class="card-footer">
-              <span class="last-visit">Consulté {{ formatDate(p.lastVisit) }}</span>
-              <div class="card-actions">
-                <span v-if="p.hasComment" class="action-chip commented"><MessageCircle size="12" /> Commenté</span>
-                <span v-if="p.hasReco" class="action-chip recommended"><Star size="12" /> Recommandé</span>
-              </div>
-            </div>
-
-            <div class="visit-count">
-              <Eye size="14" /> {{ p.visits }} visite{{ p.visits > 1 ? 's' : '' }}
-            </div>
-          </div>
-        </div>
-
-        <div v-if="!loading && portfolios.length === 0" class="empty-state">
-          <p>Aucun portfolio trouvé.</p>
+  <div class="page-content">
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">Portfolios consultés</h2>
+        <p class="page-subtitle">Historique des portfolios que vous avez visités</p>
+      </div>
+      <div class="header-right">
+        <div class="search-box">
+          <Search size="18" />
+          <input v-model="search" type="text" placeholder="Rechercher..." />
         </div>
       </div>
     </div>
 
-    <!-- Detail drawer -->
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon blue"><Eye size="20" /></div>
+        <div>
+          <p class="stat-label">Total consultés</p>
+          <p class="stat-value">{{ stats.total ?? 0 }}</p>
+          <p class="stat-trend positive"><TrendingUp size="12" /> +{{ stats.weeklyNewVisits ?? 0 }} cette semaine</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon purple"><Star size="20" /></div>
+        <div>
+          <p class="stat-label">Recommandés</p>
+          <p class="stat-value">{{ stats.recommended ?? 0 }}</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon orange"><MessageCircle size="20" /></div>
+        <div>
+          <p class="stat-label">Commentés</p>
+          <p class="stat-value">{{ stats.commented ?? 0 }}</p>
+          <p class="stat-trend positive"><TrendingUp size="12" /> +{{ stats.weeklyNewComments ?? 0 }} cette semaine</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters + Sort -->
+    <div class="filters-bar">
+      <button
+        v-for="f in filters"
+        :key="f.value"
+        class="filter-btn"
+        :class="{ active: activeFilter === f.value }"
+        @click="activeFilter = f.value"
+      >
+        {{ f.label }}
+      </button>
+      <div class="sort-box">
+        <select v-model="sortBy">
+          <option value="recent">Plus récents</option>
+          <option value="name">Nom</option>
+          <option value="visits">Nombre de visites</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="loading" class="empty-state"><p>Chargement...</p></div>
+
+    <!-- Grid -->
+    <div v-else class="portfolio-grid">
+      <div
+        v-for="p in portfolios"
+        :key="p.id"
+        class="portfolio-card"
+        @click="openPortfolio(p)"
+      >
+        <div class="card-header">
+          <div class="student-avatar" :style="{ background: p.color }">{{ p.initials }}</div>
+          <div class="student-info">
+            <span class="student-name">{{ p.studentName }}</span>
+            <span class="student-school">{{ p.school }}</span>
+          </div>
+          <button class="bookmark-btn" :class="{ active: p.bookmarked }" @click.stop="toggleBookmark(p)">
+            <Bookmark size="18" :fill="p.bookmarked ? 'currentColor' : 'none'" />
+          </button>
+        </div>
+        <div class="card-tags">
+          <span v-for="tag in p.tags" :key="tag" class="tag">{{ tag }}</span>
+        </div>
+        <div class="card-footer">
+          <span class="last-visit">Consulté {{ formatDate(p.lastVisit) }}</span>
+          <div class="card-actions">
+            <span v-if="p.hasComment" class="action-chip commented"><MessageCircle size="12" /> Commenté</span>
+            <span v-if="p.hasReco" class="action-chip recommended"><Star size="12" /> Recommandé</span>
+          </div>
+        </div>
+        <div class="visit-count"><Eye size="14" /> {{ p.visits }} visite{{ p.visits > 1 ? 's' : '' }}</div>
+      </div>
+    </div>
+
+    <div v-if="!loading && portfolios.length === 0" class="empty-state">
+      <p>Aucun portfolio trouvé.</p>
+    </div>
+
+    <!-- Drawer -->
     <div v-if="selectedPortfolio" class="drawer-overlay" @click.self="selectedPortfolio = null">
       <div class="drawer">
         <div class="drawer-header">
@@ -124,9 +110,7 @@
             <h3>{{ selectedPortfolio.studentName }}</h3>
             <p>{{ selectedPortfolio.school }}</p>
           </div>
-          <button class="close-btn" @click="selectedPortfolio = null">
-            <X size="20" />
-          </button>
+          <button class="close-btn" @click="selectedPortfolio = null"><X size="20" /></button>
         </div>
         <div class="drawer-body">
           <div class="drawer-tags">
@@ -149,14 +133,12 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import Sidebar from '../../components/professor/Sidebar.vue'
-import Topbar from '../../components/professor/Topbar.vue'
 import { Eye, Star, MessageCircle, Search, Bookmark, TrendingUp, X } from 'lucide-vue-next'
 import { portfoliosConsultesService } from '../../services/professor/portfoliosConsultes.service.js'
 
-const user = { name: 'M. Ghailani', role: 'Professeur · ENSAT', verified: true }
-const router = useRouter()
+// ── Supprimé : import Sidebar, Topbar, user ──
 
+const router = useRouter()
 const portfolios = ref([])
 const stats = ref({})
 const loading = ref(false)
@@ -166,13 +148,12 @@ const sortBy = ref('recent')
 const selectedPortfolio = ref(null)
 
 const filters = [
-  { label: 'Tous', value: 'all' },
+  { label: 'Tous',        value: 'all' },
   { label: 'Recommandés', value: 'recommended' },
-  { label: 'Commentés', value: 'commented' },
-  { label: 'Favoris', value: 'bookmarked' },
+  { label: 'Commentés',   value: 'commented' },
+  { label: 'Favoris',     value: 'bookmarked' },
 ]
 
-// Charger les portfolios depuis l'API
 async function fetchPortfolios() {
   loading.value = true
   try {
@@ -189,34 +170,24 @@ async function fetchPortfolios() {
   }
 }
 
-// Charger les stats
 async function fetchStats() {
   try {
     const res = await portfoliosConsultesService.getStats()
     stats.value = res.data.data
   } catch (err) {
-    console.error('Erreur chargement stats:', err)
+    console.error('Erreur stats:', err)
   }
 }
 
-// Recharger quand filter/sort/search change
 watch([activeFilter, sortBy, search], fetchPortfolios)
+onMounted(() => { fetchPortfolios(); fetchStats() })
 
-// Chargement initial
-onMounted(() => {
-  fetchPortfolios()
-  fetchStats()
-})
-
-// Formater la date
 function formatDate(dateStr) {
   if (!dateStr) return ''
-  const date = new Date(dateStr)
-  const now = new Date()
-  const diff = Math.floor((now - date) / 1000)
-  if (diff < 60) return 'il y a quelques secondes'
-  if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`
-  if (diff < 86400) return `il y a ${Math.floor(diff / 3600)}h`
+  const diff = Math.floor((new Date() - new Date(dateStr)) / 1000)
+  if (diff < 60)     return 'il y a quelques secondes'
+  if (diff < 3600)   return `il y a ${Math.floor(diff / 60)} min`
+  if (diff < 86400)  return `il y a ${Math.floor(diff / 3600)}h`
   if (diff < 172800) return 'hier'
   return `il y a ${Math.floor(diff / 86400)} jours`
 }
@@ -225,9 +196,7 @@ async function toggleBookmark(p) {
   try {
     await portfoliosConsultesService.toggleBookmark(p.id)
     p.bookmarked = !p.bookmarked
-  } catch (err) {
-    console.error('Erreur bookmark:', err)
-  }
+  } catch (err) { console.error(err) }
 }
 
 async function openPortfolio(p) {
@@ -235,9 +204,7 @@ async function openPortfolio(p) {
   try {
     await portfoliosConsultesService.recordVisit(p.id)
     p.visits += 1
-  } catch (err) {
-    console.error('Erreur enregistrement visite:', err)
-  }
+  } catch (err) { console.error(err) }
 }
 
 function goToReco(p) {
