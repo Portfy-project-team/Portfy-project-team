@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
+import { api } from '../../store/authStore.js'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
@@ -54,14 +55,9 @@ onMounted(async () => {
 
 async function loadSettings() {
   try {
-    const token = localStorage.getItem('token')
+    const res = await api.get('/settings')
     
-    const res = await fetch('http://localhost:3000/api/settings', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    
-    const json = await res.json()
-    const data = json.data
+    const data = res.data.data
 
     // Remplir le formulaire personnel
     const nameParts = data.fullName?.split(' ') || ['', '']
@@ -135,23 +131,14 @@ async function savePersonalInfo() {
   }
 
   try {
-    const token = localStorage.getItem('token')
-    
-    await fetch('http://localhost:3000/api/settings/profile', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        firstName: personalForm.firstName,
-        lastName: personalForm.lastName,
-        email: personalForm.email,
-        phone: personalForm.phone,
-        bio: personalForm.bio,
-        city: personalForm.city,
-        country: personalForm.country
-      })
+    await api.patch('/settings/profile', {
+      firstName: personalForm.firstName,
+      lastName: personalForm.lastName,
+      email: personalForm.email,
+      phone: personalForm.phone,
+      bio: personalForm.bio,
+      city: personalForm.city,
+      country: personalForm.country
     })
 
     window.dispatchEvent(new Event('student-profile-updated'))
@@ -169,20 +156,11 @@ async function savePersonalInfo() {
 
 async function saveAcademicInfo() {
   try {
-    const token = localStorage.getItem('token')
-    
-    await fetch('http://localhost:3000/api/settings/profile', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        etablissement: academicForm.school,
-        filiere: academicForm.field,
-        niveau: academicForm.year,
-        anneePromotion: academicForm.promotion
-      })
+    await api.patch('/settings/profile', {
+      etablissement: academicForm.school,
+      filiere: academicForm.field,
+      niveau: academicForm.year,
+      anneePromotion: academicForm.promotion
     })
 
     window.dispatchEvent(new Event('student-academic-updated'))
@@ -244,25 +222,16 @@ async function changePassword() {
   }
 
   try {
-    const token = localStorage.getItem('token')
-    
-    await fetch('http://localhost:3000/api/settings/password', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        current: passwordForm.currentPassword,
-        new: passwordForm.newPassword
-      })
+    await api.patch('/settings/password', {
+      current: passwordForm.currentPassword,
+      new: passwordForm.newPassword
     })
 
     alert('Mot de passe change avec succes.')
     closePasswordModal()
   } catch (err) {
     console.error('Erreur changement mot de passe:', err)
-    alert('Erreur : ' + (err.message || 'Impossible de changer le mot de passe'))
+    alert('Erreur : ' + (err.response?.data?.message || err.message || 'Impossible de changer le mot de passe'))
   }
 }
 
@@ -293,12 +262,7 @@ async function deleteAccount() {
   if (!confirmed) return
 
   try {
-    const token = localStorage.getItem('token')
-    
-    await fetch('http://localhost:3000/api/settings/account', {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    await api.delete('/settings/account')
 
     alert('Compte supprime. Vous allez etre deconnecte.')
     localStorage.removeItem('token')

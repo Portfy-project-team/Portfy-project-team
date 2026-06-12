@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
+import { api } from '../../store/authStore.js'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
@@ -14,13 +15,9 @@ onMounted(async () => {
 
 async function loadNotifications() {
   try {
-    const token = localStorage.getItem('token')
+    const res = await api.get('/notifications')
     
-    const res = await fetch('http://localhost:3000/api/notifications', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    
-    const json = await res.json()
+    const json = res.data
     
     // Transformer les données de l'API au format du frontend
     notificationList.value = json.map(n => ({
@@ -127,12 +124,7 @@ const unreadCount = computed(() => {
 
 async function markAllAsRead() {
   try {
-    const token = localStorage.getItem('token')
-    
-    await fetch('http://localhost:3000/api/notifications/read-all', {
-      method: 'PUT',
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    await api.put('/notifications/read-all')
     
     notificationList.value = notificationList.value.map((item) => ({
       ...item,

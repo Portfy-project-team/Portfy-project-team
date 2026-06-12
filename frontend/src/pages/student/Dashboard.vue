@@ -1,11 +1,13 @@
 ```vue
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { api } from '../../store/authStore.js'
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 import StatCard from '../../components/student/StatCard.vue'
 
 const stats = ref(null)
+const prenom = ref('Utilisateur')
 const activities = ref([])
 const loading = ref(true)
 
@@ -21,6 +23,24 @@ const dashboardStats = computed(() => {
       subtitle: stats.value.level || 'N/A',
       color: 'blue',
       subtitleColor: 'green'
+    },
+    {
+      id: 2,
+      title: 'Projets',
+      value: stats.value.projets || 0,
+      unit: '',
+      subtitle: `${stats.value.projetsValidés || 0} validés`,
+      color: 'green',
+      subtitleColor: 'green'
+    },
+    {
+      id: 3,
+      title: 'Stages',
+      value: stats.value.stages || 0,
+      unit: '',
+      subtitle: `${stats.value.stagesEnCours || 0} en cours`,
+      color: 'orange',
+      subtitleColor: 'orange'
     }
   ]
 })
@@ -31,18 +51,12 @@ const scoreDetails = computed(() => {
 
 onMounted(async () => {
   try {
-    const token = localStorage.getItem('token')
+    const res = await api.get('/dashboard')
+    const data = res.data.data
 
-    const res = await fetch('http://localhost:3000/api/dashboard', {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-
-    const json = await res.json()
-
-    stats.value = json.data?.stats || null
-    activities.value = json.data?.activities || []
+    stats.value = data.stats
+    prenom.value = data.prenom
+    activities.value = data.activities
   } catch (e) {
     console.error('Erreur dashboard', e)
   } finally {
@@ -56,11 +70,11 @@ onMounted(async () => {
     <Sidebar />
 
     <div class="student-main">
-      <Topbar title="Dashboard" user-initials="AA" />
+      <Topbar title="Dashboard" />
 
       <main class="dashboard-page">
         <section class="welcome-section">
-          <h2>Bonjour {{ stats?.prenom || 'Utilisateur' }}</h2>
+          <h2>Bonjour {{ prenom }}</h2>
           <p>Voici un aperçu de votre activité et progression</p>
         </section>
 

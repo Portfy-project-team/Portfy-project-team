@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, reactive } from 'vue'
+import { api } from '../../store/authStore.js'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
@@ -23,13 +24,9 @@ onMounted(async () => {
 
 async function loadLetters() {
   try {
-    const token = localStorage.getItem('token')
+    const res = await api.get('/letters/me')
     
-    const res = await fetch('http://localhost:3000/api/letters/me', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    
-    const json = await res.json()
+    const json = res.data
     
     // Transformer les données de l'API au format du frontend
     letterList.value = json.letters.map(letter => ({
@@ -132,23 +129,14 @@ function resetForm() {
 
 async function updateVisibility(letter, newVisibility) {
   try {
-    const token = localStorage.getItem('token')
-    
     const visibilityMap = {
       'Privee': 'PRIVATE',
       'Publique': 'PUBLIC',
       'Telechargeable': 'DOWNLOADABLE'
     }
     
-    await fetch(`http://localhost:3000/api/letters/${letter.id}/visibility`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        visibilite: visibilityMap[newVisibility]
-      })
+    await api.put(`/letters/${letter.id}/visibility`, {
+      visibilite: visibilityMap[newVisibility]
     })
     
     letter.visibility = newVisibility
@@ -164,12 +152,7 @@ async function deleteLetter(letter) {
   if (!confirm('Êtes-vous sûr de vouloir supprimer cette lettre ?')) return
   
   try {
-    const token = localStorage.getItem('token')
-    
-    await fetch(`http://localhost:3000/api/letters/${letter.id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    await api.delete(`/letters/${letter.id}`)
     
     letterList.value = letterList.value.filter(l => l.id !== letter.id)
     alert('Lettre supprimée.')

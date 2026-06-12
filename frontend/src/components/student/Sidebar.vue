@@ -16,14 +16,14 @@
     <div v-if="isOpen" class="sidebar-profile">
       <div class="avatar">{{ initials }}</div>
       <div class="profile-info">
-        <span class="profile-name">Ahmed Alami</span>
-        <span class="profile-role">Étudiant · ENSAT</span>
+        <span class="profile-name">{{ userName }}</span>
+        <span class="profile-role">{{ userRole }}</span>
       </div>
     </div>
 
     <!-- Score -->
     <div v-if="isOpen" class="score-badge">
-      Score: <strong>82/100</strong>
+      Score: <strong>{{ authStore.user?.student?.portfolio?.scoreCredibilite || 0 }}/100</strong>
     </div>
 
     <!-- Navigation -->
@@ -77,7 +77,6 @@
       <RouterLink to="/student/commentaires" class="nav-item" active-class="active">
         <MessageCircle size="18" />
         <span v-if="isOpen">Commentaires</span>
-        <span v-if="isOpen" class="badge">3</span>
       </RouterLink>
       <RouterLink to="/student/historique" class="nav-item" active-class="active">
         <Clock size="18" />
@@ -109,20 +108,27 @@
 import { ref, computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { Home, Briefcase, Zap, Folder, Activity, BookOpen, Target, Mail, Award, Users, Star, MessageCircle, Clock, Bell, Settings, HelpCircle, LogOut, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { useAuthStore } from '@/store/authStore'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const isOpen = ref(true)
-const userName = "Ahmed Alami"
 
-const initials = computed(() => {
-  return userName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+const userName = computed(() => authStore.displayName)
+const initials = computed(() => authStore.initials)
+const userRole = computed(() => {
+  const u = authStore.user
+  if (!u) return 'Étudiant'
+  const school = u.student?.etablissement || 'ENSAT'
+  return `Étudiant · ${school}`
 })
 
 const toggleSidebar = () => {
   isOpen.value = !isOpen.value
 }
 
-const logout = () => {
+const logout = async () => {
+  await authStore.logout()
   router.push('/login')
 }
 </script>

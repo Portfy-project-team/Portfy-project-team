@@ -29,99 +29,99 @@ function openEditProject(project) {
   showProjectModal.value = true
 }
 
-function saveProject(projectData) {
-  if (selectedProject.value) {
-    const index = projectList.value.findIndex((project) => project.id === projectData.id)
-
-    if (index !== -1) {
-      projectList.value[index] = projectData
+async function saveProject(projectData) {
+  try {
+    const payload = {
+      titre: projectData.title,
+      type: projectData.type,
+      description: projectData.description,
+      technologie: projectData.tags?.join(', ') || '',
+      profId: projectData.profId
     }
-  } else {
-    projectList.value.unshift(projectData)
+
+    let projectId = selectedProject.value?.id
+    
+    if (selectedProject.value) {
+      await api.put(`/projects/${projectId}`, payload)
+    } else {
+      const createRes = await api.post('/projects', payload)
+      projectId = createRes.data.project.id
+    }
+    
+    // Si l'utilisateur clique sur "Soumettre a validation"
+    if (projectData.status === 'En attente') {
+      await api.post(`/projects/${projectId}/submit`)
+    }
+    
+    // Recharger la liste
+    await loadProjects()
+    
+    showProjectModal.value = false
+    selectedProject.value = null
+    alert(projectData.status === 'En attente' ? 'Projet soumis pour validation.' : 'Brouillon enregistre.')
+  } catch (err) {
+    console.error('Erreur sauvegarde projet:', err)
+    alert('Erreur lors de la sauvegarde du projet')
   }
-
-  showProjectModal.value = false
-  selectedProject.value = null
 }
 
-function closeProjectModal() {
-  showProjectModal.value = false
-  selectedProject.value = null
+async function loadProjects() {
+  loading.value = true
+  try {
+    const res = await api.get('/projects/me')
+    const json = res.data
+
+    projectList.value = json.projects.map(p => {
+      let displayStatus = 'En attente'
+      if (p.statusV === 'VALIDATED') displayStatus = 'Valide'
+      if (p.statusV === 'REJECTED') displayStatus = 'Refuse'
+      if (p.statusV === 'PENDING' && !p.dateSoumission) displayStatus = 'Brouillon'
+
+      return {
+        id: p.id,
+        title: p.titre,
+        type: p.type || 'Sans type',
+        description: p.description || '',
+        status: displayStatus,
+        statutV: p.statusV,
+        dateSoumission: p.dateSoumission,
+        tags: p.skills?.map(s => s.skill.nom) || [],
+        date: p.dateSoumission 
+          ? new Date(p.dateSoumission).toLocaleDateString('fr-FR')
+          : 'Non soumis',
+        supervisor: p.Prof 
+          ? `${p.Prof.prenom} ${p.Prof.nom}`
+          : 'Aucun prof',
+        profId: p.profId,
+        github: p.github,
+        demo: p.demo,
+        screenshotUrl: p.screenshotUrl
+      }
+    })
+  } catch (err) {
+    console.error('Erreur chargement projets:', err)
+  } finally {
+    loading.value = false
+  }
 }
+
+onMounted(loadProjects)
 
 const filters = computed(() => [
-  {
-    label: 'Tous',
-    count: projectList.value.length
-  },
-  {
-    label: 'Valides',
-    count: projectList.value.filter((project) =>
-      normalizeStatus(project.status).includes('validated')
-    ).length
-  },
-  {
-    label: 'En attente',
-    count: projectList.value.filter((project) =>
-      normalizeStatus(project.status).includes('pending')
-    ).length
-  },
-  {
-    label: 'Rejetés',
-    count: projectList.value.filter((project) =>
-      normalizeStatus(project.status).includes('rejected')
-    ).length
-  }
+  { label: 'Tous', count: projectList.value.length },
+  { label: 'Valides', count: projectList.value.filter(p => p.status === 'Valide').length },
+  { label: 'En attente', count: projectList.value.filter(p => p.status === 'En attente').length },
+  { label: 'Brouillons', count: projectList.value.filter(p => p.status === 'Brouillon').length },
+  { label: 'Rejetés', count: projectList.value.filter(p => p.status === 'Refuse').length }
 ])
 
 const filteredProjects = computed(() => {
-  if (activeFilter.value === 'Tous') {
-    return projectList.value
-  }
-
-  return projectList.value.filter((project) => {
-    const status = normalizeStatus(project.status)
-
-    if (activeFilter.value === 'Valides') return status.includes('validated')
-    if (activeFilter.value === 'En attente') return status.includes('pending')
-    if (activeFilter.value === 'Rejetés') return status.includes('rejected')
-
-    return true
-  })
-})
-
-// CHARGER LES PROJETS AU MONTAGE
-onMounted(async () => {
-  try {
-    const token = localStorage.getItem('token')
-
-    const res = await fetch('http://localhost:3000/api/projects/me', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-
-    const json = await res.json()
-
-    // TRANSFORMER LES DONNÉES DE L'API AU FORMAT DU FRONTEND
-    projectList.value = json.projects.map(p => ({
-      id: p.id,
-      title: p.titre,
-      type: p.type || 'Sans type',
-      description: p.description || '',
-      status: p.statusV,
-      tags: p.skills?.map(s => s.skill.nom) || [],
-      date: p.dateSoumission 
-        ? new Date(p.dateSoumission).toLocaleDateString('fr-FR')
-        : 'Non soumis',
-      supervisor: p.Prof 
-        ? `${p.Prof.prenom} ${p.Prof.nom}`
-        : 'Aucun prof'
-    }))
-
-    loading.value = false
-  } catch (err) {
-    console.error('Erreur chargement projets:', err)
-    loading.value = false
-  }
+  if (activeFilter.value === 'Tous') return projectList.value
+  if (activeFilter.value === 'Valides') return projectList.value.filter(p => p.status === 'Valide')
+  if (activeFilter.value === 'En attente') return projectList.value.filter(p => p.status === 'En attente')
+  if (activeFilter.value === 'Brouillons') return projectList.value.filter(p => p.status === 'Brouillon')
+  if (activeFilter.value === 'Rejetés') return projectList.value.filter(p => p.status === 'Refuse')
+  return projectList.value
 })
 </script>
 
@@ -192,9 +192,14 @@ onMounted(async () => {
                 </template>
               </span>
 
-              <button class="edit-btn" @click="openEditProject(project)">
-                Modifier
-              </button>
+              <div class="card-actions">
+                <button class="edit-btn" @click="openEditProject(project)">
+                  Modifier
+                </button>
+                <button class="delete-btn" @click="removeProject(project.id)">
+                  Supprimer
+                </button>
+              </div>
             </div>
           </article>
         </section>
@@ -359,6 +364,11 @@ onMounted(async () => {
   font-size: 14px;
 }
 
+.card-actions {
+  display: flex;
+  gap: 15px;
+}
+
 .edit-btn {
   background: transparent;
   border: none;
@@ -368,7 +378,16 @@ onMounted(async () => {
   cursor: pointer;
 }
 
-.edit-btn:hover {
+.delete-btn {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.edit-btn:hover, .delete-btn:hover {
   text-decoration: underline;
 }
 

@@ -6,34 +6,27 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-enum UserStatus{
-  ACTIVE
-  PENDING
-  BLOCKED
-  REJECTED
-}
 
 model User {
-  id            Int            @id @default(autoincrement())
-  email         String         @unique
-  password      String?
-  role          Role
-  isEmailVerified          Boolean   @default(false)
+  id                       Int                  @id @default(autoincrement())
+  email                    String               @unique
+  password                 String?
+  role                     Role
+  isEmailVerified          Boolean              @default(false)
   emailVerificationToken   String?
   emailVerificationExpires DateTime?
-  createdAt     DateTime       @default(now())
-  updatedAt DateTime @updatedAt  
-  admin         Admin?
-  prof          Prof?
-  professionnel Professionnel?
-  refreshTokens RefreshToken[]
-  loginLogs           LoginLog[]           
-  passwordResetTokens PasswordResetToken[]
-  student       Student?
-  status UserStatus @default(PENDING)
-  // ── Champs OAuth Google ────────────────────────────
-  googleId        String?  @unique  // ID unique retourné par Google via Supabase
-  avatarUrl       String?           // Photo de profil Google
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+  status                   UserStatus           @default(PENDING)
+  googleId                 String?              @unique
+  avatarUrl                String?
+  admin                    Admin?
+  loginLogs                LoginLog[]
+  passwordResetTokens      PasswordResetToken[]
+  prof                     Prof?
+  professionnel            Professionnel?
+  refreshTokens            RefreshToken[]
+  student                  Student?
 }
 
 model RefreshToken {
@@ -59,12 +52,6 @@ model LoginLog {
   @@index([userId])
 }
 
-enum LoginStatus {
-  SUCCESS
-  FAILED
-  LOGOUT
-}
-
 model PasswordResetToken {
   id        Int      @id @default(autoincrement())
   token     String   @unique
@@ -82,17 +69,17 @@ model Student {
   prenom           String?
   dateC            DateTime?
   filiere          String?
-   avatarUrl String?
-  formationType String?
-  niveau        String?
-  anneeEntree   Int?
-  diplomePrevu  Int?
-  bio           String?
-  disponibilite String?
-  linkedin      String?
-  etablissement String?
-  skillsTexte String?
-
+  avatarUrl        String?
+  formationType    String?
+  niveau           String?
+  anneePromotion   String?
+  anneeEntree      Int?
+  diplomePrevu     Int?
+  bio              String?
+  disponibilite    String?
+  linkedin         String?
+  etablissement    String?
+  skillsTexte      String?
   userId           Int                @unique
   id               Int                @id @default(autoincrement())
   Commentaire      Commentaire[]
@@ -110,10 +97,10 @@ model Student {
 model Prof {
   departement          String?
   specialite           String?
-     avatarUrl String?
-  bio           String?   // stocke bioProf
-  linkedin      String?
-  etablissement String?
+  avatarUrl            String?
+  bio                  String?
+  linkedin             String?
+  etablissement        String?
   prenom               String?
   nom                  String?
   userId               Int                    @unique
@@ -121,36 +108,36 @@ model Prof {
   Commentaire          Commentaire[]
   LettreRecommandation LettreRecommandation[]
   Notification         Notification[]
+  portfolioVisits      PortfolioVisit[]
   user                 User                   @relation(fields: [userId], references: [id])
   Projet               Projet[]
   Recommendation       Recommendation[]
   Stage                Stage[]
-  portfolioVisits      PortfolioVisit[] 
 }
 
 model Professionnel {
-  entreprise     String?
-  poste          String?
-  nom            String?
-  prenom         String?
-     avatarUrl String?
-  statusV        StatutValidation @default(PENDING)
+  entreprise            String?
+  poste                 String?
+  nom                   String?
+  prenom                String?
+  avatarUrl             String?
+  statusV               StatutValidation @default(PENDING)
   secteur               String?
   localisation          String?
   descriptionEntreprise String?
   siteEntreprise        String?
-  userId         Int              @unique
-  id             Int              @id @default(autoincrement())
-  Commentaire    Commentaire[]
-  Notification   Notification[]
-  user           User             @relation(fields: [userId], references: [id])
-  Recommendation Recommendation[]
+  userId                Int              @unique
+  id                    Int              @id @default(autoincrement())
+  Commentaire           Commentaire[]
+  Notification          Notification[]
+  user                  User             @relation(fields: [userId], references: [id])
+  Recommendation        Recommendation[]
 }
 
 model Admin {
   nom                  String?
   prenom               String?
-     avatarUrl String?
+  avatarUrl            String?
   userId               Int                    @unique
   id                   Int                    @id @default(autoincrement())
   ActiviteParascolaire ActiviteParascolaire[]
@@ -169,9 +156,9 @@ model Portfolio {
   student          Student             @relation(fields: [studentId], references: [id])
   PortfolioBadge   PortfolioBadge[]
   skills           PortfolioSkill[]
+  portfolioVisits  PortfolioVisit[]
   projets          Projet[]
   Recommendation   Recommendation[]
-  portfolioVisits  PortfolioVisit[]
 }
 
 model PortfolioVisit {
@@ -181,9 +168,8 @@ model PortfolioVisit {
   visitedAt   DateTime  @default(now())
   visitCount  Int       @default(1)
   bookmarked  Boolean   @default(false)
-
-  prof        Prof      @relation(fields: [profId], references: [id])
   portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+  prof        Prof      @relation(fields: [profId], references: [id])
 
   @@unique([profId, portfolioId])
 }
@@ -214,7 +200,6 @@ model Projet {
 model Skill {
   categorie  String?
   nom        String           @unique
-
   id         Int              @id @default(autoincrement())
   portfolios PortfolioSkill[]
   projets    ProjetSkill[]
@@ -283,22 +268,21 @@ model Commentaire {
   id              Int               @id @default(autoincrement())
   portfolioId     Int
   projetId        Int?
+  isRead          Boolean           @default(false)
   Professionnel   Professionnel?    @relation(fields: [authorProId], references: [id])
   Prof            Prof?             @relation(fields: [authorProfId], references: [id])
   Student         Student?          @relation(fields: [authorStudentId], references: [id])
   Portfolio       Portfolio         @relation(fields: [portfolioId], references: [id])
   Projet          Projet?           @relation(fields: [projetId], references: [id])
-  isRead Boolean @default(false)
 }
 
 model Formation {
-  id            Int       @id @default(autoincrement())
-  etablissement String
-  diplome       String
-  specialite    String
-  dateDebut     DateTime?
-  dateFin       DateTime?
-
+  id               Int                @id @default(autoincrement())
+  etablissement    String
+  diplome          String
+  specialite       String
+  dateDebut        DateTime?
+  dateFin          DateTime?
   StudentFormation StudentFormation[]
 
   @@unique([etablissement, diplome, specialite])
@@ -383,22 +367,21 @@ model Recommendation {
 }
 
 model Stage {
-  id         Int              @id @default(autoincrement())
-  mission    String?
-  technologies String[]
-  entreprise String           
-  dateDebut  DateTime         
-  dateFin    DateTime        
-  rapportUrl String?
-  statutV    StatutValidation @default(PENDING)
-  duree      Int?
-  studentId  Int
+  id              Int              @id @default(autoincrement())
+  mission         String?
+  technologies    String[]
+  entreprise      String
+  dateDebut       DateTime
+  dateFin         DateTime
+  rapportUrl      String?
+  statutV         StatutValidation @default(PENDING)
+  duree           Int?
+  studentId       Int
   encadrantId     Int?
-  rejectionReason String?      
-  Prof    Prof?   @relation(fields: [encadrantId], references: [id])
-  Student Student @relation(fields: [studentId], references: [id])
+  rejectionReason String?
+  Prof            Prof?            @relation(fields: [encadrantId], references: [id])
+  Student         Student          @relation(fields: [studentId], references: [id])
 }
-
 
 model StudentActivite {
   studentId            Int
@@ -418,6 +401,28 @@ model StudentFormation {
   @@id([studentId, formationId])
 }
 
+model Establishment {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  name      String
+  city      String
+  status    UserStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING
+  BLOCKED
+  REJECTED
+}
+
+enum LoginStatus {
+  SUCCESS
+  FAILED
+  LOGOUT
+}
+
 enum Role {
   STUDENT
   PROF
@@ -429,7 +434,7 @@ enum StatutValidation {
   PENDING
   VALIDATED
   REJECTED
-  SUBMITTED 
+  SUBMITTED
 }
 
 enum NiveauSkill {

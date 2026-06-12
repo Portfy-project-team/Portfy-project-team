@@ -314,6 +314,7 @@ import { ref } from 'vue'
 import Sidebar from '../../components/professor/Sidebar.vue'
 import Topbar from '../../components/professor/Topbar.vue'
 import { Search, Bell, Sparkles, CheckCheck, ChevronLeft, ChevronRight, Copy, Download } from 'lucide-vue-next'
+import { api } from '@/store/authStore.js'
 
 const currentStep = ref(0)
 const steps = ref(['Informations de base', 'Appréciation & Contexte'])
@@ -358,16 +359,8 @@ const generateLetter = async () => {
   generatedLetter.value = ''
 
   try {
-    const response = await fetch(
-      'http://localhost:3000/api/ai-reco/generate',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form.value)
-      }
-    )
-
-    const data = await response.json()
+    const res = await api.post('/ai-reco/generate', form.value)
+    const data = res.data
 
     if (data.success) {
       generatedLetter.value = data.letter

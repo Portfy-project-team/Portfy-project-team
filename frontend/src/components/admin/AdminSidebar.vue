@@ -13,9 +13,9 @@
     </div>
 
     <div v-if="isOpen" class="admin-profile">
-      <div class="avatar">AD</div>
+      <div class="avatar">{{ initials }}</div>
       <div>
-        <h3>Admin Portfy</h3>
+        <h3>{{ displayName }}</h3>
         <p>Super-Administrateur</p>
       </div>
     </div>
@@ -61,12 +61,17 @@
         <Settings size="18" />
         <span v-if="isOpen">Parametres</span>
       </RouterLink>
+
+      <button class="nav-item logout-btn" @click="handleLogout">
+        <LogOut size="18" />
+        <span v-if="isOpen">Deconnexion</span>
+      </button>
     </nav>
   </aside>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import {
   ChevronLeft,
   ChevronRight,
@@ -76,13 +81,26 @@ import {
   FileCheck2,
   ShieldAlert,
   BarChart3,
-  Settings
+  Settings,
+  LogOut
 } from 'lucide-vue-next'
+import { useAuthStore } from '../../store/authStore.js'
+import { useRouter } from 'vue-router'
 
 const isOpen = ref(true)
+const authStore = useAuthStore()
+const router = useRouter()
+
+const initials = computed(() => authStore.initials)
+const displayName = computed(() => authStore.displayName)
 
 const toggleSidebar = () => {
   isOpen.value = !isOpen.value
+}
+
+const handleLogout = async () => {
+  await authStore.logout()
+  router.push('/login')
 }
 </script>
 
@@ -96,6 +114,8 @@ const toggleSidebar = () => {
   padding: 18px 8px;
   transition: width 0.25s ease;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .admin-sidebar.closed {
@@ -183,6 +203,7 @@ const toggleSidebar = () => {
 .sidebar-nav {
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 
 .nav-label {
@@ -203,6 +224,19 @@ const toggleSidebar = () => {
   font-size: 14px;
   font-weight: 800;
   border-radius: 0;
+}
+
+.logout-btn {
+  background: transparent;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  margin-top: auto;
+}
+
+.logout-btn:hover {
+  background: #e52525 !important;
+  color: white !important;
 }
 
 .admin-sidebar.closed .nav-item {

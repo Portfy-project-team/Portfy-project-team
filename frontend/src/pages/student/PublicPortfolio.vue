@@ -1,65 +1,53 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-
-import { portfolioData, networkStudents } from '../../data/mockData.js'
+import { api } from '@/store/authStore.js'
 
 const route = useRoute()
+const loading = ref(true)
+const portfolioData = ref(null)
+const error = ref(null)
 
-function createSlug(name) {
-  return name
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+async function fetchPortfolio() {
+  loading.value = true
+  try {
+    const studentId = route.params.slug // In Reseau.vue we use student.id as slug
+    const res = await api.get(`/portfolio/public/${studentId}`)
+    portfolioData.value = res.data.portfolio
+  } catch (err) {
+    console.error('Erreur chargement portfolio public', err)
+    error.value = 'Impossible de charger ce portfolio.'
+  } finally {
+    loading.value = false
+  }
 }
 
-const student = computed(() => {
-  const slug = route.params.slug
-
-  if (slug === 'ahmed-alami') {
-    return null
-  }
-
-  return networkStudents.find((item) => createSlug(item.name) === slug)
-})
+onMounted(fetchPortfolio)
 
 const publicProfile = computed(() => {
-  if (!student.value) {
-    return {
-      initials: portfolioData.profile.initials,
-      name: portfolioData.profile.name,
-      title: portfolioData.profile.title,
-      school: portfolioData.profile.school,
-      about: portfolioData.profile.about,
-      projects: portfolioData.validatedProjects,
-      badges: portfolioData.badges.map((badge) => badge.label)
-    }
-  }
+  if (!portfolioData.value) return null
+
+  const s = portfolioData.value
+  const p = s.portfolio || {}
 
   return {
-    initials: student.value.initials,
-    name: student.value.name,
-    title: `${student.value.level} - ${student.value.field}`,
-    school: `${student.value.school} - ${student.value.year}`,
-    about: `${student.value.name} est un etudiant en ${student.value.field}. Son portfolio presente ses competences, ses badges et son parcours academique.`,
-    projects: [
-      {
-        id: 1,
-        title: 'Portfolio academique',
-        meta: student.value.school,
-        tags: student.value.badges
-      }
-    ],
-    badges: student.value.badges
+    initials: (s.prenom?.[0] || '') + (s.nom?.[0] || ''),
+    name: `${s.prenom} ${s.nom}`,
+    title: p.objective || 'Étudiant',
+    school: s.etablissement || 'N/A',
+    about: p.bio || `Découvrez le parcours de ${s.prenom} ${s.nom}.`,
+    projects: s.portfolio?.projets?.filter(proj => proj.statusV === 'VALIDATED') || [],
+    badges: s.portfolio?.PortfolioBadge?.map(pb => pb.Badge.nom) || []
   }
 })
 </script>
 
 <template>
   <main class="public-page">
-    <section class="public-card">
+    <div v-if="loading" class="loading-state">Chargement du portfolio...</div>
+    <div v-else-if="error" class="error-state">{{ error }}</div>
+    
+    <section class="public-card" v-else-if="publicProfile">
       <div class="profile-header">
         <div class="avatar">
           {{ publicProfile.initials }}
@@ -77,7 +65,7 @@ const publicProfile = computed(() => {
         <p>{{ publicProfile.about }}</p>
       </section>
 
-      <section class="section-block">
+      <section class="section-block" v-if="publicProfile.projects.length > 0">
         <h3>Projets valides</h3>
 
         <div
@@ -85,21 +73,21 @@ const publicProfile = computed(() => {
           :key="project.id"
           class="project-box"
         >
-          <h4>{{ project.title }}</h4>
-          <p>{{ project.meta }}</p>
+          <h4>{{ project.titre }}</h4>
+          <p>{{ project.description }}</p>
 
-          <div class="tags">
+          <div class="tags" v-if="project.technologie">
             <span
-              v-for="tag in project.tags"
+              v-for="tag in project.technologie.split(',')"
               :key="tag"
             >
-              {{ tag }}
+              {{ tag.trim() }}
             </span>
           </div>
         </div>
       </section>
 
-      <section class="section-block">
+      <section class="section-block" v-if="publicProfile.badges.length > 0">
         <h3>Badges obtenus</h3>
 
         <div class="badges">
@@ -111,6 +99,10 @@ const publicProfile = computed(() => {
           </span>
         </div>
       </section>
+      
+      <div v-if="publicProfile.projects.length === 0 && publicProfile.badges.length === 0" class="empty-notif">
+        Ce portfolio est encore en cours de construction.
+      </div>
     </section>
   </main>
 </template>
@@ -122,6 +114,13 @@ const publicProfile = computed(() => {
   padding: 40px;
 }
 
+.loading-state, .error-state {
+  text-align: center;
+  padding: 100px;
+  font-size: 18px;
+  color: #64748b;
+}
+
 .public-card {
   max-width: 900px;
   margin: 0 auto;
@@ -129,6 +128,7 @@ const publicProfile = computed(() => {
   border: 1px solid #e5e7eb;
   border-radius: 18px;
   padding: 32px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
 }
 
 .profile-header {
@@ -168,6 +168,7 @@ h2 {
 
 p {
   color: #64748b;
+  line-height: 1.6;
 }
 
 .section-block {
@@ -179,35 +180,45 @@ p {
   font-size: 17px;
   font-weight: 900;
   text-transform: uppercase;
+  margin-bottom: 15px;
 }
 
 .project-box {
   background: #f8fafc;
   border-left: 4px solid #10b981;
   border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
 }
 
 .project-box h4 {
-  margin: 0 0 6px;
-  font-size: 18px;
+  margin: 0 0 8px;
+  font-size: 19px;
+  color: #0f172a;
 }
 
 .tags,
 .badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .tags span,
 .badges span {
   background: #eaf3f8;
   color: #082a47;
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13px;
+}
+
+.empty-notif {
+  text-align: center;
+  color: #94a3b8;
+  font-style: italic;
+  padding: 20px;
 }
 </style>

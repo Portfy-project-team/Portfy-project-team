@@ -1,33 +1,58 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { api } from '@/store/authStore.js'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 
-import { networkStudents } from '../../data/mockData.js'
-
 const router = useRouter()
 
 const searchText = ref('')
-const selectedField = ref('Toutes les filieres')
-const selectedBadge = ref('Tous les badges')
-const selectedScore = ref('Tous les scores')
+const selectedField = ref('')
+const networkStudents = ref([])
+const loading = ref(true)
 
-function createSlug(name) {
-  return name
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+async function fetchNetwork() {
+  loading.value = true
+  try {
+    const res = await api.get('/search', {
+      params: { 
+        q: searchText.value || ' ', 
+        limit: 20 
+      }
+    })
+    
+    networkStudents.value = res.data.data.map(s => ({
+      id: s.studentId,
+      name: s.studentName,
+      initials: s.initials,
+      avatarColor: 'avatar-blue',
+      year: s.filiere || 'Étudiant',
+      field: s.filiere || 'Général',
+      school: s.school || 'Ensa Tanger',
+      score: s.scoreCredibilite,
+      level: s.scoreCredibilite >= 80 ? 'Expert' : s.scoreCredibilite >= 50 ? 'Avancé' : 'Inter.',
+      levelClass: s.scoreCredibilite >= 80 ? 'level-expert' : s.scoreCredibilite >= 50 ? 'level-advanced' : 'level-inter',
+      badges: s.tags
+    }))
+  } catch (e) {
+    console.error('Erreur recherche', e)
+  } finally {
+    loading.value = false
+  }
 }
 
-function viewStudentPortfolio(student) {
-  const slug = createSlug(student.name)
-  const routeData = router.resolve(`/portfolio/${slug}`)
+onMounted(fetchNetwork)
 
-  window.open(routeData.href, '_blank')
+watch(searchText, () => {
+  if (searchText.value.length > 2 || searchText.value.length === 0) {
+    fetchNetwork()
+  }
+})
+
+function viewStudentPortfolio(student) {
+  router.push(`/portfolio/${student.id}`)
 }
 </script>
 
@@ -36,7 +61,7 @@ function viewStudentPortfolio(student) {
     <Sidebar />
 
     <div class="student-main">
-      <Topbar title="Reseau etudiants" user-initials="AA" />
+      <Topbar title="Reseau etudiants" />
 
       <main class="network-page">
         <section class="page-header">
@@ -46,12 +71,15 @@ function viewStudentPortfolio(student) {
 
         <section class="filters-card">
           <input
+            v-model="searchText"
             type="text"
             placeholder="Rechercher par nom, badge ou projet..."
           />
 
-          <select>
-            <option>Toutes les filieres</option>
+          <select v-model="selectedField">
+            <option value="">Toutes les filieres</option>
+            <option value="Informatique">Informatique</option>
+            <option value="Industriel">Industriel</option>
           </select>
 
           <select>
@@ -63,7 +91,7 @@ function viewStudentPortfolio(student) {
           </select>
         </section>
 
-        <section class="table-card">
+        <section class="table-card" v-if="!loading">
           <table class="network-table">
             <thead>
               <tr>
@@ -130,7 +158,9 @@ function viewStudentPortfolio(student) {
               </tr>
             </tbody>
           </table>
+          <div v-if="networkStudents.length === 0" class="empty">Aucun étudiant trouvé.</div>
         </section>
+        <div v-else class="loading">Chargement du réseau...</div>
       </main>
     </div>
   </div>
@@ -241,34 +271,9 @@ function viewStudentPortfolio(student) {
   flex-shrink: 0;
 }
 
-.avatar-pink {
-  background: #fde2e2;
-  color: #dc2626;
-}
-
 .avatar-blue {
   background: #dff2ff;
   color: #1d70b8;
-}
-
-.avatar-yellow {
-  background: #fff2d8;
-  color: #f59e0b;
-}
-
-.avatar-green {
-  background: #d6f7e4;
-  color: #078143;
-}
-
-.avatar-purple {
-  background: #ebe7ff;
-  color: #5b4cc4;
-}
-
-.avatar-sky {
-  background: #dff2ff;
-  color: #0b78a8;
 }
 
 .student-cell h3 {
@@ -344,6 +349,12 @@ function viewStudentPortfolio(student) {
 
 .portfolio-btn:hover {
   background: #0b3558;
+}
+
+.empty, .loading {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
 }
 
 @media (max-width: 1100px) {

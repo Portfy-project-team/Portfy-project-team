@@ -11,7 +11,7 @@
           <p>Gerer les regles globales et les parametres systeme</p>
         </section>
 
-        <section class="settings-grid">
+        <section class="settings-grid" v-if="!settingsStore.loading">
           <div class="left-column">
             <div class="panel">
               <h2>Configuration generale</h2>
@@ -138,6 +138,10 @@
             </div>
           </div>
         </section>
+        
+        <section v-else class="loading-state">
+           <p>Chargement des parametres...</p>
+        </section>
       </main>
     </div>
 
@@ -175,101 +179,47 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, onMounted } from 'vue'
 
 import AdminSidebar from '@/components/admin/AdminSidebar.vue'
 import AdminTopbar from '@/components/admin/AdminTopbar.vue'
+import { useAdminSettingsStore } from '@/store/admin/adminSettingsStore'
 
+const settingsStore = useAdminSettingsStore()
 const savedMessage = ref(false)
 const showBadgeModal = ref(false)
 
 const general = reactive({
-  platformName: 'Portfy',
-  supportEmail: 'support@portfy.ma',
+  platformName: '',
+  supportEmail: '',
   defaultLanguage: 'Francais'
 })
 
+onMounted(async () => {
+  await settingsStore.fetchSettings()
+  Object.assign(general, settingsStore.settings.general)
+})
+
 const badges = ref([
-  {
-    id: 1,
-    name: 'Web Developer',
-    description: '3 projets web valides',
-    enabled: true
-  },
-  {
-    id: 2,
-    name: 'DevOps Beginner',
-    description: 'Docker + CI/CD utilises',
-    enabled: true
-  },
-  {
-    id: 3,
-    name: 'Hackathon',
-    description: 'Participation a un hackathon',
-    enabled: true
-  },
-  {
-    id: 4,
-    name: 'Full Stack',
-    description: 'Frontend + Backend',
-    enabled: false
-  }
+  { id: 1, name: 'Web Developer', description: '3 projets web valides', enabled: true },
+  { id: 2, name: 'DevOps Beginner', description: 'Docker + CI/CD utilises', enabled: true },
+  { id: 3, name: 'Hackathon', description: 'Participation a un hackathon', enabled: true }
 ])
 
 const scoreItems = reactive([
-  {
-    key: 'projects',
-    label: 'Projets valides',
-    value: 20
-  },
-  {
-    key: 'stages',
-    label: 'Stages valides',
-    value: 20
-  },
-  {
-    key: 'recommendations',
-    label: 'Recommandations',
-    value: 15
-  },
-  {
-    key: 'git',
-    label: 'Contributions Git',
-    value: 15
-  },
-  {
-    key: 'profile',
-    label: 'Completude profil',
-    value: 15
-  },
-  {
-    key: 'formations',
-    label: 'Formations',
-    value: 15
-  }
+  { key: 'projects', label: 'Projets valides', value: 20 },
+  { key: 'stages', label: 'Stages valides', value: 20 },
+  { key: 'recommendations', label: 'Recommandations', value: 15 },
+  { key: 'git', label: 'Contributions Git', value: 15 },
+  { key: 'profile', label: 'Completude profil', value: 15 },
+  { key: 'formations', label: 'Formations', value: 15 }
 ])
 
 const notifications = ref([
-  {
-    id: 1,
-    label: 'Email aux nouveaux inscrits',
-    enabled: true
-  },
-  {
-    id: 2,
-    label: 'Notifications de validation',
-    enabled: true
-  },
-  {
-    id: 3,
-    label: 'Alertes de signalement',
-    enabled: true
-  },
-  {
-    id: 4,
-    label: 'Rapport hebdomadaire',
-    enabled: false
-  }
+  { id: 1, label: 'Email aux nouveaux inscrits', enabled: true },
+  { id: 2, label: 'Notifications de validation', enabled: true },
+  { id: 3, label: 'Alertes de signalement', enabled: true },
+  { id: 4, label: 'Rapport hebdomadaire', enabled: false }
 ])
 
 const newBadge = reactive({
@@ -281,12 +231,12 @@ const totalScore = computed(() => {
   return scoreItems.reduce((total, item) => total + Number(item.value), 0)
 })
 
-const saveGeneralSettings = () => {
-  savedMessage.value = true
-
-  setTimeout(() => {
-    savedMessage.value = false
-  }, 2500)
+const saveGeneralSettings = async () => {
+  const success = await settingsStore.saveSettings(general)
+  if (success) {
+    savedMessage.value = true
+    setTimeout(() => { savedMessage.value = false }, 2500)
+  }
 }
 
 const openBadgeModal = () => {
@@ -306,7 +256,6 @@ const addBadge = () => {
     description: newBadge.description,
     enabled: true
   })
-
   closeBadgeModal()
 }
 </script>
@@ -657,6 +606,13 @@ const addBadge = () => {
 .save-btn {
   background: #062f4f;
   color: #fff;
+}
+
+.loading-state {
+  padding: 40px;
+  text-align: center;
+  background: #fff;
+  border-radius: 9px;
 }
 
 @media (max-width: 1000px) {

@@ -1,30 +1,76 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { api } from '@/store/authStore.js'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 
-import { historyItems } from '../../data/mockData.js'
-
+const historyItems = ref([])
+const isLoading = ref(true)
 const activeFilter = ref('Tout')
-const filters = ['Tout', 'Validations', 'Refus', 'Modifications']
+const filters = ['Tout', 'Validations', 'Refus', 'Messages']
+
+async function loadHistory() {
+  isLoading.value = true
+  try {
+    const res = await api.get('/notifications')
+    const notifs = res.data.data || []
+    
+    historyItems.value = notifs.map(n => {
+      let action = 'Notification'
+      let iconColor = 'blue'
+      let element = 'Systeme'
+      
+      if (n.type.includes('VALIDATED')) {
+        action = 'Validation'
+        iconColor = 'green'
+        element = 'Projet/Stage'
+      } else if (n.type.includes('REJECTED')) {
+        action = 'Refus'
+        iconColor = 'red'
+        element = 'Projet/Stage'
+      } else if (n.type.includes('COMMENT')) {
+        action = 'Commentaire'
+        iconColor = 'purple'
+        element = 'Portfolio'
+      }
+
+      return {
+        id: n.id,
+        action,
+        element,
+        by: 'Systeme',
+        date: new Date(n.dateC).toLocaleDateString('fr-FR'),
+        status: n.isRead ? 'Lu' : 'Nouveau',
+        iconColor,
+        rawStatus: n.isRead ? 'valide' : 'nouveau'
+      }
+    })
+  } catch (e) {
+    console.error('Erreur historique', e)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(loadHistory)
 
 const filteredHistory = computed(() => {
-  if (activeFilter.value === 'Tout') return historyItems
+  if (activeFilter.value === 'Tout') return historyItems.value
 
   if (activeFilter.value === 'Validations') {
-    return historyItems.filter((item) => normalize(item.status).includes('valide'))
+    return historyItems.value.filter((item) => item.action === 'Validation')
   }
 
   if (activeFilter.value === 'Refus') {
-    return historyItems.filter((item) => normalize(item.status).includes('refuse'))
+    return historyItems.value.filter((item) => item.action === 'Refus')
   }
 
-  if (activeFilter.value === 'Modifications') {
-    return historyItems.filter((item) => normalize(item.status).includes('modifie'))
+  if (activeFilter.value === 'Messages') {
+    return historyItems.value.filter((item) => item.action === 'Commentaire')
   }
 
-  return historyItems
+  return historyItems.value
 })
 
 function normalize(text) {

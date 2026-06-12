@@ -9,7 +9,7 @@
         <section class="page-header">
           <div>
             <h1>Gestion des etablissements</h1>
-            <p>{{ totalEstablishmentsLabel }} ecoles et universites inscrites</p>
+            <p>{{ establishments.length }} ecoles et universites inscrites</p>
           </div>
 
           <button class="add-btn" type="button" @click="openAddModal">
@@ -118,28 +118,6 @@
             </select>
           </label>
 
-          <div class="form-grid">
-            <label>
-              Etudiants
-              <input v-model.number="form.students" type="number" min="0" required />
-            </label>
-
-            <label>
-              Profs
-              <input v-model.number="form.teachers" type="number" min="0" required />
-            </label>
-
-            <label>
-              Filieres
-              <input v-model.number="form.branches" type="number" min="0" required />
-            </label>
-
-            <label>
-              Annees
-              <input v-model.number="form.years" type="number" min="0" required />
-            </label>
-          </div>
-
           <div class="modal-actions">
             <button class="cancel-btn" type="button" @click="closeModal">
               Annuler
@@ -156,13 +134,18 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
-
+import { computed, reactive, ref, onMounted } from 'vue'
 import AdminSidebar from '@/components/admin/AdminSidebar.vue'
 import AdminTopbar from '@/components/admin/AdminTopbar.vue'
 import { useEstablishmentStore } from '@/store/admin/establishmentsStore'
 
 const establishmentStore = useEstablishmentStore()
+
+onMounted(async () => {
+  await establishmentStore.fetchEstablishments()
+})
+
+const establishments = computed(() => establishmentStore.establishments)
 
 const showModal = ref(false)
 const modalMode = ref('add')
@@ -172,107 +155,74 @@ const form = reactive({
   code: '',
   name: '',
   city: '',
-  status: 'Actif',
-  students: 0,
-  teachers: 0,
-  branches: 0,
-  years: 0
+  status: 'Actif'
 })
 
-const establishments = computed(() => establishmentStore.establishments)
-
-const totalEstablishmentsLabel = computed(() => {
-  const total = establishmentStore.establishments.length
-
-  if (total < 24) {
-    return 24
-  }
-
-  return total
-})
-
-const logoClass = (status) => {
-  if (status === 'En attente') return 'logo-green'
-  if (status === 'Inactif') return 'logo-red'
-
-  return 'logo-yellow'
-}
-
-const statusClass = (status) => {
-  return {
-    Actif: 'status-active',
-    'En attente': 'status-pending',
-    Inactif: 'status-inactive'
-  }[status]
-}
-
-const resetForm = () => {
+const openAddModal = () => {
+  modalMode.value = 'add'
+  selectedId.value = null
   form.code = ''
   form.name = ''
   form.city = ''
   form.status = 'Actif'
-  form.students = 0
-  form.teachers = 0
-  form.branches = 0
-  form.years = 0
-  selectedId.value = null
-}
-
-const openAddModal = () => {
-  resetForm()
-  modalMode.value = 'add'
   showModal.value = true
 }
 
-const openManageModal = (establishment) => {
+const openManageModal = (est) => {
   modalMode.value = 'edit'
-  selectedId.value = establishment.id
-
-  form.code = establishment.code
-  form.name = establishment.name
-  form.city = establishment.city
-  form.status = establishment.status
-  form.students = establishment.students
-  form.teachers = establishment.teachers
-  form.branches = establishment.branches
-  form.years = establishment.years
-
+  selectedId.value = est.id
+  form.code = est.code
+  form.name = est.name
+  form.city = est.city
+  form.status = est.status
   showModal.value = true
 }
 
 const closeModal = () => {
   showModal.value = false
-  resetForm()
 }
 
-const validateEstablishment = (id) => {
-  establishmentStore.updateEstablishment(id, {
-    status: 'Actif'
-  })
+const saveEstablishment = async () => {
+  try {
+    if (modalMode.value === 'add') {
+      await establishmentStore.createEstablishment({
+        name: form.name,
+        code: form.code,
+        city: form.city
+      })
+      alert('Etablissement ajoute avec succes.')
+    } else {
+      await establishmentStore.updateEstablishment(selectedId.value, { 
+        name: form.name, 
+        code: form.code,
+        city: form.city 
+      })
+      alert('Modifications enregistrees.')
+    }
+    closeModal()
+  } catch (err) {
+    alert('Erreur lors de la sauvegarde : ' + (err.response?.data?.message || err.message))
+  }
 }
 
-const saveEstablishment = () => {
-  const data = {
-    code: form.code.toUpperCase(),
-    name: form.name,
-    city: form.city,
-    status: form.status,
-    students: form.students,
-    teachers: form.teachers,
-    branches: form.branches,
-    years: form.years
+const validateEstablishment = async (id) => {
+  try {
+    await establishmentStore.updateEstablishment(id, { status: 'Actif' })
+    alert('Etablissement valide.')
+  } catch (err) {
+    alert('Erreur lors de la validation.')
   }
+}
 
-  if (modalMode.value === 'add') {
-    establishmentStore.establishments.push({
-      id: Date.now().toString(),
-      ...data
-    })
-  } else {
-    establishmentStore.updateEstablishment(selectedId.value, data)
-  }
+const statusClass = (status) => {
+  if (status === 'Actif') return 'active'
+  if (status === 'En attente') return 'pending'
+  return 'inactive'
+}
 
-  closeModal()
+const logoClass = (status) => {
+  if (status === 'Actif') return 'blue-logo'
+  return 'gray-logo'
 }
 </script>
 
@@ -295,305 +245,241 @@ const saveEstablishment = () => {
 
 .page-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
 .page-header h1 {
   margin: 0;
-  color: #000;
   font-size: 22px;
   font-weight: 900;
 }
 
-.page-header p {
-  margin: 4px 0 0;
-  color: #4f6780;
-  font-size: 13px;
-}
-
 .add-btn {
-  border: none;
   background: #062f4f;
   color: #fff;
-  border-radius: 7px;
+  border: none;
   padding: 10px 18px;
+  border-radius: 7px;
   font-weight: 900;
   cursor: pointer;
 }
 
-.add-btn:hover {
-  background: #041f34;
-}
-
 .establishments-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 13px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 18px;
 }
 
 .establishment-card {
   background: #fff;
   border: 1px solid #dce4ea;
-  border-radius: 9px;
-  padding: 15px;
-  min-height: 204px;
+  border-radius: 12px;
+  padding: 18px;
 }
 
 .card-top {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
 }
 
 .school-info {
   display: flex;
-  align-items: center;
   gap: 12px;
 }
 
 .school-logo {
-  width: 46px;
-  height: 46px;
-  border-radius: 9px;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #f5a400;
   font-weight: 900;
-  font-size: 16px;
+  color: #fff;
 }
 
-.logo-yellow {
-  background: #fff0cd;
-}
-
-.logo-green {
-  background: #cef7df;
-  color: #00834b;
-}
-
-.logo-red {
-  background: #ffd9d9;
-  color: #e52525;
-}
+.blue-logo { background: #1478f2; }
+.gray-logo { background: #94a3b8; }
 
 .school-info h2 {
   margin: 0;
-  color: #000;
   font-size: 16px;
   font-weight: 900;
 }
 
 .school-info p {
   margin: 3px 0 0;
-  color: #4f6780;
-  font-size: 11px;
+  font-size: 12px;
+  color: #647585;
 }
 
 .status {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 5px 10px;
   font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 5px;
   font-weight: 900;
 }
 
-.status-active {
-  background: #cef7df;
-  color: #00834b;
-}
-
-.status-pending {
-  background: #fff0cd;
-  color: #c27b00;
-}
-
-.status-inactive {
-  background: #ffd9d9;
-  color: #d71919;
-}
+.status.active { background: #cef7df; color: #00a862; }
+.status.pending { background: #fff0cd; color: #f5a400; }
 
 .divider {
   height: 1px;
-  background: #dce4ea;
-  margin: 10px 0 13px;
+  background: #edf1f4;
+  margin: 15px 0;
 }
 
 .school-stats {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 7px 40px;
-  margin-bottom: 11px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .school-stats span {
   display: block;
-  color: #4f6780;
-  font-size: 11px;
+  font-size: 10px;
+  color: #647585;
 }
 
 .school-stats strong {
   display: block;
-  color: #000;
   font-size: 14px;
-  font-weight: 900;
-  margin-top: 1px;
+  color: #000;
 }
 
-.manage-btn,
-.validate-btn {
+.manage-btn, .validate-btn {
   width: 100%;
-  height: 29px;
-  border-radius: 7px;
+  padding: 10px;
+  border-radius: 8px;
   font-weight: 900;
   cursor: pointer;
 }
 
 .manage-btn {
-  border: 1px solid #f5a400;
-  color: #f5a400;
+  border: 1px solid #dce4ea;
   background: #fff;
-}
-
-.manage-btn:hover {
-  background: #fff8e6;
 }
 
 .validate-btn {
   border: none;
-  background: #062f4f;
+  background: #00a862;
   color: #fff;
-}
-
-.validate-btn:hover {
-  background: #041f34;
 }
 
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.38);
+  background: rgba(0,0,0,0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: 100;
 }
 
 .modal {
-  width: 500px;
   background: #fff;
+  padding: 20px;
   border-radius: 12px;
-  padding: 18px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
+  width: 400px;
 }
 
 .modal-header h2 {
   margin: 0;
-  color: #000;
   font-size: 20px;
+  color: #062f4f;
+  font-weight: 900;
 }
 
 .modal-header button {
   border: none;
-  background: transparent;
-  font-size: 26px;
+  background: #f1f5f9;
+  font-size: 22px;
+  color: #647585;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-header button:hover {
+  background: #ffeded;
+  color: #e52525;
 }
 
 .modal-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 15px;
 }
 
 .modal-form label {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  color: #233b50;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
+  color: #314b62;
 }
 
-.modal-form input,
-.modal-form select {
-  height: 39px;
-  border: 1px solid #d9e1e8;
-  border-radius: 7px;
-  padding: 0 12px;
+.modal-form input, .modal-form select {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #dce4ea;
+  font-size: 14px;
+  color: #062f4f;
   outline: none;
+  transition: border-color 0.2s;
 }
 
-.modal-form input:focus,
-.modal-form select:focus {
+.modal-form input:focus {
   border-color: #062f4f;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.cancel-btn,
-.save-btn {
-  border: none;
-  border-radius: 7px;
-  padding: 9px 14px;
-  font-weight: 900;
-  cursor: pointer;
+  gap: 12px;
+  margin-top: 24px;
 }
 
 .cancel-btn {
-  background: #e9edf1;
+  background: #fff;
+  border: 1px solid #dce4ea;
+  color: #51697e;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+  background: #f8fafc;
   color: #062f4f;
+  border-color: #cbd5e1;
 }
 
 .save-btn {
   background: #062f4f;
-  color: white;
+  border: none;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-@media (max-width: 1150px) {
-  .establishments-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 760px) {
-  .admin-establishments-page {
-    flex-direction: column;
-  }
-
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .establishments-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .modal {
-    width: calc(100% - 30px);
-  }
+.save-btn:hover {
+  background: #041f34;
 }
 </style>

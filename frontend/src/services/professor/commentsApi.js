@@ -1,35 +1,18 @@
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
-const getToken = () => localStorage.getItem('token')
+import { api } from '../../store/authStore.js'
 
 export async function fetchComments() {
-  const res = await fetch(`${BASE_URL}/api/professor/comments`, {
-    headers: { Authorization: `Bearer ${getToken()}` }
-  })
-  const json = await res.json()
-  return json.data
+  const res = await api.get('/professor/comments')
+  return res.data.data
 }
 
 export async function markAsReadApi(id) {
-  await fetch(`${BASE_URL}/api/professor/comments/${id}/read`, {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${getToken()}` }
-  })
+  await api.patch(`/professor/comments/${id}/read`)
 }
 
 export async function deleteCommentApi(id) {
-  await fetch(`${BASE_URL}/api/professor/comments/${id}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${getToken()}` }
-  })
+  await api.delete(`/professor/comments/${id}`)
 }
 
 export async function replyToCommentApi(id, message) {
-  await fetch(`${BASE_URL}/api/professor/comments/${id}/reply`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${getToken()}`
-    },
-    body: JSON.stringify({ message })
-  })
+  await api.post(`/professor/comments/${id}/reply`, { message })
 }

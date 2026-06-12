@@ -1,16 +1,42 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { api } from '@/store/authStore.js'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 import StatusBadge from '../../components/student/StatusBadge.vue'
 import FormationModal from '../../components/student/modals/FormationModal.vue'
 
-import { formations } from '../../data/mockData.js'
-
-const formationList = ref([...formations])
+const formationList = ref([])
+const loading = ref(true)
 const showFormationModal = ref(false)
 const selectedFormation = ref(null)
+
+async function loadFormations() {
+  loading.value = true
+  try {
+    const res = await api.get('/formations/me')
+    formationList.value = res.data.map(f => ({
+      id: f.id,
+      title: f.diplome,
+      provider: f.etablissement,
+      status: 'Terminée', 
+      progress: 100,
+      progressColor: 'green',
+      label: 'Obtenu le',
+      date: f.dateFin ? new Date(f.dateFin).toLocaleDateString('fr-FR') : 'N/A',
+      tags: [f.specialite],
+      iconColor: 'blue',
+      links: ['Certificat']
+    }))
+  } catch (e) {
+    console.error('Erreur chargement formations', e)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadFormations)
 
 function openAddFormation() {
   selectedFormation.value = null
@@ -22,20 +48,40 @@ function openEditFormation(formation) {
   showFormationModal.value = true
 }
 
-function saveFormation(formationData) {
-  if (selectedFormation.value) {
-    const index = formationList.value.findIndex((formation) => {
-      return formation.id === formationData.id
-    })
-
-    if (index !== -1) {
-      formationList.value[index] = formationData
+async function saveFormation(formationData) {
+  try {
+    const payload = {
+      etablissement: formationData.provider,
+      diplome: formationData.title,
+      specialite: formationData.tags?.[0] || 'Général',
+      dateFin: new Date().toISOString()
     }
-  } else {
-    formationList.value.unshift(formationData)
-  }
 
-  closeFormationModal()
+    if (selectedFormation.value) {
+      await api.put(`/formations/${selectedFormation.value.id}`, payload)
+    } else {
+      await api.post('/formations', payload)
+    }
+    await loadFormations()
+    alert('Formation enregistree.')
+  } catch (e) {
+    console.error('Erreur sauvegarde formation', e)
+    alert('Erreur lors de la sauvegarde.')
+  } finally {
+    closeFormationModal()
+  }
+}
+
+async function removeFormation(id) {
+  if (!confirm('Voulez-vous vraiment supprimer cette formation ?')) return
+  try {
+    await api.delete(`/formations/${id}`)
+    await loadFormations()
+    alert('Formation supprimee.')
+  } catch (e) {
+    console.error('Erreur suppression formation', e)
+    alert('Impossible de supprimer la formation.')
+  }
 }
 
 function closeFormationModal() {
@@ -44,12 +90,7 @@ function closeFormationModal() {
 }
 
 function viewCertificate(formation) {
-  if (formation.certificateLink) {
-    window.open(formation.certificateLink, '_blank')
-    return
-  }
-
-  alert('Aucun certificat disponible pour cette formation pour le moment.')
+  alert('Aucun certificat disponible pour le moment.')
 }
 </script>
 
@@ -58,13 +99,13 @@ function viewCertificate(formation) {
     <Sidebar />
 
     <div class="student-main">
-      <Topbar title="Formations & Certifications" user-initials="AA" />
+      <Topbar title="Formations & Diplômes" />
 
       <main class="formations-page">
         <section class="page-header">
           <div>
-            <h2>Mes formations</h2>
-            <p>Cours en ligne, certifications et formations continues</p>
+            <h2>Mon parcours académique</h2>
+            <p>Gérez vos diplômes, certifications et formations continues</p>
           </div>
 
           <button
@@ -76,7 +117,7 @@ function viewCertificate(formation) {
           </button>
         </section>
 
-        <section class="formations-grid">
+        <section class="formations-grid" v-if="!loading">
           <article
             v-for="formation in formationList"
             :key="formation.id"
@@ -91,20 +132,6 @@ function viewCertificate(formation) {
               </div>
 
               <StatusBadge :status="formation.status" />
-            </div>
-
-            <div class="progress-block">
-              <div class="progress-label">
-                <span>Progression</span>
-                <strong>{{ formation.progress }}%</strong>
-              </div>
-
-              <div class="progress-bar">
-                <span
-                  :class="formation.progressColor"
-                  :style="{ width: formation.progress + '%' }"
-                ></span>
-              </div>
             </div>
 
             <div class="formation-meta">
@@ -125,26 +152,39 @@ function viewCertificate(formation) {
             <div class="card-footer">
               <div class="links">
                 <button
-                  v-for="link in formation.links"
-                  :key="link"
                   type="button"
-                  :class="['link-btn', { orange: link === 'Certificat' }]"
+                  class="link-btn orange"
                   @click="viewCertificate(formation)"
                 >
-                  {{ link }}
+                  Certificat
                 </button>
               </div>
 
-              <button
-                type="button"
-                class="edit-btn"
-                @click="openEditFormation(formation)"
-              >
-                Modifier
-              </button>
+              <div class="actions">
+                <button
+                  type="button"
+                  class="edit-btn"
+                  @click="openEditFormation(formation)"
+                >
+                  Modifier
+                </button>
+                <button
+                  type="button"
+                  class="delete-btn"
+                  @click="removeFormation(formation.id)"
+                >
+                  Supprimer
+                </button>
+              </div>
             </div>
           </article>
+          
+          <div v-if="formationList.length === 0" class="empty-state">
+            Aucune formation enregistrée pour le moment.
+          </div>
         </section>
+        
+        <div v-else class="loading-state">Chargement...</div>
       </main>
     </div>
 
@@ -156,6 +196,7 @@ function viewCertificate(formation) {
     />
   </div>
 </template>
+
 <style scoped>
 .student-layout {
   display: flex;
@@ -166,7 +207,6 @@ function viewCertificate(formation) {
 .student-main {
   flex: 1;
   min-width: 0;
-  background: #f4f1ec;
 }
 
 .formations-page {
@@ -181,18 +221,8 @@ function viewCertificate(formation) {
   margin-bottom: 26px;
 }
 
-.page-header h2 {
-  margin: 0 0 8px;
-  font-size: 32px;
-  font-weight: 800;
-  color: #050505;
-}
-
-.page-header p {
-  margin: 0;
-  color: #64748b;
-  font-size: 17px;
-}
+.page-header h2 { margin: 0 0 8px; font-size: 32px; font-weight: 800; color: #050505; }
+.page-header p { margin: 0; color: #64748b; font-size: 17px; }
 
 .primary-btn {
   background: #082a47;
@@ -203,11 +233,6 @@ function viewCertificate(formation) {
   font-size: 17px;
   font-weight: 800;
   cursor: pointer;
-}
-
-
-.primary-btn:hover {
-  background: #0b3558;
 }
 
 .formations-grid {
@@ -227,182 +252,57 @@ function viewCertificate(formation) {
   display: flex;
   align-items: flex-start;
   gap: 16px;
-  margin-bottom: 22px;
-}
-
-.formation-icon {
-  width: 50px;
-  height: 50px;
-  border-radius: 8px;
-  flex-shrink: 0;
-}
-
-.cream {
-  background: #fff2d8;
-}
-
-.blue {
-  background: #dff2ff;
-}
-
-.purple {
-  background: #ebe7ff;
-}
-
-.pink {
-  background: #fde2e2;
-}
-
-.formation-info {
-  flex: 1;
-}
-
-.formation-info h3 {
-  margin: 0 0 6px;
-  font-size: 22px;
-  font-weight: 800;
-  color: #050505;
-}
-
-.formation-info p {
-  margin: 0;
-  color: #64748b;
-  font-size: 15px;
-}
-
-.progress-block {
   margin-bottom: 18px;
 }
 
-.progress-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  color: #64748b;
-  font-size: 15px;
+.formation-icon {
+  width: 45px;
+  height: 45px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: #dff2ff;
 }
 
-.progress-label strong {
-  color: #050505;
-  font-size: 15px;
-}
+.formation-info { flex: 1; }
+.formation-info h3 { margin: 0 0 4px; font-size: 20px; font-weight: 800; color: #050505; }
+.formation-info p { margin: 0; color: #64748b; font-size: 14px; }
 
-.progress-bar {
-  height: 8px;
-  width: 100%;
-  background: #e5e7eb;
-  border-radius: 999px;
-  overflow: hidden;
-}
+.formation-meta { margin-bottom: 12px; font-size: 14px; color: #64748b; }
+.formation-meta strong { color: #050505; margin-right: 5px; }
 
-.progress-bar span {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-}
-
-.green {
-  background: linear-gradient(90deg, #f0a91f, #10b981);
-}
-
-.blue-green {
-  background: linear-gradient(90deg, #1d70b8, #10b981);
-}
-
-.purple-orange {
-  background: linear-gradient(90deg, #5b4cc4, #f59e0b);
-}
-
-.gray {
-  background: #e5e7eb;
-}
-
-.formation-meta {
-  margin-bottom: 14px;
-  font-size: 15px;
-  color: #64748b;
-}
-
-.formation-meta strong {
-  color: #050505;
-}
-
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.tag {
-  background: #eaf3f8;
-  color: #082a47;
-  padding: 7px 10px;
-  border-radius: 7px;
-  font-size: 13px;
-  font-weight: 600;
-}
+.tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.tag { background: #eaf3f8; color: #082a47; padding: 6px 10px; border-radius: 6px; font-size: 13px; font-weight: 600; }
 
 .card-footer {
   border-top: 1px solid #e5e7eb;
-  padding-top: 16px;
+  padding-top: 15px;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.links {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
+.actions { display: flex; gap: 15px; }
 
-.link-btn,
-.edit-btn {
+.link-btn, .edit-btn, .delete-btn {
   background: transparent;
   border: none;
-  font-size: 15px;
-  cursor: pointer;
-  padding: 0;
-}
-
-.link-btn {
-  color: #082a47;
-}
-
-.link-btn.orange,
-.edit-btn {
-  color: #f59e0b;
+  font-size: 14px;
   font-weight: 700;
+  cursor: pointer;
 }
 
-.link-btn:hover,
-.edit-btn:hover {
-  text-decoration: underline;
-}
+.link-btn.orange { color: #f59e0b; }
+.edit-btn { color: #082a47; }
+.delete-btn { color: #ef4444; }
 
-@media (max-width: 1100px) {
-  .formations-grid {
-    grid-template-columns: 1fr;
-  }
-}
+.link-btn:hover, .edit-btn:hover, .delete-btn:hover { text-decoration: underline; }
 
+.loading-state, .empty-state { text-align: center; padding: 50px; color: #64748b; }
+
+@media (max-width: 1100px) { .formations-grid { grid-template-columns: 1fr; } }
 @media (max-width: 700px) {
-  .formations-page {
-    padding: 22px;
-  }
-
-  .page-header {
-    flex-direction: column;
-  }
-
-  .primary-btn {
-    width: 100%;
-  }
-
-  .formation-top {
-    flex-wrap: wrap;
-  }
+  .formations-page { padding: 22px; }
+  .page-header { flex-direction: column; }
+  .primary-btn { width: 100%; }
 }
 </style>

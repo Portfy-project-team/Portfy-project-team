@@ -204,126 +204,76 @@ async function getProfDashboard(userId: number): Promise<DashboardResponse> {
 }
 
 // ─── DASHBOARD STUDENT ────────────────────────────────────────────────────────
-async function getStudentDashboard(userId: number): Promise<DashboardResponse> {
+async function getStudentDashboard(userId: number): Promise<any> {
   const student = await prisma.student.findUniqueOrThrow({
     where: { userId },
-    select: {
-      id: true, nom: true, prenom: true, etablissement: true,
-      portfolio: { select: { id: true } },
-    },
+    include: {
+      portfolio: {
+        include: { projets: true }
+      },
+      Stage: true,
+      Recommendation: true,
+    }
   })
 
-  const studentId  = student.id
+  const studentId = student.id
   const portfolioId = student.portfolio?.id
 
-  const oneWeekAgo  = new Date(Date.now() - 7  * 24 * 60 * 60 * 1000)
-  const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-
-  const [totalProjets, validatedProjets, totalStages, totalRecos] = await Promise.all([
-    prisma.projet.count({ where: { portfolio: { studentId } } }),
-    prisma.projet.count({ where: { portfolio: { studentId }, statusV: StatutValidation.VALIDATED } }),
-    prisma.stage.count({ where: { studentId } }),
-    portfolioId ? prisma.recommendation.count({ where: { portfolioId } }) : Promise.resolve(0),
-  ])
-
-  const stats: StatItem[] = [
-    { key: 'my_projects',     label: 'Mes projets',       value: totalProjets,   trend: '' },
-    { key: 'validated',       label: 'Projets validés',   value: validatedProjets, trend: '' },
-    { key: 'stages',          label: 'Stages',            value: totalStages,    trend: '' },
-    { key: 'recommendations', label: 'Recommandations',   value: totalRecos,     trend: '' },
-  ]
-
-  // Mes projets récents
-  const projets = portfolioId
-    ? await prisma.projet.findMany({
-        where: { portfolioId },
-        orderBy: { dateSoumission: 'desc' },
-        take: 5,
-        select: {
-          id: true, titre: true, technologie: true, type: true,
-          statusV: true, dateSoumission: true,
-          skills: { select: { skill: { select: { nom: true } } } },
-        },
-      })
-    : []
-
-  const pendingProjects: PendingProject[] = projets.map((p, i) => {
-    const techFromText   = p.technologie ? p.technologie.split(/[,·\s]+/).filter(Boolean) : []
-    const techFromSkills = p.skills.map(s => s.skill.nom)
-    const allTech        = [...new Set([...techFromText, ...techFromSkills])]
-    const techTags: TagItem[] = allTech.slice(0, 3).map(t => ({ label: t, class: 'tag-tech' }))
-    const statusMap: Record<string, TagItem> = {
-      VALIDATED: { label: 'Projet validé',  class: 'tag-validated' },
-      PENDING:   { label: 'En attente',     class: 'tag-personal'  },
-      REJECTED:  { label: 'Refusé',         class: 'tag-stage'     },
-    }
-    return {
-      id:       p.id,
-      initials: `${student.prenom?.[0] ?? '?'}${student.nom?.[0] ?? '?'}`.toUpperCase(),
-      color:    colorAt(i),
-      student:  `${student.prenom ?? ''} ${student.nom ?? ''}`.trim(),
-      title:    p.titre ?? 'Sans titre',
-      stack:    allTech.slice(0, 4).join(' · '),
-      date:     p.dateSoumission ? timeAgo(p.dateSoumission) : 'inconnu',
-      tags:     [...techTags, statusMap[p.statusV] ?? { label: p.statusV, class: 'tag-tech' }],
-      status:   p.statusV,
-      type:     p.type,
-    }
-  })
-
-  // Recommandations reçues
-  const recos = portfolioId
-    ? await prisma.recommendation.findMany({
-        where: { portfolioId },
-        orderBy: { date: 'desc' },
-        take: 5,
-        select: {
-          id: true, message: true, date: true, statut: true,
-          Prof: { select: { nom: true, prenom: true } },
-        },
-      })
-    : []
-
-  const recommendations: RecommendationItem[] = recos.map((r, i) => {
-    const nom    = r.Prof?.nom    ?? ''
-    const prenom = r.Prof?.prenom ?? ''
-    const isPublished = r.statut === StatutValidation.VALIDATED
-    return {
-      id:          r.id,
-      initials:    `${prenom[0] ?? '?'}${nom[0] ?? '?'}`.toUpperCase(),
-      color:       colorAt(i),
-      student:     `${prenom} ${nom}`.trim(),
-      text:        r.message ?? '',
-      date:        formatDate(r.date),
-      status:      isPublished ? 'published' : 'pending',
-      statusLabel: isPublished ? 'Publiée'   : 'En attente',
-    }
-  })
-
-  const notifs = await prisma.notification.findMany({
+  // Activité récente via les Notifications du student
+  const notifications = await prisma.notification.findMany({
     where: { studentId },
     orderBy: { dateC: 'desc' },
-    take: 10,
-    select: { id: true, type: true, message: true, isRead: true, dateC: true },
+    take: 5
   })
 
-  const recentActivity: ActivityItem[] = notifs.map(n => ({
-    id:      n.id,
-    color:   NOTIF_COLOR[n.type] ?? '#aaa',
-    text:    n.message,
-    time:    timeAgo(n.dateC),
-    is_read: n.isRead,
-    type:    n.type,
-  }))
+  const projets = student.portfolio?.projets ?? []
+  const stages  = student.Stage ?? []
 
-  const user: DashboardUser = {
-    name:        student.nom ?? '',
-    full_name:   `${student.prenom ?? ''} ${student.nom ?? ''}`.trim(),
-    role:        'student',
-    institution: student.etablissement,
+  const stats = {
+    projets: projets.length,
+    projetsValidés: projets.filter(p => p.statusV === 'VALIDATED').length,
+    stages: stages.length,
+    stagesEnCours: stages.filter(s => s.statutV === 'PENDING').length,
+    score: student.portfolio?.scoreCredibilite ?? 0,
+    level:
+      (student.portfolio?.scoreCredibilite ?? 0) >= 80
+        ? 'Excellent'
+        : (student.portfolio?.scoreCredibilite ?? 0) >= 60
+        ? 'Bon'
+        : 'Débutant',
+
+    details: [
+      {
+        label: 'Projets',
+        percent: Math.min(projets.length * 10, 100),
+        max: 30
+      },
+      {
+        label: 'Stages',
+        percent: Math.min(stages.length * 20, 100),
+        max: 40
+      },
+      {
+        label: 'Recommandations',
+        percent: Math.min((student.Recommendation?.length ?? 0) * 20, 100),
+        max: 30
+      }
+    ]
   }
 
-  return { user, stats, pendingProjects, recommendations, recentActivity }
+  const activities = notifications.map(n => ({
+    id: n.id,
+    message: n.message,
+    createdAt: formatDate(n.dateC),
+    color: n.isRead ? 'green' : 'blue',
+    type: n.type
+  }))
+
+  return { 
+    prenom: student.prenom || 'Utilisateur',
+    stats,
+    activities 
+  }
 }
 
 // ─── Export principal ─────────────────────────────────────────────────────────

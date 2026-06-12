@@ -1,20 +1,9 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import axios from 'axios'
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 import CompetenceModal from '../../components/student/modals/CompetenceModal.vue'
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api',
-  withCredentials: true,
-})
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) config.headers.Authorization = `Bearer ${token}`
-  return config
-})
+import { api } from '@/store/authStore.js'
 
 const activeFilter = ref('Toutes')
 const filters = ['Toutes', 'Technique', 'Soft Skill', 'Langue']
@@ -80,7 +69,7 @@ async function loadSkills() {
   isLoading.value = true
   errorMessage.value = ''
   try {
-    const { data } = await api.get('/student/skills/me')
+    const { data } = await api.get('/skills/me')
     const skills = data.skills || []
 
     // Réinitialiser les groupes
@@ -113,13 +102,14 @@ async function loadSkills() {
 
 async function addCompetence(skillData) {
   try {
-    await api.post('/student/skills/me', {
+    await api.post('/skills/me', {
       nom: skillData.name,
       categorie: skillData.category,
       niveau: skillData.niveau || 'DEBUTANT',
     })
     await loadSkills()
     showCompetenceModal.value = false
+    alert('Compétence ajoutée.')
   } catch (err) {
     errorMessage.value = err?.response?.data?.message || 'Erreur lors de l\'ajout'
     console.error(err)
@@ -130,7 +120,7 @@ async function deleteCompetence(skillId) {
   if (!confirm('Êtes-vous sûr de vouloir supprimer cette compétence ?')) return
 
   try {
-    await api.delete(`/student/skills/me/${skillId}`)
+    await api.delete(`/skills/me/${skillId}`)
     await loadSkills()
   } catch (err) {
     errorMessage.value = err?.response?.data?.message || 'Erreur lors de la suppression'
@@ -140,7 +130,7 @@ async function deleteCompetence(skillId) {
 
 async function updateCompetence(skillId, newNiveau) {
   try {
-    await api.put(`/student/skills/me/${skillId}`, {
+    await api.put(`/skills/me/${skillId}`, {
       niveau: newNiveau,
     })
     await loadSkills()

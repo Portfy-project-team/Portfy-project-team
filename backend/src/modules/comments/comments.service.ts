@@ -63,6 +63,51 @@ export async function getProfComments(profId: number): Promise<CommentsResponse>
   return { total, read, unread, comments: items }
 }
 
+export async function getStudentComments(studentId: number): Promise<CommentsResponse> {
+  const comments = await prisma.commentaire.findMany({
+    where: {
+      Portfolio: { studentId }
+    },
+    orderBy: { dateC: 'desc' },
+    select: {
+      id:          true,
+      contenu:     true,
+      dateC:       true,
+      statut:      true,
+      projetId:    true,
+      portfolioId: true,
+      Student:     { select: { nom: true, prenom: true } },
+      Professionnel: { select: { nom: true, prenom: true } },
+      Prof:        { select: { nom: true, prenom: true } },
+      Projet:      { select: { titre: true } },
+    }
+  })
+
+  const total  = comments.length
+  const read   = comments.filter(c => c.statut === 'VALIDATED').length
+  const unread = comments.filter(c => c.statut === 'PENDING').length
+
+  const items: CommentItem[] = comments.map(c => {
+    const auteur = c.Student ?? c.Prof ?? c.Professionnel
+    const nom    = auteur?.nom    ?? ''
+    const prenom = auteur?.prenom ?? ''
+    const subject = c.Projet?.titre ?? 'Portfolio'
+
+    return {
+      id:          c.id,
+      studentName: `${prenom} ${nom}`.trim() || 'Anonyme',
+      initials:    `${prenom[0] ?? '?'}${nom[0] ?? '?'}`.toUpperCase(),
+      color:       colorAt(c.id),
+      date:        formatDate(c.dateC),
+      text:        c.contenu ?? '',
+      subject,
+      is_read:     c.statut === 'VALIDATED',
+    }
+  })
+
+  return { total, read, unread, comments: items }
+}
+
 export async function markCommentRead(commentId: number): Promise<void> {
   await prisma.commentaire.update({
     where: { id: commentId },

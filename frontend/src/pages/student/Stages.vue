@@ -5,29 +5,7 @@ import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 import StatusBadge from '../../components/student/StatusBadge.vue'
 import StageModal from '../../components/student/modals/StageModal.vue'
-
-// ─── API helpers ──────────────────────────────────────────────────────────────
-
-const API_BASE = import.meta.env.VITE_API_URL ?? '/api'
-
-async function apiFetch(path, options = {}) {
-  const token = localStorage.getItem('token')
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  })
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.error ?? `Erreur ${res.status}`)
-  }
-
-  return res.json()
-}
+import { api } from '@/store/authStore.js'
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -45,13 +23,13 @@ async function fetchStages() {
   loading.value  = true
   errorMsg.value = null
   try {
-    const [stages, profs] = await Promise.all([
-      apiFetch('/stages/me'),
-      apiFetch('/stages/encadrants'),
+    const [stagesRes, profsRes] = await Promise.all([
+      api.get('/stages/me'),
+      api.get('/stages/encadrants'),
     ])
-    stageList.value = stages
+    stageList.value = stagesRes.data
     profsMap.value  = Object.fromEntries(
-      profs.map(p => [p.id, p])
+      profsRes.data.map(p => [p.id, p])
     )
   } catch (err) {
     errorMsg.value = err.message
@@ -127,28 +105,31 @@ function openEditStage(stage) {
 async function saveStage(stageData) {
   errorMsg.value = null
   try {
+    const payload = {
+      entreprise: stageData.entreprise,
+      mission: stageData.mission || '',
+      technologies: stageData.technologies || [],
+      dateDebut: stageData.dateDebut,
+      dateFin: stageData.dateFin,
+      encadrantId: Number(stageData.encadrantId)
+    }
+
     if (selectedStage.value) {
       // Mise à jour
-      const { id, ...payload } = stageData
-      const updated = await apiFetch(`/stages/${id}`, {
-        method: 'PATCH',
-        body:   JSON.stringify(payload),
-      })
-      const index = stageList.value.findIndex(s => s.id === id)
+      const res = await api.patch(`/stages/${selectedStage.value.id}`, payload)
+      const updated = res.data
+      const index = stageList.value.findIndex(s => s.id === selectedStage.value.id)
       if (index !== -1) stageList.value[index] = updated
     } else {
       // Création
-      const created = await apiFetch('/stages', {
-        method: 'POST',
-        body:   JSON.stringify(stageData),
-      })
+      const res = await api.post('/stages', payload)
+      const created = res.data
       stageList.value.unshift(created)
     }
-  } catch (err) {
-    errorMsg.value = err.message
-  } finally {
     showStageModal.value = false
     selectedStage.value  = null
+  } catch (err) {
+    errorMsg.value = err.response?.data?.message || err.message
   }
 }
 

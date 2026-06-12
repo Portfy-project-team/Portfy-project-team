@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import { api } from '../../store/authStore.js'
 import logo from '../../assets/logo.png'
 import PHOTOPF from '../../assets/PHOTOPF.png'
 
@@ -594,15 +594,11 @@ if (
   )
 }
 try {
-    const response = await axios.post(
-  'http://localhost:3000/api/auth/register',
-  sentData,
-  {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  }
-)
+    const response = await api.post('/auth/register', sentData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
 
     // Check if registration was successful
     if (response.status === 201) {

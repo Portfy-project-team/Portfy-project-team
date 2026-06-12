@@ -3,12 +3,12 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const BASE_URL = '/api'
 
 // ── Instance axios partagée ───────────────────────────────────────
 // Importez-la dans vos services : import { api } from '@/store/authStore.js'
 export const api = axios.create({
-  baseURL: `${BASE_URL}/api`,
+  baseURL: BASE_URL,
   withCredentials: true, // envoie le cookie httpOnly automatiquement
 })
 
@@ -20,7 +20,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true
       try {
-        await axios.post(`${BASE_URL}/api/auth/refresh`, {}, { withCredentials: true })
+        await axios.post(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true })
         return api(original) // rejoue la requête
       } catch {
         // Refresh échoué → déconnexion
@@ -55,18 +55,17 @@ export const useAuthStore = defineStore('auth', () => {
 
   // ── Getters ───────────────────────────────────────────────────
   const displayName = computed(() => {
-    if (!user.value) return 'Professeur'
-    const prenom = user.value.prenom || ''
-    const nom    = user.value.nom    || user.value.name || ''
-    if (prenom) return `${prenom[0]}. ${nom}`.trim()
-    return nom || 'Professeur'
+    if (!user.value) return 'Utilisateur'
+    const prenom = user.value.prenom || user.value.firstName || ''
+    const nom    = user.value.nom    || user.value.lastName || user.value.name || ''
+    return `${prenom} ${nom}`.trim() || user.value.email || 'Utilisateur'
   })
 
   const initials = computed(() => {
-    if (!user.value) return 'PR'
-    const p = user.value.prenom?.[0] || ''
-    const n = (user.value.nom || user.value.name)?.[0] || ''
-    return (p + n).toUpperCase() || 'PR'
+    if (!user.value) return 'U'
+    const p = (user.value.prenom || user.value.firstName)?.[0] || ''
+    const n = (user.value.nom || user.value.lastName || user.value.name)?.[0] || ''
+    return (p + n).toUpperCase() || user.value.email?.[0].toUpperCase() || 'U'
   })
 
   return { user, isAuthenticated, displayName, initials, login, logout }

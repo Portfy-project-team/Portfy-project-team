@@ -99,7 +99,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import AdminSidebar from '@/components/admin/AdminSidebar.vue'
@@ -117,10 +117,28 @@ const attestationStore = useAttestationStore()
 const establishmentStore = useEstablishmentStore()
 const moderationStore = useModerationStore()
 
-const totalUsers = computed(() => adminStore.users.length.toLocaleString('fr-FR'))
-const pendingAttestations = computed(() => attestationStore.pendingAttestations)
-const totalEstablishments = computed(() => establishmentStore.totalEstablishments)
-const urgentItems = computed(() => moderationStore.urgentItems)
+onMounted(async () => {
+  loading.value = true
+  try {
+    await Promise.all([
+      adminStore.fetchUsers(),
+      attestationStore.fetchAttestations(),
+      establishmentStore.fetchEstablishments(),
+      moderationStore.fetchModerationItems()
+    ])
+  } catch (err) {
+    console.error("Error loading dashboard data:", err)
+  } finally {
+    loading.value = false
+  }
+})
+
+const loading = ref(false)
+
+const totalUsers = computed(() => (adminStore.users?.length || 0).toLocaleString('fr-FR'))
+const pendingAttestations = computed(() => attestationStore.pendingAttestations || 0)
+const totalEstablishments = computed(() => establishmentStore.totalEstablishments || 0)
+const urgentItems = computed(() => moderationStore.urgentItems || 0)
 
 const roleStats = computed(() => {
   const total = adminStore.users.length || 1
@@ -140,11 +158,6 @@ const roleStats = computed(() => {
       label: 'Professionnels',
       count: adminStore.getUsersByRole('Professionnel').length,
       className: 'green'
-    },
-    {
-      label: 'Administrateurs',
-      count: adminStore.getUsersByRole('Administrateur').length,
-      className: 'red'
     }
   ]
 
@@ -154,32 +167,33 @@ const roleStats = computed(() => {
   }))
 })
 
-const activities = [
-  {
-    title: 'Nouveau Prof valide',
-    time: 'Il y a 12 min',
-    color: 'success',
-    path: '/admin/users'
-  },
-  {
-    title: 'Signalement projet #245',
-    time: 'Il y a 1 heure',
-    color: 'danger',
-    path: '/admin/moderation'
-  },
-  {
-    title: 'Attestation a valider',
-    time: 'Il y a 3 heures',
-    color: 'warning',
-    path: '/admin/attestations'
-  },
-  {
-    title: 'ENSA Fes ajoute',
-    time: 'Hier',
-    color: 'info',
-    path: '/admin/establishments'
-  }
-]
+const activities = computed(() => {
+  const list = []
+  
+  // Add some real items from moderation
+  moderationStore.items.slice(0, 2).forEach(item => {
+    list.push({
+      title: `Signalement ${item.type}: ${item.title.substring(0, 20)}...`,
+      time: 'Recente',
+      color: item.type === 'PROJET' ? 'danger' : 'warning',
+      path: '/admin/moderation'
+    })
+  })
+
+  // Add real items from attestations
+  attestationStore.attestations.slice(0, 2).forEach(item => {
+    list.push({
+      title: `Attestation: ${item.title}`,
+      time: 'En attente',
+      color: 'info',
+      path: '/admin/attestations'
+    })
+  })
+
+  return list.length > 0 ? list : [
+    { title: 'Aucune activite recente', time: '-', color: 'success', path: '#' }
+  ]
+})
 
 const goTo = (path) => {
   router.push(path)

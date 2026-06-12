@@ -25,7 +25,7 @@ const activityTypes = [
   'Hackathon',
   'Club',
   'Evenement',
-  'Competition',
+  'Compétition',
   'Association'
 ]
 
@@ -35,23 +35,19 @@ watch(
   () => props.activityToEdit,
   (activity) => {
     if (activity) {
-      form.title = activity.title || ''
-      form.role = activity.role || ''
+      form.title = activity.nom || activity.title || ''
+      form.role = activity.description || activity.role || ''
       form.type = activity.type || ''
       form.organisation = activity.organisation || ''
       form.periode = activity.periode || ''
       form.description = activity.description || ''
-      form.proofFile = activity.proofFile || null
-      form.proofFileName = activity.proofFileName || ''
-    } else {
-      form.title = ''
-      form.role = ''
-      form.type = ''
-      form.organisation = ''
-      form.periode = ''
-      form.description = ''
       form.proofFile = null
-      form.proofFileName = ''
+      form.proofFileName = activity.attestationUrl ? 'Fichier existant' : ''
+    } else {
+      Object.assign(form, {
+        title: '', role: '', type: '', organisation: '',
+        periode: '', description: '', proofFile: null, proofFileName: ''
+      })
     }
   },
   { immediate: true }
@@ -59,189 +55,104 @@ watch(
 
 const isFormValid = computed(() => {
   return (
-    form.title.trim() !== '' &&
-    form.role.trim() !== '' &&
-    form.type !== '' &&
-    form.organisation.trim() !== '' &&
-    form.periode.trim() !== ''
+    form.title.trim().length >= 3 &&
+    form.type !== ''
   )
 })
 
-function getTypeClass(type) {
-  if (type === 'Hackathon') return 'type-hackathon'
-  if (type === 'Club') return 'type-club'
-  if (type === 'Evenement') return 'type-event'
-  if (type === 'Competition') return 'type-competition'
-  if (type === 'Association') return 'type-association'
-
-  return 'type-default'
-}
-
 function handleProofUpload(event) {
   const file = event.target.files[0]
-
   if (!file) return
-
-  const maxSize = 5 * 1024 * 1024
-  const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg']
-
-  if (file.size > maxSize) {
+  if (file.size > 5 * 1024 * 1024) {
     alert('Le fichier ne doit pas depasser 5MB')
     return
   }
-
-  if (!allowedTypes.includes(file.type)) {
-    alert('Le fichier doit etre PDF, PNG ou JPG')
-    return
-  }
-
   form.proofFile = file
   form.proofFileName = file.name
 }
 
-function saveActivity(status) {
+function submitForm(status) {
   if (!isFormValid.value) return
 
   const activityData = {
-    id: props.activityToEdit ? props.activityToEdit.id : Date.now(),
-    title: form.title,
-    role: form.role,
+    id: props.activityToEdit?.id,
+    nom: form.title,
+    description: form.role || form.description,
     type: form.type,
-    typeClass: getTypeClass(form.type),
     organisation: form.organisation,
     periode: form.periode,
-    description: form.description,
-    status: props.activityToEdit ? props.activityToEdit.status : status,
-    proofFile: form.proofFile,
-    proofFileName: form.proofFileName
+    status: status
   }
 
   emit('save', activityData)
 }
 </script>
+
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="activity-modal">
+    <div class="modal-card">
       <div class="modal-header">
         <div>
-          <h2>{{ isEditMode ? 'Modifier activite' : 'Nouvelle activite' }}</h2>
-          <p>Ajoutez un club, evenement, hackathon ou engagement associatif</p>
+          <h2>{{ isEditMode ? 'Modifier l\'activité' : 'Nouvelle activité' }}</h2>
+          <p>Valorisez vos engagements parascolaires</p>
+        </div>
+        <button type="button" class="close-btn" @click="$emit('close')">×</button>
+      </div>
+
+      <div class="form-body">
+        <div class="form-group">
+          <label>Nom de l'activité <span class="required">*</span></label>
+          <input v-model="form.title" type="text" placeholder="Ex: Club IT, Hackathon 2024..." />
         </div>
 
-        <button class="close-btn" type="button" @click="$emit('close')">
-          ×
+        <div class="form-row">
+          <div class="form-group">
+            <label>Type <span class="required">*</span></label>
+            <select v-model="form.type">
+              <option value="">Sélectionner...</option>
+              <option v-for="t in activityTypes" :key="t" :value="t">{{ t }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Organisation</label>
+            <input v-model="form.organisation" type="text" placeholder="Ex: ENSA, Association X..." />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Rôle / Description courte</label>
+          <input v-model="form.role" type="text" placeholder="Ex: Président, Membre actif, Participant..." />
+        </div>
+
+        <div class="form-group">
+          <label>Détails supplémentaires</label>
+          <textarea v-model="form.description" placeholder="Décrivez vos réalisations..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Attestation (PDF/Image)</label>
+          <label class="upload-area">
+            <input type="file" hidden @change="handleProofUpload" />
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">
+              <strong>{{ form.proofFileName || 'Cliquez pour choisir un fichier' }}</strong>
+              <span>Max 5Mo</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" @click="$emit('close')">Annuler</button>
+        <button 
+          type="button" 
+          class="btn-save" 
+          :disabled="!isFormValid"
+          @click="submitForm(isEditMode ? props.activityToEdit.status : 'En attente')"
+        >
+          {{ isEditMode ? 'Enregistrer les modifications' : 'Ajouter l\'activité' }}
         </button>
       </div>
-
-      <div class="form-group">
-        <label>Nom de l'activite</label>
-        <input
-          v-model="form.title"
-          type="text"
-          placeholder="Ex: Hackathon UMBP 2024"
-        />
-      </div>
-
-      <div class="form-group">
-        <label>Role / participation</label>
-        <input
-          v-model="form.role"
-          type="text"
-          placeholder="Ex: Participant - Equipe gagnante"
-        />
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Type d'activite</label>
-          <select v-model="form.type">
-            <option value="">Selectionner...</option>
-            <option
-              v-for="type in activityTypes"
-              :key="type"
-              :value="type"
-            >
-              {{ type }}
-            </option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Organisation</label>
-          <input
-            v-model="form.organisation"
-            type="text"
-            placeholder="Ex: ENSA Tanger"
-          />
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Periode</label>
-        <input
-          v-model="form.periode"
-          type="text"
-          placeholder="Ex: Mars 2024 ou 2023 - 2025"
-        />
-      </div>
-
-      <div class="form-group">
-        <label>Description</label>
-        <textarea
-          v-model="form.description"
-          placeholder="Decrivez votre activite..."
-        ></textarea>
-      </div>
-
- <div class="form-group">
-  <label>Attestation / preuve</label>
-
-  <label class="upload-box">
-    <input
-      type="file"
-      accept="application/pdf, image/png, image/jpeg, image/jpg"
-      hidden
-      @change="handleProofUpload"
-    />
-
-    <div class="upload-icon">↑</div>
-
-    <strong>
-      {{ form.proofFileName || 'Cliquez pour uploader' }}
-    </strong>
-
-    <span>PDF, PNG, JPG jusqu'a 5MB</span>
-  </label>
-</div>
-
-<div class="modal-actions">
-  <button
-    type="button"
-    class="cancel-btn"
-    @click="$emit('close')"
-  >
-    Annuler
-  </button>
-
-  <button
-    v-if="!isEditMode"
-    type="button"
-    class="draft-btn"
-    :disabled="!isFormValid"
-    @click="saveActivity('Brouillon')"
-  >
-    Enregistrer brouillon
-  </button>
-
-  <button
-    type="button"
-    class="submit-btn"
-    :disabled="!isFormValid"
-    @click="saveActivity('En attente')"
-  >
-    {{ isEditMode ? 'Enregistrer les modifications' : 'Soumettre a validation' }}
-  </button>
-</div>
     </div>
   </div>
 </template>
@@ -250,196 +161,109 @@ function saveActivity(status) {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(8, 42, 71, 0.62);
-  backdrop-filter: blur(2px);
-  z-index: 3000;
+  background: rgba(15, 58, 79, 0.7);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  z-index: 2000;
+  padding: 20px;
 }
 
-.activity-modal {
+.modal-card {
+  background: white;
   width: 100%;
-  max-width: 580px;
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 26px;
-  box-shadow: 0 24px 60px rgba(8, 42, 71, 0.25);
+  max-width: 600px;
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+  overflow: hidden;
 }
 
 .modal-header {
+  padding: 25px 30px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 22px;
+  align-items: flex-start;
 }
 
-.modal-header h2 {
-  margin: 0 0 6px;
-  font-size: 24px;
-  font-weight: 800;
-  color: #050505;
-}
+.modal-header h2 { margin: 0; font-size: 22px; color: #0f3a4f; font-weight: 800; }
+.modal-header p { margin: 5px 0 0; color: #64748b; font-size: 14px; }
 
-.modal-header p {
-  margin: 0;
-  color: #64748b;
-  font-size: 15px;
-}
+.close-btn { background: none; border: none; font-size: 28px; color: #94a3b8; cursor: pointer; }
 
-.close-btn {
-  border: none;
-  background: transparent;
-  color: #64748b;
-  font-size: 30px;
-  cursor: pointer;
-  line-height: 1;
-}
+.form-body { padding: 30px; }
 
-.form-group {
-  margin-bottom: 16px;
-}
+.form-group { margin-bottom: 20px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
+label { display: block; margin-bottom: 8px; font-weight: 700; color: #334155; font-size: 14px; }
+.required { color: #ef4444; }
 
-label {
-  display: block;
-  margin-bottom: 8px;
-  color: #082a47;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-input,
-select,
-textarea {
+input, select, textarea {
   width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  border-radius: 9px;
-  padding: 12px 14px;
-  color: #050505;
+  padding: 12px 15px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
   font-size: 15px;
+  transition: all 0.2s;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: #0f3a4f;
+  box-shadow: 0 0 0 3px rgba(15, 58, 79, 0.1);
   outline: none;
 }
 
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: #f0a91f;
-  box-shadow: 0 0 0 3px rgba(240, 169, 31, 0.18);
-}
+textarea { height: 100px; resize: none; }
 
-textarea {
-  min-height: 88px;
-  resize: vertical;
-}
-
-.upload-box {
-  border: 2px dashed #e5e7eb;
-  border-radius: 14px;
-  min-height: 105px;
-  background: #fafafa;
-  color: #64748b;
+.upload-area {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 20px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.upload-icon {
-  font-size: 28px;
-  color: #082a47;
-}
-
-.upload-box strong {
-  color: #082a47;
-  font-size: 14px;
-}
-
-.upload-box span {
-  font-size: 13px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.cancel-btn,
-.draft-btn,
-.submit-btn {
-  border-radius: 9px;
-  padding: 13px 18px;
-  font-size: 14px;
-  font-weight: 800;
+  gap: 15px;
   cursor: pointer;
-}
-
-.cancel-btn {
-  background: #ffffff;
-  color: #64748b;
-  border: 1px solid #e5e7eb;
-}
-
-.draft-btn {
-  background: #ffffff;
-  color: #082a47;
-  border: 1px solid #e5e7eb;
-}
-
-.submit-btn {
-  background: #082a47;
-  color: #ffffff;
-  border: 1px solid #082a47;
-}
-
-.submit-btn:hover {
-  background: #0b3558;
-}
-
-.draft-btn:hover {
-  border-color: #f0a91f;
-  color: #f59e0b;
-}
-
-.cancel-btn:hover {
   background: #f8fafc;
 }
 
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.upload-area:hover { background: #f1f5f9; border-color: #0f3a4f; }
+
+.upload-icon { font-size: 30px; }
+.upload-text { display: flex; flex-direction: column; }
+.upload-text strong { font-size: 14px; color: #0f3a4f; }
+.upload-text span { font-size: 12px; color: #64748b; }
+
+.modal-footer {
+  padding: 20px 30px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
 }
 
-@media (max-width: 650px) {
-  .activity-modal {
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .modal-actions {
-    flex-direction: column;
-  }
-
-  .cancel-btn,
-  .draft-btn,
-  .submit-btn {
-    width: 100%;
-  }
+.btn-cancel {
+  padding: 12px 25px;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
 }
+
+.btn-save {
+  padding: 12px 30px;
+  background: #0f3a4f;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-save:disabled { background: #94a3b8; cursor: not-allowed; }
 </style>

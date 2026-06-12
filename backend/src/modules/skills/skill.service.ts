@@ -36,28 +36,31 @@ export const addStudentSkill = async (
 ) => {
   const student = await getStudentByUserId(userId);
 
+  // Normaliser les données
+  const nomSkill = data.nom.trim();
+  const categorieSkill = data.categorie?.trim() || null;
+
   let skill = await prisma.skill.findFirst({
     where: {
-      nom: data.nom,
-      categorie: data.categorie ?? null,
+      nom: nomSkill,
+      categorie: categorieSkill,
     },
   });
 
   if (!skill) {
     skill = await prisma.skill.create({
       data: {
-        nom: data.nom,
-        categorie: data.categorie,
+        nom: nomSkill,
+        categorie: categorieSkill,
       },
     });
   }
 
-  const existing = await prisma.studentSkill.findUnique({
+  // Vérifier si le lien existe déjà
+  const existing = await prisma.studentSkill.findFirst({
     where: {
-      studentId_skillId: {
-        studentId: student.id,
-        skillId: skill.id,
-      },
+      studentId: student.id,
+      skillId: skill.id,
     },
   });
 

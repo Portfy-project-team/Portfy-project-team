@@ -4,63 +4,30 @@ import { computed, ref, onMounted } from 'vue'
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 import StatusBadge from '../../components/student/StatusBadge.vue'
+import StatCard from '../../components/student/StatCard.vue'
 import ActivityModal from '../../components/student/modals/ActivityModal.vue'
+import { api } from '@/store/authStore.js'
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-const ACTIVITIES_URL = `${BASE_URL}/api/activities`
-
-function authHeaders() {
-  const token = localStorage.getItem('token')
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-  }
-}
-
-async function handleResponse(res) {
-  const data = await res.json()
-  if (!res.ok) {
-    const err = new Error(data?.message || `Erreur ${res.status}`)
-    err.statusCode = res.status
-    throw err
-  }
-  return data
-}
-
 async function apiFetchMyActivities() {
-  const res = await fetch(`${ACTIVITIES_URL}/me`, { headers: authHeaders() })
-  const data = await handleResponse(res)
-  return data.activities
+  const res = await api.get('/activities/me')
+  return res.data.activities
 }
 
 async function apiCreateActivity(payload) {
-  const res = await fetch(ACTIVITIES_URL, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify(payload),
-  })
-  const data = await handleResponse(res)
-  return data.activity
+  const res = await api.post('/activities', payload)
+  return res.data.activity
 }
 
 async function apiUpdateActivity(id, payload) {
-  const res = await fetch(`${ACTIVITIES_URL}/${id}`, {
-    method: 'PUT',
-    headers: authHeaders(),
-    body: JSON.stringify(payload),
-  })
-  const data = await handleResponse(res)
-  return data.activity
+  const res = await api.put(`/activities/${id}`, payload)
+  return res.data.activity
 }
 
 async function apiDeleteActivity(id) {
-  const res = await fetch(`${ACTIVITIES_URL}/${id}`, {
-    method: 'DELETE',
-    headers: authHeaders(),
-  })
-  return handleResponse(res)
+  const res = await api.delete(`/activities/${id}`)
+  return res.data
 }
 
 // ─── Mapping back → UI ────────────────────────────────────────────────────────
@@ -153,22 +120,23 @@ async function saveActivity(activityData) {
   try {
     const payload = {
       nom: activityData.nom,
-      description: activityData.description || undefined,
-      type: activityData.type || undefined,
+      description: activityData.description || '',
+      type: activityData.type || 'Autre',
       attestationUrl: activityData.attestationUrl || undefined,
     }
 
     if (selectedActivity.value) {
       const updated = await apiUpdateActivity(selectedActivity.value.id, payload)
-      const idx = activityList.value.findIndex((a) => a.id === updated.id)
+      const idx = activityList.value.findIndex((a) => a.id === selectedActivity.value.id)
       if (idx !== -1) activityList.value[idx] = mapActivity(updated)
     } else {
       const created = await apiCreateActivity(payload)
       activityList.value.unshift(mapActivity(created))
     }
     closeActivityModal()
+    alert('Activite enregistree.')
   } catch (err) {
-    error.value = err.message || 'Une erreur est survenue.'
+    error.value = err.response?.data?.message || err.message || 'Une erreur est survenue.'
   }
 }
 

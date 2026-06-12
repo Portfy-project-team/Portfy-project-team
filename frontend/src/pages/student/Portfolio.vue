@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import html2pdf from 'html2pdf.js'
+import { api } from '@/store/authStore.js'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import StatusBadge from '../../components/student/StatusBadge.vue'
@@ -36,15 +37,11 @@ onUnmounted(() => {
 // CHARGER LES DONNÉES DU PORTFOLIO
 async function loadPortfolioData() {
   try {
-    const token = localStorage.getItem('token')
+    const res = await api.get('/portfolio/me')
     
-    const res = await fetch('http://localhost:3000/api/portfolio/me', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    
-    const json = await res.json()
-    student.value = json.portfolio
-    portfolio.value = json.portfolio.portfolio
+    const data = res.data
+    student.value = data.portfolio
+    portfolio.value = data.portfolio.portfolio
     activeObjective.value = portfolio.value?.objective || ''
     
     loading.value = false
@@ -92,15 +89,8 @@ async function copyPublicLink() {
 
 async function updateObjective() {
   try {
-    const token = localStorage.getItem('token')
-    
-    await fetch('http://localhost:3000/api/portfolio/settings', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ objective: activeObjective.value })
+    await api.put('/portfolio/settings', {
+      objective: activeObjective.value
     })
   } catch (err) {
     console.error('Erreur mise à jour objectif:', err)

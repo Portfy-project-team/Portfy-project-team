@@ -24,7 +24,7 @@ function createCompetence() {
 
   const newSkill = {
     name: form.name,
-    level: Number(form.level),
+    niveau: form.level,
     category: form.category,
     source: form.source
   }
@@ -52,22 +52,33 @@ function createCompetence() {
         <input v-model="form.name" type="text" placeholder="Ex: React.js, Leadership" />
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label>Categorie</label>
-          <select v-model="form.category">
-            <option value="">Selectionner...</option>
-            <option>Technique</option>
-            <option>Soft Skill</option>
-            <option>Langue</option>
-          </select>
-        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Categorie</label>
+            <select v-model="form.category">
+              <option value="">Selectionner...</option>
+              <option value="FRONTEND">Frontend</option>
+              <option value="BACKEND">Backend</option>
+              <option value="DESIGN">Design / UI-UX</option>
+              <option value="MOBILE">Mobile</option>
+              <option value="DEVOPS">DevOps / Cloud</option>
+              <option value="DATA">Data Science / IA</option>
+              <option value="SOFT_SKILLS">Soft Skills</option>
+              <option value="AUTRE">Autre</option>
+            </select>
+          </div>
 
-        <div class="form-group">
-          <label>Niveau (%)</label>
-          <input v-model="form.level" type="number" min="0" max="100" placeholder="Ex: 80" />
+          <div class="form-group">
+            <label>Niveau</label>
+            <select v-model="form.level">
+              <option value="">Selectionner...</option>
+              <option value="DEBUTANT">Debutant</option>
+              <option value="INTERMEDIAIRE">Intermediaire</option>
+              <option value="AVANCE">Avance</option>
+              <option value="EXPERT">Expert</option>
+            </select>
+          </div>
         </div>
-      </div>
 
       <div class="form-group">
         <label>Source / preuve</label>

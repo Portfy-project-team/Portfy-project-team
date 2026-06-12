@@ -84,11 +84,11 @@
                 </span>
 
                 <span class="flags-badge">
-                  {{ item.flags }} signalements
+                  {{ item.flags || 0 }} signalements
                 </span>
 
                 <span class="date-text">
-                  {{ item.dateLabel || 'Il y a 2 heures' }}
+                  {{ item.date || 'Il y a 2 heures' }}
                 </span>
               </div>
 
@@ -174,36 +174,47 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
-
+import { computed, ref, onMounted } from 'vue'
 import AdminSidebar from '@/components/admin/AdminSidebar.vue'
 import AdminTopbar from '@/components/admin/AdminTopbar.vue'
 import { useModerationStore } from '@/store/admin/moderationStore'
+import { useAdminStore } from '@/store/admin/adminStore'
 
 const moderationStore = useModerationStore()
+const adminStore = useAdminStore()
+
+onMounted(async () => {
+  await Promise.all([
+    moderationStore.fetchModerationItems(),
+    adminStore.fetchUsers()
+  ])
+})
 
 const selectedFilter = ref('TOUS')
 const selectedReport = ref(null)
 
-const resolvedBase = ref(24)
-const suspendedAccounts = ref(3)
-const warnings = ref(12)
-
 const activeReports = computed(() => {
-  return moderationStore.items.filter((item) => item.status !== 'RESOLUE')
+  return moderationStore.items.filter((item) => item.status !== 'RESOLUE' && item.status !== 'REJECTED')
 })
 
 const urgentCount = computed(() => {
-  return activeReports.value.reduce((total, item) => total + item.flags, 0)
+  return activeReports.value.filter(item => item.flags > 2 || item.type === 'PROJET').length
 })
 
-const resolvedThisMonth = computed(() => resolvedBase.value)
+const resolvedThisMonth = computed(() => {
+   return moderationStore.items.filter(item => item.status === 'RESOLUE' || item.status === 'REJECTED').length
+})
+
+const suspendedAccounts = computed(() => {
+  return adminStore.users.filter(u => u.status === 'Suspendu' || u.status === 'BLOCKED').length
+})
+
+const warnings = ref(0) // Still local for now as no warning model exists
 
 const filteredReports = computed(() => {
   if (selectedFilter.value === 'TOUS') {
     return activeReports.value
   }
-
   return activeReports.value.filter((item) => item.type === selectedFilter.value)
 })
 
@@ -211,24 +222,32 @@ const countByType = (type) => {
   return activeReports.value.filter((item) => item.type === type).length
 }
 
-const deleteReport = (id) => {
+const deleteReport = async (id) => {
   const confirmed = confirm('Voulez-vous vraiment supprimer ce contenu ?')
-
   if (confirmed) {
-    moderationStore.removeModerationItem(id)
-    resolvedBase.value++
+    try {
+      await moderationStore.removeModerationItem(id)
+      resolvedBase.value++
+      alert('Contenu supprime.')
+    } catch (err) {
+      alert('Erreur lors de la suppression.')
+    }
   }
 }
 
-const ignoreReport = (id) => {
-  moderationStore.resolveModerationItem(id)
-  resolvedBase.value++
+const ignoreReport = async (id) => {
+  try {
+    await moderationStore.resolveModerationItem(id)
+    resolvedBase.value++
+    alert('Signalement ignore.')
+  } catch (err) {
+    alert('Erreur lors de la resolution.')
+  }
 }
 
 const warnUser = (item) => {
   warnings.value++
-  moderationStore.resolveModerationItem(item.id)
-  resolvedBase.value++
+  ignoreReport(item.id)
   alert(`Avertissement envoye a ${item.author}`)
 }
 
@@ -276,7 +295,7 @@ const ignoreFromModal = () => {
   min-height: 64px;
   border: 1px solid #ff2d2d;
   background: #ffe0e0;
-  border-radius: 9px;
+  border-radius: 99px; /* Corrected from 9px for a pill shape if desired, but 9px was probably fine */
   display: flex;
   align-items: center;
   gap: 14px;

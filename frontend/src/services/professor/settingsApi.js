@@ -1,32 +1,18 @@
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
-const headers  = () => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('token')}`
-})
+import { api } from '../../store/authStore.js'
 
 export async function fetchSettings() {
-  const res  = await fetch(`${BASE_URL}/api/professor/settings`, { headers: headers() })
-  const json = await res.json()
-  return json.data
+  const res = await api.get('/professor/settings')
+  return res.data.data
 }
 
 export async function saveProfileApi(data) {
-  const res = await fetch(`${BASE_URL}/api/professor/settings/profile`, {
-    method: 'PATCH', headers: headers(), body: JSON.stringify(data)
-  })
-  if (!res.ok) { const e = await res.json(); throw new Error(e.message ?? 'Erreur') }
+  await api.patch('/professor/settings/profile', data)
 }
 
 export async function savePasswordApi(data) {
-  const res = await fetch(`${BASE_URL}/api/professor/settings/password`, {
-    method: 'PATCH', headers: headers(), body: JSON.stringify(data)
-  })
-  if (!res.ok) { const e = await res.json(); throw new Error(e.message ?? 'Erreur') }
+  await api.patch('/professor/settings/password', data)
 }
 
 export async function deleteAccountApi() {
-  const res = await fetch(`${BASE_URL}/api/professor/settings/account`, {
-    method: 'DELETE', headers: headers()
-  })
-  if (!res.ok) throw new Error('Erreur lors de la suppression.')
+  await api.delete('/professor/settings/account')
 }

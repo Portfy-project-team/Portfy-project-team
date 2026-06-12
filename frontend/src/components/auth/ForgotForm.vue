@@ -3,7 +3,7 @@ import { ref, reactive } from 'vue'
 import { useRouter , useRoute } from 'vue-router'
 import logo from '../../assets/logo.png'
 import '../../styles/auth.css' 
-import axios from 'axios'
+import { api } from '../../store/authStore.js'
 import PHOTOPF from '../../assets/PHOTOPF.png'
 
 const route = useRoute()
@@ -48,7 +48,7 @@ const sendCode = async () => {
   }
 
   try {
-    await axios.post('http://localhost:3000/api/auth/forgot-password', {
+    await api.post('/auth/forgot-password', {
       email: email.value.trim().toLowerCase()
     })
     forgotStep.value = 2
@@ -131,7 +131,7 @@ const resetPassword = async () => {
     return
   }
  try {
-    await axios.post('http://localhost:3000/api/auth/reset-password', {
+    await api.post('/auth/reset-password', {
       token:    token,
       password: newPassword.value
     })

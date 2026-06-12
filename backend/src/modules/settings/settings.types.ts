@@ -27,6 +27,12 @@ export interface SettingsResponse {
   email:       string
   phone:       string | null
   institution: string | null
+  filiere?:    string | null
+  niveau?:     string | null
+  anneePromotion?: string | null
+  bio?:        string | null
+  city?:       string | null
+  country?:    string | null
   language:    string
   theme:       string
   notifications: {

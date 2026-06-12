@@ -52,9 +52,22 @@ function handleError(error: unknown, res: Response, context: string): void {
       res.status(status).json({ message: error.message });
       return;
     }
+
+    // Gestion spécifique des erreurs Prisma
+    if (error.name === "PrismaClientInitializationError") {
+      console.error(`[${context}] Erreur d'initialisation Prisma:`, error);
+      res.status(503).json({ 
+        message: "Le service de base de données est temporairement indisponible." 
+      });
+      return;
+    }
   }
+  
   console.error(`[${context}]`, error);
-  res.status(500).json({ message: "Une erreur est survenue" });
+  res.status(500).json({ 
+    message: "Une erreur est survenue",
+    details: process.env.NODE_ENV === "development" && error instanceof Error ? error.message : undefined
+  });
 }
 
 // ── Register ──────────────────────────────────────────────────────

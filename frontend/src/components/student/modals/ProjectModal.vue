@@ -1,5 +1,6 @@
 <script setup>
-import { reactive, computed, watch } from 'vue'
+import { reactive, computed, watch, onMounted, ref } from 'vue'
+import { api } from '@/store/authStore.js'
 
 const props = defineProps({
   projectToEdit: {
@@ -10,17 +11,36 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save'])
 
+const profs = ref([])
+
+onMounted(async () => {
+  try {
+    const res = await api.get('/stages/encadrants') 
+    profs.value = res.data
+  } catch (e) {
+    console.error('Erreur profs', e)
+  }
+})
+
 const form = reactive({
   title: '',
   description: '',
-  type: '',
-  supervisor: '',
+  type: 'PERSONNEL',
+  supervisorId: '',
   technologies: '',
   github: '',
   demo: '',
   screenshotFile: null,
   screenshotFileName: ''
 })
+
+const projectTypes = [
+  { label: 'Projet de module', value: 'MODULE' },
+  { label: 'Projet d\'integration', value: 'INTEGRATION' },
+  { label: 'Projet personnel', value: 'PERSONNEL' },
+  { label: 'Projet de stage', value: 'STAGE' },
+  { label: 'Hackathon', value: 'HACKATHON' }
+]
 
 const isEditMode = computed(() => props.projectToEdit !== null)
 
@@ -30,23 +50,18 @@ watch(
     if (project) {
       form.title = project.title || ''
       form.description = project.description || ''
-      form.type = project.type || ''
-      form.supervisor = project.supervisor || ''
+      form.type = project.type || 'PERSONNEL'
+      form.supervisorId = project.profId || ''
       form.technologies = project.tags ? project.tags.join(', ') : ''
       form.github = project.github || ''
       form.demo = project.demo || ''
-      form.screenshotFile = project.screenshotFile || null
-      form.screenshotFileName = project.screenshotFileName || ''
+      form.screenshotFileName = project.screenshotUrl ? 'Image existante' : ''
     } else {
-      form.title = ''
-      form.description = ''
-      form.type = ''
-      form.supervisor = ''
-      form.technologies = ''
-      form.github = ''
-      form.demo = ''
-      form.screenshotFile = null
-      form.screenshotFileName = ''
+      Object.assign(form, {
+        title: '', description: '', type: 'PERSONNEL',
+        supervisorId: '', technologies: '', github: '',
+        demo: '', screenshotFile: null, screenshotFileName: ''
+      })
     }
   },
   { immediate: true }
@@ -56,29 +71,17 @@ const isFormValid = computed(() => {
   return (
     form.title.trim() !== '' &&
     form.description.trim() !== '' &&
-    form.type !== '' &&
-    form.technologies.trim() !== ''
+    form.type !== ''
   )
 })
 
 function handleScreenshotUpload(event) {
   const file = event.target.files[0]
-
   if (!file) return
-
-  const maxSize = 5 * 1024 * 1024
-  const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg']
-
-  if (file.size > maxSize) {
+  if (file.size > 5 * 1024 * 1024) {
     alert('Le fichier ne doit pas depasser 5MB')
     return
   }
-
-  if (!allowedTypes.includes(file.type)) {
-    alert('La capture doit etre une image PNG ou JPG')
-    return
-  }
-
   form.screenshotFile = file
   form.screenshotFileName = file.name
 }
@@ -87,26 +90,24 @@ function saveProject(status) {
   if (!isFormValid.value) return
 
   const projectData = {
-    id: props.projectToEdit ? props.projectToEdit.id : Date.now(),
+    id: props.projectToEdit?.id,
     title: form.title,
     type: form.type,
     description: form.description,
-    status: props.projectToEdit ? props.projectToEdit.status : status,
-    correction: props.projectToEdit ? props.projectToEdit.correction : '',
+    status: status, 
     tags: form.technologies
       ? form.technologies.split(',').map((tag) => tag.trim())
       : [],
-    date: props.projectToEdit ? props.projectToEdit.date : 'Avril 2025',
-    supervisor: form.supervisor || '',
+    profId: form.supervisorId ? Number(form.supervisorId) : null,
     github: form.github,
     demo: form.demo,
-    screenshotFile: form.screenshotFile,
-    screenshotFileName: form.screenshotFileName
+    screenshotFile: form.screenshotFile
   }
 
   emit('save', projectData)
 }
 </script>
+
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="project-modal">
@@ -126,7 +127,7 @@ function saveProject(status) {
       </div>
 
       <div class="form-group">
-        <label>Titre du projet</label>
+        <label>Titre du projet <span class="required">*</span></label>
         <input
           v-model="form.title"
           type="text"
@@ -135,7 +136,7 @@ function saveProject(status) {
       </div>
 
       <div class="form-group">
-        <label>Description</label>
+        <label>Description <span class="required">*</span></label>
         <textarea
           v-model="form.description"
           placeholder="Decrivez votre projet..."
@@ -146,23 +147,19 @@ function saveProject(status) {
         <div class="form-group">
           <label>Type de projet</label>
           <select v-model="form.type">
-            <option value="">Selectionner...</option>
-            <option>Projet de module</option>
-            <option>Projet d'integration</option>
-            <option>Projet personnel</option>
-            <option>Projet de stage</option>
-            <option>Hackathon</option>
+            <option v-for="t in projectTypes" :key="t.value" :value="t.value">
+              {{ t.label }}
+            </option>
           </select>
         </div>
 
         <div class="form-group">
           <label>Enseignant encadrant</label>
-          <select v-model="form.supervisor">
-            <option value="">Selectionner...</option>
-            <option>Pr. Benali</option>
-            <option>Pr. Idrissi</option>
-            <option>Pr. Rachid</option>
-            <option>Pr. Fatima Idrissi</option>
+          <select v-model="form.supervisorId">
+            <option value="">Optionnel...</option>
+            <option v-for="p in profs" :key="p.id" :value="p.id">
+              Pr. {{ p.prenom }} {{ p.nom }}
+            </option>
           </select>
         </div>
       </div>
@@ -227,7 +224,7 @@ function saveProject(status) {
   </button>
 
   <button
-    v-if="!isEditMode"
+    v-if="!isEditMode || props.projectToEdit.status === 'Brouillon'" 
     type="button"
     class="draft-btn"
     :disabled="!isFormValid"
@@ -320,6 +317,8 @@ label {
   font-size: 14px;
   font-weight: 800;
 }
+
+.required { color: #ef4444; }
 
 input,
 select,

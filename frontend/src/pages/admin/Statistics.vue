@@ -130,36 +130,24 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 
 import AdminSidebar from '@/components/admin/AdminSidebar.vue'
 import AdminTopbar from '@/components/admin/AdminTopbar.vue'
 import { useEstablishmentStore } from '@/store/admin/establishmentsStore'
+import { useAdminStatsStore } from '@/store/admin/adminStatsStore'
 
 const establishmentStore = useEstablishmentStore()
+const statsStore = useAdminStatsStore()
+
+onMounted(async () => {
+  await Promise.all([
+    establishmentStore.fetchEstablishments(),
+    statsStore.fetchStats()
+  ])
+})
 
 const selectedPeriod = ref('30')
-
-const statsByPeriod = {
-  30: [
-    { label: 'Inscriptions', value: '+148', growth: 23 },
-    { label: 'Projets crees', value: '324', growth: 18 },
-    { label: 'Validations', value: '876', growth: 34 },
-    { label: 'Portfolios publies', value: '412', growth: 12 }
-  ],
-  90: [
-    { label: 'Inscriptions', value: '+426', growth: 31 },
-    { label: 'Projets crees', value: '892', growth: 25 },
-    { label: 'Validations', value: '2,140', growth: 41 },
-    { label: 'Portfolios publies', value: '1,027', growth: 19 }
-  ],
-  365: [
-    { label: 'Inscriptions', value: '+1,846', growth: 44 },
-    { label: 'Projets crees', value: '4,280', growth: 36 },
-    { label: 'Validations', value: '9,760', growth: 52 },
-    { label: 'Portfolios publies', value: '4,920', growth: 28 }
-  ]
-}
 
 const chartValuesByPeriod = {
   30: [5, 10, 15, 25, 20, 38, 34, 40, 43, 39, 46, 41, 49, 44, 48],
@@ -168,13 +156,13 @@ const chartValuesByPeriod = {
 }
 
 const chartLabelsByPeriod = {
-  30: ['1 mai', '8 mai', '15 mai', '22 mai'],
-  90: ['Jan', 'Fev', 'Mar', 'Avr'],
-  365: ['T1', 'T2', 'T3', 'T4']
+  30: ['1 juin', '8 juin', '15 juin', '22 juin'],
+  90: ['Mars', 'Avr', 'Mai', 'Juin'],
+  365: ['2025', '2026', '2026', '2026']
 }
 
 const currentStats = computed(() => {
-  return statsByPeriod[selectedPeriod.value]
+  return statsStore.stats
 })
 
 const periodLabel = computed(() => {
@@ -237,28 +225,13 @@ const topSchools = computed(() => {
   }))
 })
 
-const fields = [
-  {
-    name: 'Informatique',
-    percent: 40,
-    color: 'dark'
-  },
-  {
-    name: 'Industriel',
-    percent: 30,
-    color: 'orange'
-  },
-  {
-    name: 'Electrique',
-    percent: 20,
-    color: 'green'
-  },
-  {
-    name: 'Civil',
-    percent: 10,
-    color: 'purple'
-  }
-]
+const fields = computed(() => {
+  const colors = ['dark', 'orange', 'green', 'purple', 'red']
+  return statsStore.branches.map((b, index) => ({
+    ...b,
+    color: colors[index % colors.length]
+  }))
+})
 </script>
 
 <style scoped>

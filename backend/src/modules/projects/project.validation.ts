@@ -37,6 +37,10 @@ export const createProjectSchema = z.object({
       "STAGE"
     ])
     .optional(),
+    
+  profId: z.number().int().positive().optional(),
+  github: optionalUrl,
+  demo: optionalUrl,
 })
 //sert a empecher l'ajout de champs non autorises dans un projet 
   .strict();

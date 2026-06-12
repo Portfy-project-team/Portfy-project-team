@@ -68,7 +68,6 @@
                 <p>
                   Soumis par <strong>{{ attestation.student }}</strong>
                   - {{ attestation.establishment }}
-                  - {{ studentBranch(attestation.type) }}
                 </p>
 
                 <div class="meta">
@@ -144,47 +143,53 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
-
+import { computed, ref, onMounted } from 'vue'
 import AdminSidebar from '@/components/admin/AdminSidebar.vue'
 import AdminTopbar from '@/components/admin/AdminTopbar.vue'
+import { useAdminStore } from '@/store/admin/adminStore'
 import { useAttestationStore } from '@/store/admin/attestationsStore'
 
+const adminStore = useAdminStore()
 const attestationStore = useAttestationStore()
 
-const selectedType = ref('TOUS')
-const selectedDocument = ref(null)
-
-const pendingDocuments = computed(() => {
-  return attestationStore.attestations.filter((attestation) => {
-    return attestation.status === 'A_VALIDER'
-  })
+onMounted(async () => {
+  await attestationStore.fetchAttestations()
 })
 
-const filteredDocuments = computed(() => {
-  if (selectedType.value === 'TOUS') {
-    return pendingDocuments.value
-  }
+const selectedType = ref('TOUS')
+const pendingDocuments = computed(() => attestationStore.attestations)
 
-  return pendingDocuments.value.filter((attestation) => {
-    return attestation.type === selectedType.value
-  })
+const filteredDocuments = computed(() => {
+  if (selectedType.value === 'TOUS') return pendingDocuments.value
+  return pendingDocuments.value.filter((doc) => doc.type === selectedType.value)
 })
 
 const countByType = (type) => {
-  return pendingDocuments.value.filter((attestation) => attestation.type === type).length
+  return pendingDocuments.value.filter((doc) => doc.type === type).length
 }
 
-const validateDocument = (id) => {
-  attestationStore.validateAttestation(id)
+const validateDocument = async (id) => {
+  try {
+    await attestationStore.validateAttestation(id)
+    alert('Attestation validee.')
+  } catch (err) {
+    alert('Erreur lors de la validation.')
+  }
 }
 
-const rejectDocument = (id) => {
-  attestationStore.rejectAttestation(id)
+const rejectDocument = async (id) => {
+  try {
+    await attestationStore.rejectAttestation(id)
+    alert('Attestation refusee.')
+  } catch (err) {
+    alert('Erreur lors du refus.')
+  }
 }
 
-const openDetails = (attestation) => {
-  selectedDocument.value = attestation
+const selectedDocument = ref(null)
+
+const openDetails = (doc) => {
+  selectedDocument.value = doc
 }
 
 const closeDetails = () => {
@@ -205,44 +210,34 @@ const rejectFromModal = () => {
   }
 }
 
-const formatDate = (dateValue) => {
-  const date = new Date(dateValue)
-
-  return date.toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric'
-  })
-}
-
-const studentBranch = (type) => {
-  if (type === 'STAGES') return 'Genie Informatique'
-  if (type === 'CERTIFICATIONS') return 'Genie Informatique'
-  return 'Genie Industriel'
+const formatDate = (dateStr) => {
+  if (!dateStr || dateStr === 'N/A') return 'Non precisee'
+  return new Date(dateStr).toLocaleDateString('fr-FR')
 }
 
 const typeBorderClass = (type) => {
-  return {
-    DIPLOMES: 'border-yellow',
-    STAGES: 'border-purple',
-    CERTIFICATIONS: 'border-blue'
-  }[type]
+  if (type === 'DIPLOMES') return 'blue-border'
+  if (type === 'STAGES') return 'green-border'
+  if (type === 'CERTIFICATIONS') return 'orange-border'
+  return ''
 }
 
 const typeIconClass = (type) => {
-  return {
-    DIPLOMES: 'icon-yellow',
-    STAGES: 'icon-purple',
-    CERTIFICATIONS: 'icon-blue'
-  }[type]
+  if (type === 'DIPLOMES') return 'blue-icon'
+  if (type === 'STAGES') return 'green-icon'
+  if (type === 'CERTIFICATIONS') return 'orange-icon'
+  return ''
 }
 
 const typeBadgeClass = (type) => {
-  return {
-    DIPLOMES: 'badge-yellow',
-    STAGES: 'badge-purple',
-    CERTIFICATIONS: 'badge-blue'
-  }[type]
+  if (type === 'DIPLOMES') return 'blue-badge'
+  if (type === 'STAGES') return 'green-badge'
+  if (type === 'CERTIFICATIONS') return 'orange-badge'
+  return ''
+}
+
+const studentBranch = (type) => {
+  return 'Genie Logiciel' // Simplified
 }
 </script>
 
@@ -263,10 +258,6 @@ const typeBadgeClass = (type) => {
   padding: 20px 22px;
 }
 
-.page-header {
-  margin-bottom: 12px;
-}
-
 .page-header h1 {
   margin: 0;
   color: #000;
@@ -276,15 +267,15 @@ const typeBadgeClass = (type) => {
 
 .page-header p {
   margin: 4px 0 0;
-  color: #4f6780;
+  color: #526b82;
   font-size: 13px;
 }
 
 .tabs {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 15px;
+  gap: 10px;
+  margin: 15px 0;
 }
 
 .tabs button {
@@ -306,88 +297,53 @@ const typeBadgeClass = (type) => {
 .documents-list {
   display: flex;
   flex-direction: column;
-  gap: 13px;
+  gap: 15px;
 }
 
 .document-card {
-  min-height: 122px;
   background: #fff;
   border: 1px solid #dce4ea;
-  border-left: 4px solid #f9b31b;
+  border-left: 4px solid #062f4f;
   border-radius: 9px;
-  padding: 15px 14px;
+  padding: 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 20px;
 }
 
-.border-yellow {
-  border-left-color: #f9b31b;
-}
-
-.border-blue {
-  border-left-color: #1e8ee6;
-}
-
-.border-purple {
-  border-left-color: #7257ff;
-}
+.blue-border { border-left-color: #1478f2; }
+.green-border { border-left-color: #00a862; }
+.orange-border { border-left-color: #f5a400; }
 
 .document-left {
   display: flex;
-  align-items: center;
-  gap: 13px;
+  align-items: flex-start;
+  gap: 15px;
+  flex: 1;
 }
 
 .document-icon {
-  width: 62px;
-  height: 75px;
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #eee;
+  flex-shrink: 0;
 }
 
-.document-icon span {
-  width: 30px;
-  height: 39px;
-  border-radius: 4px;
-  background: #fff;
-}
-
-.icon-yellow {
-  background: #fff0cd;
-}
-
-.icon-yellow span {
-  border: 1.5px solid #f9b31b;
-}
-
-.icon-blue {
-  background: #d9efff;
-}
-
-.icon-blue span {
-  border: 1.5px solid #1e72c9;
-}
-
-.icon-purple {
-  background: #eee8ff;
-}
-
-.icon-purple span {
-  border: 1.5px solid #7257ff;
-}
+.blue-icon { background: #d9efff; }
+.green-icon { background: #cef7df; }
+.orange-icon { background: #fff0cd; }
 
 .document-info {
-  min-width: 0;
+  flex: 1;
 }
 
 .title-row {
   display: flex;
   align-items: center;
-  gap: 9px;
-  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 5px;
 }
 
 .title-row h2 {
@@ -398,95 +354,44 @@ const typeBadgeClass = (type) => {
 }
 
 .type-badge {
-  border-radius: 6px;
-  padding: 4px 10px;
   font-size: 11px;
   font-weight: 900;
+  padding: 3px 8px;
+  border-radius: 4px;
 }
 
-.badge-yellow {
-  background: #fff0cd;
-  color: #cc8200;
-}
-
-.badge-blue {
-  background: #d9efff;
-  color: #0869bd;
-}
-
-.badge-purple {
-  background: #eee8ff;
-  color: #5d43d8;
-}
+.blue-badge { background: #d9efff; color: #1478f2; }
+.green-badge { background: #cef7df; color: #00a862; }
+.orange-badge { background: #fff0cd; color: #f5a400; }
 
 .document-info p {
-  margin: 5px 0;
-  color: #51697e;
+  margin: 0 0 8px;
+  color: #526b82;
   font-size: 13px;
-}
-
-.document-info strong {
-  color: #000;
 }
 
 .meta {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  color: #51697e;
+  gap: 15px;
+  color: #647585;
   font-size: 12px;
-  flex-wrap: wrap;
 }
 
 .document-actions {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 7px;
+  gap: 8px;
 }
 
-.validate-btn,
-.reject-btn,
-.details-btn {
+.validate-btn, .reject-btn, .details-btn {
   border-radius: 7px;
   font-weight: 900;
+  padding: 8px 14px;
   cursor: pointer;
 }
 
-.validate-btn {
-  min-width: 82px;
-  border: none;
-  background: #07823f;
-  color: #fff;
-  padding: 8px 15px;
-}
-
-.validate-btn:hover {
-  background: #056d35;
-}
-
-.reject-btn {
-  min-width: 82px;
-  border: 1px solid #ffc4c4;
-  background: #fff;
-  color: #e52525;
-  padding: 7px 15px;
-}
-
-.reject-btn:hover {
-  background: #fff1f1;
-}
-
-.details-btn {
-  border: none;
-  background: transparent;
-  color: #f5a400;
-  padding: 3px 0;
-}
-
-.details-btn:hover {
-  text-decoration: underline;
-}
+.validate-btn { border: none; background: #00a862; color: #fff; }
+.reject-btn { border: 1px solid #ff2d2d; background: #fff; color: #e52525; }
+.details-btn { border: 1px solid #dce4ea; background: #fff; color: #062f4f; }
 
 .empty-state {
   background: #fff;
@@ -496,101 +401,33 @@ const typeBadgeClass = (type) => {
   text-align: center;
 }
 
-.empty-state h3 {
-  margin: 0;
-  color: #000;
-}
-
-.empty-state p {
-  color: #51697e;
-}
-
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.38);
+  background: rgba(0,0,0,0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: 100;
 }
 
 .modal {
-  width: 460px;
   background: #fff;
+  padding: 20px;
   border-radius: 12px;
-  padding: 18px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+  width: 450px;
 }
 
 .modal-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.modal-header h2 {
-  margin: 0;
-  color: #000;
-  font-size: 20px;
-}
-
-.modal-header button {
-  border: none;
-  background: transparent;
-  font-size: 26px;
-  cursor: pointer;
-}
-
-.modal-body {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  color: #334d63;
-}
-
-.modal-body p {
-  margin: 0;
-}
-
-.modal-body strong {
-  color: #000;
+  margin-bottom: 15px;
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 18px;
-}
-
-@media (max-width: 850px) {
-  .document-card {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .document-actions {
-    width: 100%;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-end;
-  }
-}
-
-@media (max-width: 760px) {
-  .admin-attestations-page {
-    flex-direction: column;
-  }
-
-  .tabs {
-    flex-wrap: wrap;
-  }
-
-  .document-left {
-    align-items: flex-start;
-  }
+  margin-top: 20px;
 }
 </style>

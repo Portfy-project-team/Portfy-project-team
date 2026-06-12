@@ -1,18 +1,39 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { api } from '@/store/authStore.js'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 
-import { obtainedBadges, lockedBadges } from '../../data/mockData.js'
+const obtainedBadges = ref([])
+const lockedBadges = ref([])
+const loading = ref(true)
 
-const unlockedBadges = computed(() => {
-  return obtainedBadges.filter((badge) => !badge.locked).length
-})
+async function loadBadges() {
+  loading.value = true
+  try {
+    const res = await api.get('/badges/me')
+    obtainedBadges.value = res.data.obtained.map(b => ({
+      title: b.nom,
+      subtitle: b.description,
+      color: b.couleur || 'gold',
+      date: 'Obtenu'
+    }))
+    lockedBadges.value = res.data.locked.map(b => ({
+      title: b.nom,
+      subtitle: b.description
+    }))
+  } catch (e) {
+    console.error('Erreur chargement badges', e)
+  } finally {
+    loading.value = false
+  }
+}
 
-const totalBadges = computed(() => {
-  return obtainedBadges.length + lockedBadges.length
-})
+onMounted(loadBadges)
+
+const unlockedBadgesCount = computed(() => obtainedBadges.value.length)
+const totalBadgesCount = computed(() => obtainedBadges.value.length + lockedBadges.value.length)
 </script>
 
 <template>
@@ -20,13 +41,13 @@ const totalBadges = computed(() => {
     <Sidebar />
 
     <div class="student-main">
-      <Topbar title="Badges" user-initials="AA" />
+      <Topbar title="Badges" />
 
-      <main class="badges-page">
+      <main class="badges-page" v-if="!loading">
         <section class="page-title">
           <h2>Badges de competences</h2>
           <p>
-            {{ unlockedBadges }} badges debloque sur {{ totalBadges }} disponibles
+            {{ unlockedBadgesCount }} badges debloque sur {{ totalBadgesCount }} disponibles
           </p>
         </section>
 
@@ -34,48 +55,37 @@ const totalBadges = computed(() => {
           <div class="level-icon"></div>
 
           <div class="level-info">
-            <h3>Niveau actuel : Avance</h3>
-            <p>Plus que 2 badges pour atteindre le niveau Expert</p>
+            <h3>Niveau actuel : {{ unlockedBadgesCount > 5 ? 'Expert' : 'Intermediaire' }}</h3>
+            <p>Continuez a valider vos competences pour gagner plus de badges</p>
 
             <div class="level-progress">
-              <span></span>
+              <span :style="{ width: (unlockedBadgesCount / Math.max(1, totalBadgesCount) * 100) + '%' }"></span>
             </div>
           </div>
         </section>
 
-        <section class="badges-section">
-          <h3>Badges obtenus ({{ unlockedBadges }})</h3>
+        <section class="badges-section" v-if="obtainedBadges.length > 0">
+          <h3>Badges obtenus ({{ unlockedBadgesCount }})</h3>
 
           <div class="badges-grid">
             <div
               v-for="badge in obtainedBadges"
               :key="badge.title"
-              :class="['badge-card', { locked: badge.locked }]"
+              class="badge-card"
             >
               <div :class="['badge-circle', badge.color]"></div>
 
               <h4>{{ badge.title }}</h4>
               <p>{{ badge.subtitle }}</p>
 
-              <span
-                v-if="badge.date"
-                :class="['badge-date', badge.color]"
-              >
+              <span class="badge-date gold">
                 {{ badge.date }}
-              </span>
-
-              <div v-if="badge.locked" class="small-progress">
-                <span :style="{ width: badge.progressValue + '%' }"></span>
-              </div>
-
-              <span v-if="badge.progress" class="progress-text">
-                {{ badge.progress }}
               </span>
             </div>
           </div>
         </section>
 
-        <section class="badges-section">
+        <section class="badges-section" v-if="lockedBadges.length > 0">
           <h3>A debloquer ({{ lockedBadges.length }})</h3>
 
           <div class="badges-grid">
@@ -92,6 +102,8 @@ const totalBadges = computed(() => {
           </div>
         </section>
       </main>
+      
+      <div v-else class="loading">Chargement des badges...</div>
     </div>
   </div>
 </template>

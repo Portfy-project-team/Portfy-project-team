@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
+import { api } from '../../store/authStore.js'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
@@ -14,13 +15,9 @@ onMounted(async () => {
 
 async function loadComments() {
   try {
-    const token = localStorage.getItem('token')
+    const res = await api.get('/comments')
     
-    const res = await fetch('http://localhost:3000/api/comments', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    
-    const json = await res.json()
+    const json = res.data
     
     // Transformer les données de l'API au format du frontend
     commentList.value = json.data.comments.map(c => ({
@@ -65,12 +62,7 @@ const publishedComments = computed(() => {
 
 async function acceptComment(commentId) {
   try {
-    const token = localStorage.getItem('token')
-    
-    await fetch(`http://localhost:3000/api/comments/${commentId}/read`, {
-      method: 'PATCH',
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    await api.patch(`/comments/${commentId}/read`)
     
     const comment = commentList.value.find((item) => item.id === commentId)
     if (comment) {
@@ -83,12 +75,7 @@ async function acceptComment(commentId) {
 
 async function refuseComment(commentId) {
   try {
-    const token = localStorage.getItem('token')
-    
-    await fetch(`http://localhost:3000/api/comments/${commentId}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    await api.delete(`/comments/${commentId}`)
     
     commentList.value = commentList.value.filter((item) => item.id !== commentId)
   } catch (err) {

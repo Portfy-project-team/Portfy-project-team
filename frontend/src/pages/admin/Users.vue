@@ -29,7 +29,6 @@
             <option value="Etudiant">Etudiant</option>
             <option value="Professeur">Professeur</option>
             <option value="Professionnel">Professionnel</option>
-            <option value="Administrateur">Administrateur</option>
           </select>
 
           <select v-model="selectedStatus">
@@ -139,7 +138,7 @@
 
               <tr v-if="paginatedUsers.length === 0">
                 <td colspan="5" class="empty">
-                  Aucun utilisateur trouve.
+                  {{ adminStore.loading ? 'Chargement...' : 'Aucun utilisateur trouve.' }}
                 </td>
               </tr>
             </tbody>
@@ -202,13 +201,12 @@
               <option value="Etudiant">Etudiant</option>
               <option value="Professeur">Professeur</option>
               <option value="Professionnel">Professionnel</option>
-              <option value="Administrateur">Administrateur</option>
             </select>
           </label>
 
           <label>
-            Etablissement
-            <input v-model="newUser.establishment" type="text" required />
+            Mot de passe
+            <input v-model="newUser.password" type="password" required minlength="8" />
           </label>
 
           <div class="modal-actions">
@@ -216,8 +214,8 @@
               Annuler
             </button>
 
-            <button class="save-btn" type="submit">
-              Enregistrer
+            <button class="save-btn" type="submit" :disabled="isAdding">
+              {{ isAdding ? 'Enregistrement...' : 'Enregistrer' }}
             </button>
           </div>
         </form>
@@ -227,43 +225,53 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 import AdminSidebar from '@/components/admin/AdminSidebar.vue'
 import AdminTopbar from '@/components/admin/AdminTopbar.vue'
 import { useAdminStore } from '@/store/admin/adminStore'
+import { api } from '@/store/authStore'
 
 const router = useRouter()
 const adminStore = useAdminStore()
+
+onMounted(async () => {
+  await adminStore.fetchUsers()
+})
 
 const searchQuery = ref('')
 const selectedRole = ref('')
 const selectedStatus = ref('')
 const selectedEstablishment = ref('')
 const currentPage = ref(1)
-const perPage = 4
+const perPage = 10
 const showAddModal = ref(false)
+const isAdding = ref(false)
 
 const newUser = reactive({
   name: '',
   email: '',
   role: 'Etudiant',
-  establishment: ''
+  password: 'Password123!'
 })
 
 const totalDisplayed = computed(() => {
-  return adminStore.users.length.toLocaleString('fr-FR')
+  return filteredUsers.value.length.toLocaleString('fr-FR')
 })
 
 const establishments = computed(() => {
-  return [...new Set(adminStore.users.map((user) => user.establishment))]
+  const all = adminStore.users.map((user) => user.establishment).filter(Boolean)
+  return [...new Set(all)]
 })
 
 const filteredUsers = computed(() => {
   const query = searchQuery.value.toLowerCase().trim()
 
   return adminStore.users.filter((user) => {
+    // Exclude admins
+    if (user.role === 'ADMIN' || user.role === 'Administrateur') return false
+
     const matchSearch =
       user.name.toLowerCase().includes(query) ||
       user.email.toLowerCase().includes(query)
@@ -301,6 +309,7 @@ watch([searchQuery, selectedRole, selectedStatus, selectedEstablishment], () => 
 })
 
 const getInitials = (name) => {
+  if (!name) return '?'
   return name
     .split(' ')
     .map((word) => word.charAt(0))
@@ -315,7 +324,7 @@ const avatarClass = (role) => {
     Professeur: 'professor-avatar',
     Professionnel: 'pro-avatar',
     Administrateur: 'admin-avatar'
-  }[role]
+  }[role] || 'student-avatar'
 }
 
 const roleClass = (role) => {
@@ -324,7 +333,7 @@ const roleClass = (role) => {
     Professeur: 'role-professor',
     Professionnel: 'role-pro',
     Administrateur: 'role-admin'
-  }[role]
+  }[role] || 'role-student'
 }
 
 const statusClass = (status) => {
@@ -332,27 +341,49 @@ const statusClass = (status) => {
     Actif: 'status-active',
     Suspendu: 'status-suspended',
     'En attente': 'status-pending'
-  }[status]
+  }[status] || 'status-pending'
 }
 
 const viewUser = (id) => {
   router.push(`/admin/users/${id}`)
 }
 
-const suspendUser = (id) => {
-  adminStore.updateUser(id, { status: 'Suspendu' })
+const suspendUser = async (id) => {
+  try {
+    await adminStore.updateUserStatus(id, 'Suspendu')
+    alert('Utilisateur suspendu.')
+  } catch (err) {
+    alert('Erreur lors de la suspension.')
+  }
 }
 
-const reactivateUser = (id) => {
-  adminStore.updateUser(id, { status: 'Actif' })
+const reactivateUser = async (id) => {
+  try {
+    await adminStore.updateUserStatus(id, 'Actif')
+    alert('Utilisateur reactive.')
+  } catch (err) {
+    alert('Erreur lors de la reactivation.')
+  }
 }
 
-const validateUser = (id) => {
-  adminStore.updateUser(id, { status: 'Actif' })
+const validateUser = async (id) => {
+  try {
+    await adminStore.updateUserStatus(id, 'Actif')
+    alert('Utilisateur valide.')
+  } catch (err) {
+    alert('Erreur lors de la validation.')
+  }
 }
 
-const refuseUser = (id) => {
-  adminStore.deleteUser(id)
+const refuseUser = async (id) => {
+  if (confirm('Voulez-vous vraiment supprimer cet utilisateur ?')) {
+    try {
+      await adminStore.deleteUser(id)
+      alert('Utilisateur supprime.')
+    } catch (err) {
+      alert('Erreur lors de la suppression.')
+    }
+  }
 }
 
 const previousPage = () => {
@@ -376,21 +407,31 @@ const closeAddModal = () => {
   newUser.name = ''
   newUser.email = ''
   newUser.role = 'Etudiant'
-  newUser.establishment = ''
+  newUser.password = 'Password123!'
 }
 
-const addUser = () => {
-  adminStore.users.push({
-    id: Date.now().toString(),
-    name: newUser.name,
-    email: newUser.email,
-    role: newUser.role,
-    establishment: newUser.establishment,
-    status: 'En attente',
-    lastLogin: 'Jamais'
-  })
+const addUser = async () => {
+  isAdding.value = true
+  try {
+    let dbRole = 'STUDENT'
+    if (newUser.role === 'Professeur') dbRole = 'PROF'
+    if (newUser.role === 'Professionnel') dbRole = 'PRO'
 
-  closeAddModal()
+    await api.post('/admin/users', {
+      name: newUser.name,
+      email: newUser.email,
+      password: newUser.password,
+      role: dbRole
+    })
+    
+    await adminStore.fetchUsers()
+    closeAddModal()
+    alert('Utilisateur ajoute avec succes.')
+  } catch (err) {
+    alert('Erreur lors de l\'ajout : ' + (err.response?.data?.message || err.message))
+  } finally {
+    isAdding.value = false
+  }
 }
 </script>
 

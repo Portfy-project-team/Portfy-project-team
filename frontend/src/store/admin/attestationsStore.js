@@ -1,66 +1,78 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { api } from '../authStore.js'
 
 export const useAttestationStore = defineStore('attestation', () => {
-  const attestations = ref([
-    {
-      id: '1',
-      type: 'STAGES',
-      title: 'Attestation de stage - OCP Group',
-      student: 'Ahmed Alami',
-      establishment: 'ENSA Tanger',
-      submittedDate: '2024-05-28',
-      status: 'A_VALIDER',
-      filePath: 'attestation_ocp_2024.pdf'
-    },
-    {
-      id: '2',
-      type: 'CERTIFICATIONS',
-      title: 'Certification AWS Cloud Practitioner',
-      student: 'Mohamed Tazi',
-      establishment: 'ENSA Fes',
-      submittedDate: '2024-05-27',
-      status: 'A_VALIDER',
-      filePath: 'aws_certification.pdf'
-    },
-    {
-      id: '3',
-      type: 'DIPLOMES',
-      title: 'Diplome Bac Sciences Mathematiques',
-      student: 'Sara El Amrani',
-      establishment: 'ENSA Marrakech',
-      submittedDate: '2024-05-25',
-      status: 'A_VALIDER',
-      filePath: 'diplome_bac_2024.pdf'
-    }
-  ])
+  const attestations = ref([])
+  const loading = ref(false)
+  const error = ref(null)
 
   const pendingAttestations = computed(() => {
-    return attestations.value.filter((attestation) => attestation.status === 'A_VALIDER').length
+    return attestations.value.filter((attestation) => attestation.status === 'PENDING' || attestation.status === 'A_VALIDER').length
   })
 
   const totalAttestations = computed(() => attestations.value.length)
 
-  const validateAttestation = (id) => {
-    const attestation = attestations.value.find((attestation) => attestation.id === id)
+  const fetchAttestations = async () => {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await api.get('/admin/attestations')
+      const data = response.data
 
-    if (attestation) {
-      attestation.status = 'VALIDEE'
+      if (!Array.isArray(data)) {
+        console.error("Attestations response is not an array:", data)
+        attestations.value = []
+        return
+      }
+
+      attestations.value = data.map(item => ({
+        id: item.id,
+        type: item.type || 'ACTIVITE',
+        title: item.nom || item.title,
+        student: item.user ? `${item.user.prenom} ${item.user.nom}` : 'Inconnu',
+        establishment: item.user?.student?.etablissement || 'N/A',
+        submittedDate: item.createdAt?.split('T')[0] || 'N/A',
+        status: item.statutV || 'A_VALIDER',
+        filePath: item.attestationUrl
+      }))
+    } catch (err) {
+      console.error("Failed to fetch attestations:", err)
+      error.value = 'Erreur lors du chargement des attestations'
+    } finally {
+      loading.value = false
     }
   }
 
-  const rejectAttestation = (id) => {
-    const attestation = attestations.value.find((attestation) => attestation.id === id)
+  const validateAttestation = async (id) => {
+    try {
+      await api.post(`/admin/activities/${id}/validate`)
+      const attestation = attestations.value.find((a) => a.id === id)
+      if (attestation) attestation.status = 'VALIDEE'
+    } catch (err) {
+      console.error("Failed to validate attestation:", err)
+      throw err
+    }
+  }
 
-    if (attestation) {
-      attestation.status = 'REJETEE'
+  const rejectAttestation = async (id) => {
+    try {
+      await api.post(`/admin/activities/${id}/reject`)
+      const attestation = attestations.value.find((a) => a.id === id)
+      if (attestation) attestation.status = 'REJETEE'
+    } catch (err) {
+      console.error("Failed to reject attestation:", err)
+      throw err
     }
   }
 
   return {
     attestations,
+    loading,
+    error,
     pendingAttestations,
     totalAttestations,
+    fetchAttestations,
     validateAttestation,
     rejectAttestation
   }

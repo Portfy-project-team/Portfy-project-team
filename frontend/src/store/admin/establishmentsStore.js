@@ -1,98 +1,85 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { api } from '../authStore.js'
 
 export const useEstablishmentStore = defineStore('establishment', () => {
-  const establishments = ref([
-    {
-      id: '1',
-      code: 'ET',
-      name: 'ENSA Tanger',
-      city: 'Tanger, Maroc',
-      status: 'Actif',
-      students: 412,
-      teachers: 38,
-      branches: 6,
-      years: 3
-    },
-    {
-      id: '2',
-      code: 'EF',
-      name: 'ENSA Fes',
-      city: 'Fes, Maroc',
-      status: 'Actif',
-      students: 298,
-      teachers: 24,
-      branches: 5,
-      years: 3
-    },
-    {
-      id: '3',
-      code: 'EM',
-      name: 'ENSA Marrakech',
-      city: 'Marrakech, Maroc',
-      status: 'Actif',
-      students: 187,
-      teachers: 15,
-      branches: 4,
-      years: 3
-    },
-    {
-      id: '4',
-      code: 'FS',
-      name: 'FST Tanger',
-      city: 'Tanger, Maroc',
-      status: 'En attente',
-      students: 156,
-      teachers: 12,
-      branches: 3,
-      years: 3
-    },
-    {
-      id: '5',
-      code: 'EC',
-      name: 'ENCG Casablanca',
-      city: 'Casablanca, Maroc',
-      status: 'Actif',
-      students: 94,
-      teachers: 9,
-      branches: 3,
-      years: 3
-    },
-    {
-      id: '6',
-      code: 'UR',
-      name: 'Universite Rabat',
-      city: 'Rabat, Maroc',
-      status: 'Actif',
-      students: 75,
-      teachers: 7,
-      branches: 2,
-      years: 3
-    }
-  ])
+  const establishments = ref([])
+  const loading = ref(false)
+  const error = ref(null)
 
   const totalEstablishments = computed(() => establishments.value.length)
 
   const activeEstablishments = computed(() => {
-    return establishments.value.filter((establishment) => establishment.status === 'Actif').length
+    return establishments.value.filter((establishment) => establishment.status === 'Actif' || establishment.status === 'ACTIVE').length
   })
 
-  const getEstablishmentById = (id) => {
-    return establishments.value.find((establishment) => establishment.id === id)
+  const fetchEstablishments = async () => {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await api.get('/admin/establishments')
+      const data = response.data
+
+      if (!Array.isArray(data)) {
+        console.error("Establishments response is not an array:", data)
+        establishments.value = []
+        return
+      }
+
+      establishments.value = data.map(est => ({
+        id: est.id || est.name,
+        code: est.code || est.name?.substring(0, 2).toUpperCase(),
+        name: est.name,
+        city: est.city || 'Maroc',
+        status: est.status === 'ACTIVE' || est.status === 'Actif' ? 'Actif' : 'En attente',
+        students: est._count?.students || 0,
+        teachers: est._count?.profs || 0,
+        branches: est._count?.filieres || 0,
+        years: 3
+      }))
+    } catch (err) {
+      console.error("Failed to fetch establishments:", err)
+      error.value = 'Erreur lors du chargement des établissements'
+    } finally {
+      loading.value = false
+    }
   }
 
-  const updateEstablishment = (id, updates) => {
-    const establishment = establishments.value.find((establishment) => establishment.id === id)
+  const createEstablishment = async (data) => {
+    try {
+      await api.post('/admin/establishments', data)
+      await fetchEstablishments()
+    } catch (err) {
+      console.error("Failed to create establishment:", err)
+      throw err
+    }
+  }
 
-    if (establishment) {
-      Object.assign(establishment, updates)
+  const getEstablishmentById = (id) => {
+    return establishments.value.find((establishment) => establishment.id?.toString() === id?.toString())
+  }
+
+  const updateEstablishment = async (id, updates) => {
+    try {
+      await api.patch(`/admin/establishments/${id}`, updates)
+      const establishment = establishments.value.find((e) => e.id === id)
+      if (establishment) {
+        Object.assign(establishment, updates)
+      }
+    } catch (err) {
+      console.error("Failed to update establishment:", err)
+      throw err
     }
   }
 
   return {
     establishments,
+    loading,
+    error,
     totalEstablishments,
     activeEstablishments,
+    fetchEstablishments,
+    createEstablishment,
     getEstablishmentById,
     updateEstablishment
   }

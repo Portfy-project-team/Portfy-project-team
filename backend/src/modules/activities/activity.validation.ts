@@ -26,6 +26,9 @@ export const createActivitySchema = z.object({
     .url("URL attestation invalide")
     .max(500, "URL trop longue")
     .optional(),
+
+  organisation: z.string().trim().max(150).optional(),
+  periode: z.string().trim().max(100).optional(),
 }).strict();
 
 export const updateActivitySchema = createActivitySchema.partial().strict();

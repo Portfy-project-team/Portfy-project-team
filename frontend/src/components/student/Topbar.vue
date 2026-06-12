@@ -2,18 +2,17 @@
 import { Search, Bell, X } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { ref, computed } from 'vue'
+import { api, useAuthStore } from '@/store/authStore.js'
 
 const props = defineProps({
   title: {
     type: String,
     default: 'Dashboard'
-  },
-  userInitials: {
-    type: String,
-    default: 'AA'
   }
 })
 
+const authStore = useAuthStore()
+const userInitials = computed(() => authStore.initials)
 const router = useRouter()
 const searchQuery = ref('')
 const searchResults = ref([])
@@ -29,17 +28,15 @@ async function performSearch() {
 
   try {
     isSearching.value = true
-    const token = localStorage.getItem('token')
     
-    const res = await fetch(
-      `http://localhost:3000/api/search?q=${encodeURIComponent(searchQuery.value)}&limit=10`,
-      {
-        headers: { 'Authorization': `Bearer ${token}` }
+    const res = await api.get('/search', {
+      params: {
+        q: searchQuery.value,
+        limit: 10
       }
-    )
+    })
     
-    const json = await res.json()
-    searchResults.value = json.data || []
+    searchResults.value = res.data.data || []
     showResults.value = true
   } catch (err) {
     console.error('Erreur recherche:', err)
