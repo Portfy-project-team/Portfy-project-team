@@ -276,11 +276,42 @@ async function getStudentDashboard(userId: number): Promise<any> {
   }
 }
 
+// ─── DASHBOARD PRO ────────────────────────────────────────────────────────────
+async function getProDashboard(userId: number): Promise<DashboardResponse> {
+  const pro = await prisma.professionnel.findUniqueOrThrow({
+    where: { userId },
+    select: {
+      id: true, nom: true, prenom: true, entreprise: true,
+      user: { select: { role: true } },
+    },
+  })
+
+  // Basic stats for PRO (example)
+  const stats: StatItem[] = [
+    { key: 'portfolios_viewed', label: 'Portfolios consultés', value: 0, trend: '0 cette semaine' },
+    { key: 'recommendations_given', label: 'Recommandations données', value: 0, trend: '0 ce mois' },
+  ]
+
+  return {
+    user: {
+      name: pro.nom || 'Professionnel',
+      full_name: `${pro.prenom || ''} ${pro.nom || ''}`.trim() || 'Professionnel',
+      role: 'PRO',
+      institution: pro.entreprise || 'N/A'
+    },
+    stats,
+    pendingProjects: [],
+    recommendations: [],
+    recentActivity: [],
+  }
+}
+
 // ─── Export principal ─────────────────────────────────────────────────────────
 export async function getDashboardData(userId: number, role: Role): Promise<DashboardResponse> {
   switch (role) {
     case Role.PROF:    return getProfDashboard(userId)
     case Role.STUDENT: return getStudentDashboard(userId)
+    case Role.PRO:     return getProDashboard(userId)
     default:
       throw new Error(`Dashboard non implémenté pour le rôle : ${role}`)
   }

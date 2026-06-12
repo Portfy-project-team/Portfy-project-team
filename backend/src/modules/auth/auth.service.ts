@@ -135,6 +135,7 @@ export const loginUser = async (
       role:            true,
       password:        true,
       isEmailVerified: true,
+      status:          true,
     },
   });
 
@@ -166,12 +167,13 @@ export const loginUser = async (
   //   error.statusCode = 403;
   //   throw error;
   // }
+  
   const isEmailVerified =
   process.env.SKIP_EMAIL_VERIFICATION === "true"
     ? true
     : user.isEmailVerified;
 
-if (!isEmailVerified && user.role !== "STUDENT") {
+if (!isEmailVerified && user.role !== "STUDENT" && user.status !== UserStatus.ACTIVE) {
   const error: any = new Error(
     "Veuillez vérifier votre email avant de vous connecter"
   );
@@ -185,7 +187,7 @@ if (!isEmailVerified && user.role !== "STUDENT") {
       where:  { userId: user.id },
       select: { statusV: true },
     });
-    if (pro?.statusV === "PENDING") {
+    if (pro?.statusV === "PENDING" && user.status !== UserStatus.ACTIVE) {
       const error: any = new Error(
         "Compte en attente de validation par un administrateur"
       );

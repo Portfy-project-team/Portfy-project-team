@@ -43,6 +43,16 @@ const routes = [
   { path: '/student/parametres',     name: 'student-parametres',    component: () => import('../pages/student/Parametres.vue'),   meta: { requiresAuth: true, role: 'STUDENT' } },
   { path: '/student/aide',           name: 'student-aide',          component: () => import('../pages/student/Aide.vue'),         meta: { requiresAuth: true, role: 'STUDENT' } },
 
+  // ── Professional ──────────────────────────────────────────────────────────
+  {
+    path: '/pro',
+    component: () => import('../components/pro/ProLayout.vue'),
+    meta: { requiresAuth: true, role: 'PRO' },
+    children: [
+      { path: 'dashboard', name: 'ProDashboard', component: () => import('../pages/pro/Dashboard.vue') },
+    ]
+  },
+
   // ── Public ────────────────────────────────────────────────────────────────
   { path: '/portfolio/:slug',       name: 'public-portfolio',     component: () => import('../pages/student/PublicPortfolio.vue') },
   { path: '/conditions',            name: 'conditions',           component: () => import('../pages/Conditions.vue') },
@@ -56,7 +66,7 @@ const routes = [
       if (user?.role === 'PROF')    return '/professor/dashboard'
       if (user?.role === 'STUDENT') return '/student/dashboard'
       if (user?.role === 'ADMIN')   return '/admin/dashboard'
-      if (user?.role === 'PRO')     return '/login' // Placeholder
+      if (user?.role === 'PRO')     return '/pro/dashboard'
       return '/login'
     }
   },
@@ -83,6 +93,7 @@ router.beforeEach((to, _from, next) => {
     if (user.role === 'PROF')    { next({ name: 'ProfDashboard'  }); return }
     if (user.role === 'ADMIN')   { next({ name: 'AdminDashboard' }); return }
     if (user.role === 'STUDENT') { next({ name: 'Dashboard'      }); return }
+    if (user.role === 'PRO')     { next({ name: 'ProDashboard'   }); return }
     next({ name: 'Login' }); return
   }
 
