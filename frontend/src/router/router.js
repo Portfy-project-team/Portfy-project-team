@@ -48,13 +48,33 @@ const routes = [
     path: '/pro',
     component: () => import('../components/pro/ProLayout.vue'),
     meta: { requiresAuth: true, role: 'PRO' },
-    children: [
-      { path: 'dashboard', name: 'ProDashboard', component: () => import('../pages/pro/Dashboard.vue') },
-    ]
+   children: [
+  {
+    path: 'dashboard',
+    name: 'ProDashboard',
+    component: () => import('../pages/pro/Dashboard.vue')
+  },
+  {
+    path: 'recherche-talents',
+    name: 'ProTalentSearch',
+    component: () => import('../pages/pro/TalentSearch.vue')
+  },
+  {
+  path: 'recommandations',
+  name: 'ProRecommendations',
+  component: () => import('../pages/pro/Recommandations.vue')
+}
+
+]
   },
 
   // ── Public ────────────────────────────────────────────────────────────────
-  { path: '/portfolio/:slug',       name: 'public-portfolio',     component: () => import('../pages/student/PublicPortfolio.vue') },
+ {
+  path: '/portfolio/:studentId',
+  name: 'public-portfolio',
+  component: () =>
+    import('../pages/student/PublicPortfolio.vue')
+},
   { path: '/conditions',            name: 'conditions',           component: () => import('../pages/Conditions.vue') },
   { path: '/politique',             name: 'politique',            component: () => import('../pages/Politique.vue') },
 

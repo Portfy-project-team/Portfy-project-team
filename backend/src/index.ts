@@ -1,16 +1,19 @@
 import "dotenv/config";
+
 import express, { Request, Response, NextFunction } from "express";
+
 import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
-
 import portfolioRoutes from "./modules/portfolio/portfolio.routes.js";
 import authRoutes      from "./modules/auth/auth.routes.js";
 import userRoutes      from "./modules/user/user.routes.js";
 import adminRoutes     from "./modules/admin/admin.routes.js";
 import recoRoutes      from "./modules/ai-reco/reco.routes.js";
 import stageRoutes      from "./modules/stages/stage.routes.js";
+import commentsProRoutes
+from './modules/commentsPro/commentsPro.routes.js'
 import projectRoutes     from "./modules/projects/project.routes.js";
 import dashboardRoutes from "./modules/DashboardProf/dashboard.routes.js";
 import skillRoutes     from "./modules/skills/skill.routes.js";
@@ -21,6 +24,7 @@ import commentRoutes   from "./modules/comments/comments.routes.js";
 import formationRoutes from "./modules/formations/formation.routes.js";
 import badgeRoutes     from "./modules/badges/badge.routes.js";
 import searchRoutes    from "./modules/Search/Search.routes.js";
+import dashboardProfRoutes from './modules/DashboardProfss/dashboardProf.routes.js'
 
 const app = express();
 
@@ -50,7 +54,7 @@ app.use(cors({
   methods:        ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
-
+app.use("/api/dashboard-prof", dashboardProfRoutes);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
@@ -83,6 +87,10 @@ app.use("/api/comments",      commentRoutes);
 app.use("/api/formations",    formationRoutes);
 app.use("/api/badges",        badgeRoutes);
 app.use("/api/search",        searchRoutes);
+app.use(
+  '/api/comments-pro',
+  commentsProRoutes
+)
 
 app.get("/health", (req, res) => {
   res.status(200).json({

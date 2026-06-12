@@ -1,49 +1,139 @@
 <template>
-  <div class="dashboard p-6">
-    <div v-if="loading" class="flex justify-center items-center h-64">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  <div class="dashboard">
+
+    <div v-if="loading" class="loading-container">
+      <div class="loader"></div>
     </div>
 
     <div v-else>
-      <!-- Welcome Banner -->
-      <div class="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-8 mb-8 text-white relative overflow-hidden shadow-lg">
-        <div class="relative z-10 max-w-2xl">
-          <h1 class="text-3xl font-bold mb-4">Bonjour, {{ user?.name || 'Professionnel' }}</h1>
-          <p class="text-slate-300 text-lg mb-6">
-            Bienvenue dans votre espace Portfy. Recherchez les meilleurs talents parmi les profils vérifiés par les institutions académiques.
+
+      <!-- Bannière -->
+      <section class="welcome-banner">
+        <div class="welcome-content">
+          <span class="badge">
+            Professionnel vérifié
+          </span>
+
+          <h1>
+            Bonjour, {{ user?.name || 'Professionnel' }}
+          </h1>
+
+          <p>
+            Bienvenue dans votre espace Portfy.
+            Découvrez des talents certifiés, consultez leurs projets validés
+            et trouvez votre futur stagiaire ou collaborateur.
           </p>
-          <div class="flex gap-4">
-            <button @click="router.push('/student/reseau')" class="bg-yellow-500 hover:bg-yellow-600 text-slate-900 px-6 py-2 rounded-lg font-bold transition flex items-center gap-2">
-              <Search :size="18" /> Rechercher des talents
-            </button>
+
+          <div class="banner-actions">
+          <button
+  class="primary-btn"
+  @click="router.push('/pro/recherche-talents')"
+>
+  Explorer les talents
+</button>
+
+          <button
+  class="secondary-btn"
+  @click="router.push('/pro/recommandations')"
+>
+  Voir les recommandations
+</button>
           </div>
         </div>
-        <div class="absolute right-0 top-0 w-64 h-64 bg-yellow-500/10 rounded-full -mr-32 -mt-32"></div>
-      </div>
+      </section>
 
-      <!-- Stats Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div v-for="stat in stats" :key="stat.key" class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <div class="text-slate-500 text-sm font-medium mb-2">{{ stat.label }}</div>
-          <div class="text-3xl font-bold text-slate-900">{{ stat.value }}</div>
-          <div class="text-xs mt-2 text-green-600 font-medium">{{ stat.trend }}</div>
-        </div>
-      </div>
+      <!-- Statistiques -->
+      <section class="stats-grid">
 
-      <!-- Quick Search -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-8 text-center">
-        <div class="max-w-md mx-auto">
-          <div class="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Search class="text-slate-400" :size="32" />
+        <div
+          v-for="stat in stats"
+          :key="stat.key"
+          class="stat-card"
+        >
+          <div class="stat-label">
+            {{ stat.label }}
           </div>
-          <h2 class="text-xl font-bold mb-2">Trouvez votre futur stagiaire ou collaborateur</h2>
-          <p class="text-slate-500 mb-6">Accédez à des milliers de profils d'étudiants certifiés et visualisez leurs projets validés.</p>
-          <button @click="router.push('/student/reseau')" class="w-full bg-slate-900 text-white py-3 rounded-lg font-bold hover:bg-slate-800 transition">
+
+          <div class="stat-value">
+            {{ stat.value }}
+          </div>
+
+          <div class="stat-trend">
+            {{ stat.trend }}
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Actions rapides -->
+      <section class="quick-actions">
+
+        <div class="action-card">
+          <h3>Recherche avancée</h3>
+
+          <p>
+            Filtrez les étudiants selon leurs compétences,
+            projets et établissements.
+          </p>
+
+          <button
+            class="link-btn"
+            @click="router.push('/student/reseau')"
+          >
+            Commencer →
+          </button>
+        </div>
+
+        <div class="action-card">
+          <h3>Profils consultés</h3>
+
+          <p>
+            Retrouvez rapidement les profils visités.
+          </p>
+
+          <button class="link-btn">
+            Consulter →
+          </button>
+        </div>
+
+        <div class="action-card">
+          <h3>Recommandations</h3>
+
+          <p>
+            Découvrez les talents recommandés pour vous.
+          </p>
+
+          <button class="link-btn">
+            Découvrir →
+          </button>
+        </div>
+
+      </section>
+
+      <!-- Bloc principal -->
+      <section class="search-banner">
+
+        <div>
+          <h2>
+            Trouvez votre futur stagiaire ou collaborateur
+          </h2>
+
+          <p>
+            Accédez à des milliers de profils certifiés et consultez leurs projets validés.
+          </p>
+
+          <button
+            class="search-btn"
+            @click="router.push('/student/reseau')"
+          >
             Accéder à la recherche
           </button>
         </div>
-      </div>
+
+      </section>
+
     </div>
+
   </div>
 </template>
 
@@ -51,7 +141,6 @@
 import { onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDashboardStore } from '@/store/dashboardStore.js'
-import { Search, Eye, Star } from 'lucide-vue-next'
 
 const router = useRouter()
 const store = useDashboardStore()
@@ -67,7 +156,208 @@ onMounted(() => {
 
 <style scoped>
 .dashboard {
-  background: #f8fafc;
-  min-height: calc(100vh - 64px);
+  padding: 30px;
+  background: #f4f6f9;
+  min-height: 100vh;
+}
+
+/* Loading */
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+}
+
+.loader {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #ddd;
+  border-top: 4px solid #e4b52c;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Bannière */
+
+.welcome-banner {
+  background: linear-gradient(135deg, #0e3c57, #154766);
+  color: white;
+  border-radius: 20px;
+  padding: 40px;
+  margin-bottom: 30px;
+}
+
+.badge {
+  display: inline-block;
+  background: #e4b52c;
+  color: #123;
+  padding: 8px 14px;
+  border-radius: 30px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.welcome-banner h1 {
+  font-size: 42px;
+  margin-bottom: 15px;
+}
+
+.welcome-banner p {
+  font-size: 18px;
+  line-height: 1.6;
+  color: #d8e0e7;
+}
+
+.banner-actions {
+  margin-top: 25px;
+}
+
+.primary-btn,
+.secondary-btn,
+.search-btn {
+  border: none;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.primary-btn {
+  background: #e4b52c;
+  color: #123;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.primary-btn:hover {
+  background: #d3a51c;
+}
+
+.secondary-btn {
+  background: transparent;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.4);
+  padding: 12px 24px;
+  border-radius: 10px;
+}
+
+/* Stats */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+
+.stat-label {
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.stat-value {
+  font-size: 34px;
+  font-weight: bold;
+}
+
+.stat-trend {
+  color: #27ae60;
+  margin-top: 10px;
+}
+
+/* Actions */
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.action-card {
+  background: white;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+
+.action-card h3 {
+  margin-bottom: 15px;
+  color: #0e3c57;
+}
+
+.action-card p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #e4b52c;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Bloc recherche */
+
+.search-banner {
+  background: linear-gradient(135deg, #e4b52c, #f0c84d);
+  padding: 40px;
+  border-radius: 20px;
+}
+
+.search-banner h2 {
+  font-size: 32px;
+  margin-bottom: 15px;
+  color: #0e3c57;
+}
+
+.search-banner p {
+  margin-bottom: 25px;
+  color: #333;
+  font-size: 17px;
+}
+
+.search-btn {
+  background: #0e3c57;
+  color: white;
+  padding: 14px 30px;
+  border-radius: 10px;
+}
+
+.search-btn:hover {
+  background: #0a3045;
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+  .welcome-banner h1 {
+    font-size: 30px;
+  }
+
+  .dashboard {
+    padding: 15px;
+  }
+
+  .search-banner h2 {
+    font-size: 24px;
+  }
 }
 </style>

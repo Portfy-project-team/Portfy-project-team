@@ -11,7 +11,7 @@ const error = ref(null)
 async function fetchPortfolio() {
   loading.value = true
   try {
-    const studentId = route.params.slug // In Reseau.vue we use student.id as slug
+    const studentId = route.params.studentId 
     const res = await api.get(`/portfolio/public/${studentId}`)
     portfolioData.value = res.data.portfolio
   } catch (err) {
