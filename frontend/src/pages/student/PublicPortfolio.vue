@@ -18,7 +18,7 @@ function createSlug(name) {
 const student = computed(() => {
   const slug = route.params.slug
 
-  if (slug === 'ahmed-alami') {
+  if (slug === 'Insaf Hamdane') {
     return null
   }
 

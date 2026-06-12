@@ -16,7 +16,7 @@
     <div v-if="isOpen" class="sidebar-profile">
       <div class="avatar">{{ initials }}</div>
       <div class="profile-info">
-        <span class="profile-name">Ahmed Alami</span>
+        <span class="profile-name">Insaf Hamdane</span>
         <span class="profile-role">Étudiant · ENSAT</span>
       </div>
     </div>
@@ -112,7 +112,7 @@ import { Home, Briefcase, Zap, Folder, Activity, BookOpen, Target, Mail, Award, 
 
 const router = useRouter()
 const isOpen = ref(true)
-const userName = "Ahmed Alami"
+const userName = "Insaf Hamdane"
 
 const initials = computed(() => {
   return userName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()

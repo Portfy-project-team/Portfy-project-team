@@ -1,59 +1,13 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref } from 'vue'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 import StatusBadge from '../../components/student/StatusBadge.vue'
 
-const commentList = ref([])
-const loading = ref(true)
+import { comments } from '../../data/mockData.js'
 
-onMounted(async () => {
-  await loadComments()
-})
-
-async function loadComments() {
-  try {
-    const token = localStorage.getItem('token')
-    
-    const res = await fetch('http://localhost:3000/api/comments', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    
-    const json = await res.json()
-    
-    // Transformer les données de l'API au format du frontend
-    commentList.value = json.data.comments.map(c => ({
-      id: c.id,
-      name: c.studentName,
-      initials: c.initials,
-      avatarColor: getAvatarColor(c.color),
-      role: 'Étudiant',
-      roleClass: 'role-student',
-      meta: `${c.date} sur ${c.subject}`,
-      text: c.text,
-      status: c.is_read ? 'Validee' : 'En attente'
-    }))
-    
-    loading.value = false
-  } catch (err) {
-    console.error('Erreur chargement commentaires:', err)
-    loading.value = false
-  }
-}
-
-function getAvatarColor(hexColor) {
-  // Convertir le hex en classe CSS
-  const colorMap = {
-    '#6c63ff': 'avatar-purple',
-    '#ff6584': 'avatar-pink',
-    '#43b89c': 'avatar-blue',
-    '#f9a825': 'avatar-yellow',
-    '#e05260': 'avatar-pink',
-    '#4fc3f7': 'avatar-blue'
-  }
-  return colorMap[hexColor] || 'avatar-yellow'
-}
+const commentList = ref([...comments])
 
 const pendingComments = computed(() => {
   return commentList.value.filter((comment) => comment.status === 'En attente')
@@ -63,36 +17,23 @@ const publishedComments = computed(() => {
   return commentList.value.filter((comment) => comment.status === 'Validee')
 })
 
-async function acceptComment(commentId) {
-  try {
-    const token = localStorage.getItem('token')
-    
-    await fetch(`http://localhost:3000/api/comments/${commentId}/read`, {
-      method: 'PATCH',
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    
-    const comment = commentList.value.find((item) => item.id === commentId)
-    if (comment) {
-      comment.status = 'Validee'
-    }
-  } catch (err) {
-    console.error('Erreur acceptation commentaire:', err)
+const refusedComments = computed(() => {
+  return commentList.value.filter((comment) => comment.status === 'Refusee')
+})
+
+function acceptComment(commentId) {
+  const comment = commentList.value.find((item) => item.id === commentId)
+
+  if (comment) {
+    comment.status = 'Validee'
   }
 }
 
-async function refuseComment(commentId) {
-  try {
-    const token = localStorage.getItem('token')
-    
-    await fetch(`http://localhost:3000/api/comments/${commentId}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    
-    commentList.value = commentList.value.filter((item) => item.id !== commentId)
-  } catch (err) {
-    console.error('Erreur suppression commentaire:', err)
+function refuseComment(commentId) {
+  const comment = commentList.value.find((item) => item.id === commentId)
+
+  if (comment) {
+    comment.status = 'Refusee'
   }
 }
 </script>
@@ -102,19 +43,19 @@ async function refuseComment(commentId) {
     <Sidebar />
 
     <div class="student-main">
-      <Topbar title="Commentaires" user-initials="AA" />
+      <Topbar title="Commentaires" user-initials="IH" />
 
-      <main class="comments-page" v-if="!loading">
+      <main class="comments-page">
         <section class="page-header">
           <h2>Commentaires recus</h2>
           <p>Moderez les commentaires avant leur publication</p>
         </section>
 
-        <section class="section-banner pending" v-if="pendingComments.length > 0">
+        <section class="section-banner pending">
           En attente de validation ({{ pendingComments.length }})
         </section>
 
-        <section class="comments-list" v-if="pendingComments.length > 0">
+        <section class="comments-list">
           <article
             v-for="comment in pendingComments"
             :key="comment.id"
@@ -145,32 +86,28 @@ async function refuseComment(commentId) {
 
             <div class="comment-actions">
               <button
-                type="button"
-                class="refuse-btn"
-                @click="refuseComment(comment.id)"
-              >
-                Refuser
-              </button>
+  type="button"
+  class="refuse-btn"
+  @click="refuseComment(comment.id)"
+>
+  Refuser
+</button>
               <button
-                type="button"
-                class="accept-btn"
-                @click="acceptComment(comment.id)"
-              >
-                Accepter
-              </button>
+  type="button"
+  class="accept-btn"
+  @click="acceptComment(comment.id)"
+>
+  Accepter
+</button>
             </div>
           </article>
         </section>
 
-        <section v-if="pendingComments.length === 0" class="empty-state">
-          <p>Aucun commentaire en attente</p>
-        </section>
-
-        <section class="section-banner published" v-if="publishedComments.length > 0">
+        <section class="section-banner published">
           Commentaires publies ({{ publishedComments.length }})
         </section>
 
-        <section class="comments-list" v-if="publishedComments.length > 0">
+        <section class="comments-list">
           <article
             v-for="comment in publishedComments"
             :key="comment.id"
@@ -201,10 +138,6 @@ async function refuseComment(commentId) {
           </article>
         </section>
       </main>
-
-      <div v-else class="loading">
-        Chargement des commentaires...
-      </div>
     </div>
   </div>
 </template>
@@ -372,7 +305,7 @@ async function refuseComment(commentId) {
   gap: 10px;
 }
 
-.refuse-btn,
+.reject-btn,
 .accept-btn {
   border-radius: 8px;
   padding: 11px 24px;
@@ -381,7 +314,7 @@ async function refuseComment(commentId) {
   cursor: pointer;
 }
 
-.refuse-btn {
+.reject-btn {
   background: #ffffff;
   border: 1px solid #fecaca;
   color: #dc2626;
@@ -391,21 +324,6 @@ async function refuseComment(commentId) {
   background: #082a47;
   border: 1px solid #082a47;
   color: #ffffff;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: #64748b;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-}
-
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: #64748b;
 }
 
 @media (max-width: 700px) {
@@ -421,7 +339,7 @@ async function refuseComment(commentId) {
     flex-direction: column;
   }
 
-  .refuse-btn,
+  .reject-btn,
   .accept-btn {
     width: 100%;
   }

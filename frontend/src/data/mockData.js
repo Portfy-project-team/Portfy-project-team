@@ -1,7 +1,7 @@
 // src/data/mockData.js
 
 export const currentUser = {
-  name: 'Ahmed Alami',
+  name: 'Insaf Hamdane',
   school: 'ENSA Tanger',
   initials: 'AA',
   score: 82
@@ -660,8 +660,8 @@ export const portfolioData = {
   objectives: ['Developpeur Web', 'DevOps', 'Data Science', 'Cybersecurite'],
 
   profile: {
-    initials: 'AA',
-    name: 'Ahmed Alami',
+    initials: 'IH',
+    name: 'Insaf Hamdane',
     title: 'Developpeur Web Full Stack',
     school: 'ENSA Tanger - Genie Informatique',
     status: 'Certifie',
@@ -694,7 +694,7 @@ export const portfolioData = {
 
   templates: ['Modern', 'Classic', 'Minimal'],
 
-  publicLink: 'portfy.com/p/ahmed-alami'
+  publicLink: 'portfy.com/p/insaf-hamdane'
 }
 // NOTIFICATIONS
 export const notifications = [

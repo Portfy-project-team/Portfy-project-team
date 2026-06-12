@@ -52,7 +52,7 @@ function statusClass(status) {
     <Sidebar />
 
     <div class="student-main">
-      <Topbar title="Historique" user-initials="AA" />
+      <Topbar title="Historique" user-initials="IH" />
 
       <main class="history-page">
         <section class="page-header">

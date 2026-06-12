@@ -10,7 +10,7 @@ import { helpCards, questions } from '../../data/mockData.js'
     <Sidebar />
 
     <div class="student-main">
-      <Topbar title="Aide & Support" user-initials="AA" />
+      <Topbar title="Aide & Support" user-initials="IH" />
 
       <main class="help-page">
         <section class="hero-section">

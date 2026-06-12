@@ -58,7 +58,7 @@ function viewCertificate(formation) {
     <Sidebar />
 
     <div class="student-main">
-      <Topbar title="Formations & Certifications" user-initials="AA" />
+      <Topbar title="Formations & Certifications" user-initials="IH" />
 
       <main class="formations-page">
         <section class="page-header">
@@ -204,7 +204,6 @@ function viewCertificate(formation) {
   font-weight: 800;
   cursor: pointer;
 }
-
 
 .primary-btn:hover {
   background: #0b3558;

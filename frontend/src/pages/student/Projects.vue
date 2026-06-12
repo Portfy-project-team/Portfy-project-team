@@ -1,16 +1,16 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref } from 'vue'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 import StatusBadge from '../../components/student/StatusBadge.vue'
 import ProjectModal from '../../components/student/modals/ProjectModal.vue'
+import { projects } from '../../data/mockData.js'
 
 const activeFilter = ref('Tous')
 const showProjectModal = ref(false)
 const selectedProject = ref(null)
-const projectList = ref([])
-const loading = ref(true)
+const projectList = ref([...projects])
 
 function normalizeStatus(status) {
   return status
@@ -57,19 +57,19 @@ const filters = computed(() => [
   {
     label: 'Valides',
     count: projectList.value.filter((project) =>
-      normalizeStatus(project.status).includes('validated')
+      normalizeStatus(project.status).includes('valide')
     ).length
   },
   {
     label: 'En attente',
     count: projectList.value.filter((project) =>
-      normalizeStatus(project.status).includes('pending')
+      normalizeStatus(project.status).includes('attente')
     ).length
   },
   {
-    label: 'Rejetés',
+    label: 'Correction',
     count: projectList.value.filter((project) =>
-      normalizeStatus(project.status).includes('rejected')
+      normalizeStatus(project.status).includes('correction')
     ).length
   }
 ])
@@ -82,46 +82,12 @@ const filteredProjects = computed(() => {
   return projectList.value.filter((project) => {
     const status = normalizeStatus(project.status)
 
-    if (activeFilter.value === 'Valides') return status.includes('validated')
-    if (activeFilter.value === 'En attente') return status.includes('pending')
-    if (activeFilter.value === 'Rejetés') return status.includes('rejected')
+    if (activeFilter.value === 'Valides') return status.includes('valide')
+    if (activeFilter.value === 'En attente') return status.includes('attente')
+    if (activeFilter.value === 'Correction') return status.includes('correction')
 
     return true
   })
-})
-
-// CHARGER LES PROJETS AU MONTAGE
-onMounted(async () => {
-  try {
-    const token = localStorage.getItem('token')
-
-    const res = await fetch('http://localhost:3000/api/projects/me', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-
-    const json = await res.json()
-
-    // TRANSFORMER LES DONNÉES DE L'API AU FORMAT DU FRONTEND
-    projectList.value = json.projects.map(p => ({
-      id: p.id,
-      title: p.titre,
-      type: p.type || 'Sans type',
-      description: p.description || '',
-      status: p.statusV,
-      tags: p.skills?.map(s => s.skill.nom) || [],
-      date: p.dateSoumission 
-        ? new Date(p.dateSoumission).toLocaleDateString('fr-FR')
-        : 'Non soumis',
-      supervisor: p.Prof 
-        ? `${p.Prof.prenom} ${p.Prof.nom}`
-        : 'Aucun prof'
-    }))
-
-    loading.value = false
-  } catch (err) {
-    console.error('Erreur chargement projets:', err)
-    loading.value = false
-  }
 })
 </script>
 
@@ -130,7 +96,7 @@ onMounted(async () => {
     <Sidebar />
 
     <div class="student-main">
-      <Topbar title="Projets" user-initials="AA" />
+      <Topbar title="Projets" user-initials="IH" />
 
       <main class="projects-page">
         <section class="page-header">
@@ -155,7 +121,7 @@ onMounted(async () => {
           </button>
         </section>
 
-        <section class="projects-grid" v-if="!loading">
+        <section class="projects-grid">
           <article
             v-for="project in filteredProjects"
             :key="project.id"
@@ -173,6 +139,13 @@ onMounted(async () => {
             <p class="project-description">
               {{ project.description }}
             </p>
+
+            <div
+              v-if="project.correction"
+              class="correction-box"
+            >
+              ⚠ {{ project.correction }}
+            </div>
 
             <div class="tags">
               <span
@@ -198,19 +171,14 @@ onMounted(async () => {
             </div>
           </article>
         </section>
-
-        <section v-else class="loading">
-          Chargement des projets...
-        </section>
       </main>
     </div>
+      <ProjectModal
+  v-if="showProjectModal"
+  :project-to-edit="selectedProject"
+  @close="closeProjectModal"
+  @save="saveProject"/>
   </div>
-  <ProjectModal
-    v-if="showProjectModal"
-    :project-to-edit="selectedProject"
-    @close="closeProjectModal"
-    @save="saveProject"
-  />
 </template>
 
 <style scoped>
@@ -252,7 +220,7 @@ onMounted(async () => {
 }
 
 .primary-btn {
-  background:  #0f3a4f;
+  background: #082a47;
   color: #ffffff;
   border: none;
   border-radius: 10px;
@@ -332,6 +300,16 @@ onMounted(async () => {
   line-height: 1.5;
 }
 
+.correction-box {
+  background: #fff4e8;
+  border-left: 4px solid #d95b28;
+  color: #a23b13;
+  padding: 12px 14px;
+  border-radius: 0 8px 8px 0;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+
 .tags {
   display: flex;
   flex-wrap: wrap;
@@ -370,12 +348,6 @@ onMounted(async () => {
 
 .edit-btn:hover {
   text-decoration: underline;
-}
-
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: #64748b;
 }
 
 @media (max-width: 1100px) {

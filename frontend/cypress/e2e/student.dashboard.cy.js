@@ -49,7 +49,7 @@ describe('Student Dashboard E2E Tests', () => {
   })
 
   it('displays correct student name in sidebar', () => {
-    cy.get('.profile-name').should('contain', 'Ahmed Alami')
+    cy.get('.profile-name').should('contain', 'Insaf Hamdane')
   })
 
   it('displays score badge', () => {

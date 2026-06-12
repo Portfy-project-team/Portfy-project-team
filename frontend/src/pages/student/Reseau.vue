@@ -36,7 +36,7 @@ function viewStudentPortfolio(student) {
     <Sidebar />
 
     <div class="student-main">
-      <Topbar title="Reseau etudiants" user-initials="AA" />
+      <Topbar title="Reseau etudiants" user-initials="IH" />
 
       <main class="network-page">
         <section class="page-header">
@@ -324,7 +324,7 @@ function viewStudentPortfolio(student) {
 
 .mini-badge {
   background: #eaf3f8;
-  color:  #0f3a4f;
+  color: #082a47;
   padding: 7px 10px;
   border-radius: 7px;
   font-size: 13px;
@@ -332,7 +332,7 @@ function viewStudentPortfolio(student) {
 }
 
 .portfolio-btn {
-  background:  #0f3a4f;
+  background: #082a47;
   color: #ffffff;
   border: none;
   border-radius: 999px;

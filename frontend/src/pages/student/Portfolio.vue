@@ -1,63 +1,24 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import html2pdf from 'html2pdf.js'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import StatusBadge from '../../components/student/StatusBadge.vue'
 
+import { portfolioData } from '../../data/mockData.js'
+
 const router = useRouter()
 
-const activeObjective = ref('')
+const activeObjective = ref('Developpeur Web')
 const activeTemplate = ref('Modern')
 const copied = ref(false)
 const portfolioRef = ref(null)
-const loading = ref(true)
 
-// DONNÉES DU PORTFOLIO DEPUIS L'API
-const student = ref(null)
-const portfolio = ref(null)
-
-const avatarPreview = ref(localStorage.getItem('studentAvatar') || '')
-
-const updateAvatar = () => {
-  avatarPreview.value = localStorage.getItem('studentAvatar') || ''
-}
-
-onMounted(() => {
-  window.addEventListener('student-avatar-updated', updateAvatar)
-  loadPortfolioData()
-})
-
-onUnmounted(() => {
-  window.removeEventListener('student-avatar-updated', updateAvatar)
-})
-
-// CHARGER LES DONNÉES DU PORTFOLIO
-async function loadPortfolioData() {
-  try {
-    const token = localStorage.getItem('token')
-    
-    const res = await fetch('http://localhost:3000/api/portfolio/me', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    
-    const json = await res.json()
-    student.value = json.portfolio
-    portfolio.value = json.portfolio.portfolio
-    activeObjective.value = portfolio.value?.objective || ''
-    
-    loading.value = false
-  } catch (err) {
-    console.error('Erreur chargement portfolio:', err)
-    loading.value = false
-  }
-}
+const publicPortfolioPath = '/portfolio/Insaf Hamdane'
 
 function getPublicPortfolioUrl() {
-  if (!student.value) return ''
-  const slug = `${student.value.prenom}-${student.value.nom}`.toLowerCase().replace(/\s+/g, '-')
-  return `${window.location.origin}/portfolio/${student.value.id}`
+  return `${window.location.origin}${publicPortfolioPath}`
 }
 
 function openPublicPreview() {
@@ -90,23 +51,6 @@ async function copyPublicLink() {
   }
 }
 
-async function updateObjective() {
-  try {
-    const token = localStorage.getItem('token')
-    
-    await fetch('http://localhost:3000/api/portfolio/settings', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ objective: activeObjective.value })
-    })
-  } catch (err) {
-    console.error('Erreur mise à jour objectif:', err)
-  }
-}
-
 function exportPDF() {
   const element = portfolioRef.value
 
@@ -117,7 +61,7 @@ function exportPDF() {
 
   const options = {
     margin: 10,
-    filename: `portfolio-${student.value.prenom}-${student.value.nom}.pdf`,
+    filename: 'portfolio-insaf-hamdane.pdf',
     image: {
       type: 'jpeg',
       quality: 0.98
@@ -141,9 +85,6 @@ function badgeClass(color) {
   if (color === 'blue') return 'badge-blue'
   return 'badge-default'
 }
-
-const objectives = ['Développeur Web', 'Développeur Mobile', 'Data Scientist', 'DevOps']
-const templates = ['Modern', 'Classic', 'Minimal']
 </script>
 
 <template>
@@ -160,26 +101,26 @@ const templates = ['Modern', 'Classic', 'Minimal']
         <div class="header-actions">
           <button class="export-btn" @click="exportPDF">Export PDF</button>
           <button
-            type="button"
-            class="preview-btn"
-            @click="openPublicPreview"
-          >
-            Apercu public
-          </button>
+  type="button"
+  class="preview-btn"
+  @click="openPublicPreview"
+>
+  Apercu public
+</button>
         </div>
       </header>
 
-      <main class="portfolio-page" v-if="!loading">
+      <main class="portfolio-page">
         <section class="objective-card">
           <h2>Objectif professionnel</h2>
           <p>Adaptez votre portfolio selon votre profil cible</p>
 
           <div class="objectives-grid">
             <button
-              v-for="objective in objectives"
+              v-for="objective in portfolioData.objectives"
               :key="objective"
               :class="['objective-btn', { active: activeObjective === objective }]"
-              @click="activeObjective = objective; updateObjective()"
+              @click="activeObjective = objective"
             >
               {{ objective }}
             </button>
@@ -187,52 +128,43 @@ const templates = ['Modern', 'Classic', 'Minimal']
         </section>
 
         <section class="portfolio-grid">
-          <article class="main-card" ref="portfolioRef" v-if="student">
+          <article class="main-card" ref="portfolioRef">
             <div class="profile-header">
               <div class="avatar">
-                <img
-                  v-if="avatarPreview"
-                  :src="avatarPreview"
-                  alt="Photo de profil"
-                  class="avatar-img"
-                />
-
-                <span v-else>
-                  {{ student.prenom?.charAt(0) }}{{ student.nom?.charAt(0) }}
-                </span>
+                {{ portfolioData.profile.initials }}
               </div>
 
               <div class="profile-info">
-                <h2>{{ student.prenom }} {{ student.nom }}</h2>
-                <h3>{{ student.filiere || 'Étudiant' }}</h3>
-                <p>{{ student.etablissement }}</p>
+                <h2>{{ portfolioData.profile.name }}</h2>
+                <h3>{{ portfolioData.profile.title }}</h3>
+                <p>{{ portfolioData.profile.school }}</p>
               </div>
 
-              <StatusBadge status="VALIDATED" />
+              <StatusBadge :status="portfolioData.profile.status" />
             </div>
 
             <div class="separator"></div>
 
             <section class="portfolio-section">
               <h3>A PROPOS</h3>
-              <p>{{ student.bio || 'Aucune biographie pour le moment' }}</p>
+              <p>{{ portfolioData.profile.about }}</p>
             </section>
 
-            <section class="portfolio-section" v-if="student.portfolio?.projets?.length">
-              <h3>PROJETS VALIDES ({{ student.portfolio.projets.filter(p => p.statusV === 'VALIDATED').length }})</h3>
+            <section class="portfolio-section">
+              <h3>PROJETS VALIDES ({{ portfolioData.validatedProjects.length }})</h3>
 
               <div class="projects-list">
                 <div
-                  v-for="project in student.portfolio.projets.filter(p => p.statusV === 'VALIDATED')"
+                  v-for="project in portfolioData.validatedProjects"
                   :key="project.id"
                   class="project-box"
                 >
-                  <h4>{{ project.titre }}</h4>
-                  <p>{{ project.type }}</p>
+                  <h4>{{ project.title }}</h4>
+                  <p>{{ project.meta }}</p>
 
                   <div class="tags">
                     <span
-                      v-for="tag in (project.skills?.map(s => s.skill.nom) || [])"
+                      v-for="tag in project.tags"
                       :key="tag"
                       class="tag"
                     >
@@ -243,35 +175,16 @@ const templates = ['Modern', 'Classic', 'Minimal']
               </div>
             </section>
 
-            <section class="portfolio-section" v-if="student.Stage?.length">
-              <h3>STAGES EFFECTUES ({{ student.Stage.length }})</h3>
-
-              <div class="projects-list">
-                <div
-                  v-for="stage in student.Stage"
-                  :key="stage.id"
-                  class="project-box"
-                >
-                  <h4>{{ stage.entreprise }}</h4>
-                  <p>{{ stage.mission }}</p>
-
-                  <div class="tags">
-                    <span class="tag">{{ stage.duree }} mois</span>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section class="portfolio-section" v-if="student.skills?.length">
-              <h3>COMPETENCES</h3>
+            <section class="portfolio-section">
+              <h3>BADGES OBTENUS</h3>
 
               <div class="badges-list">
                 <span
-                  v-for="skill in student.skills"
-                  :key="skill.skill.id"
-                  class="portfolio-badge badge-blue"
+                  v-for="badge in portfolioData.badges"
+                  :key="badge.label"
+                  :class="['portfolio-badge', badgeClass(badge.color)]"
                 >
-                  {{ skill.skill.nom }}
+                  {{ badge.label }}
                 </span>
               </div>
             </section>
@@ -282,14 +195,11 @@ const templates = ['Modern', 'Classic', 'Minimal']
               <h3>Visibilite</h3>
 
               <ul class="visibility-list">
-                <li v-if="portfolio?.visibilite === 'PUBLIC'">
-                  🌐 Public
-                </li>
-                <li v-else-if="portfolio?.visibilite === 'LINK_ONLY'">
-                  🔗 Lien uniquement
-                </li>
-                <li v-else>
-                  🔒 Privé
+                <li
+                  v-for="item in portfolioData.visibility"
+                  :key="item"
+                >
+                  {{ item }}
                 </li>
               </ul>
             </div>
@@ -299,7 +209,7 @@ const templates = ['Modern', 'Classic', 'Minimal']
 
               <div class="template-list">
                 <button
-                  v-for="template in templates"
+                  v-for="template in portfolioData.templates"
                   :key="template"
                   :class="['template-btn', { active: activeTemplate === template }]"
                   @click="activeTemplate = template"
@@ -314,21 +224,17 @@ const templates = ['Modern', 'Classic', 'Minimal']
 
               <input type="text" :value="getPublicPortfolioUrl()" readonly/>
 
-              <button
-                type="button"
-                class="copy-btn"
-                @click="copyPublicLink"
-              >
-                {{ copied ? 'Lien copie !' : 'Copier le lien' }}
-              </button>
+<button
+  type="button"
+  class="copy-btn"
+  @click="copyPublicLink"
+>
+  {{ copied ? 'Lien copie !' : 'Copier le lien' }}
+</button>
             </div>
           </aside>
         </section>
       </main>
-
-      <div v-else class="loading">
-        Chargement du portfolio...
-      </div>
     </div>
   </div>
 </template>
@@ -344,18 +250,6 @@ const templates = ['Modern', 'Classic', 'Minimal']
   flex: 1;
   min-width: 0;
   background: #f4f1ec;
-}
-
-.avatar {
-  overflow: hidden;
-}
-
-.avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-  display: block;
 }
 
 .portfolio-header {
@@ -397,14 +291,14 @@ const templates = ['Modern', 'Classic', 'Minimal']
 
 .export-btn {
   background: #ffffff;
-  color:  #0f3a4f;
+  color: #082a47;
   border: 1px solid #e5e7eb;
 }
 
 .preview-btn {
-  background:  #0f3a4f;
+  background: #082a47;
   color: #ffffff;
-  border: 1px solid  #0f3a4f;
+  border: 1px solid #082a47;
 }
 
 .portfolio-page {
@@ -481,7 +375,7 @@ const templates = ['Modern', 'Classic', 'Minimal']
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background:  #0f3a4f;
+  background: #082a47;
   color: #f0a91f;
   display: flex;
   align-items: center;
@@ -573,7 +467,7 @@ const templates = ['Modern', 'Classic', 'Minimal']
 
 .tag {
   background: #eaf3f8;
-  color:  #0f3a4f;
+  color: #082a47;
   padding: 6px 9px;
   border-radius: 7px;
   font-size: 13px;
@@ -595,22 +489,22 @@ const templates = ['Modern', 'Classic', 'Minimal']
 
 .badge-yellow {
   background: #fff2d8;
-  color:  #0f3a4f;
+  color: #082a47;
 }
 
 .badge-green {
   background: #d6f7e4;
-  color:  #0f3a4f;
+  color: #082a47;
 }
 
 .badge-blue {
   background: #dff2ff;
-  color:  #0f3a4f;
+  color: #082a47;
 }
 
 .badge-default {
   background: #eef2f7;
-  color:  #0f3a4f;
+  color: #082a47;
 }
 
 .side-panel {
@@ -676,7 +570,7 @@ const templates = ['Modern', 'Classic', 'Minimal']
   background: #fff2d8;
   border: 2px solid #f0a91f;
   font-weight: 800;
-  color:  #0f3a4f;
+  color: #082a47;
 }
 
 .side-card input {
@@ -686,7 +580,7 @@ const templates = ['Modern', 'Classic', 'Minimal']
   background: #f8fafc;
   border-radius: 8px;
   padding: 0 12px;
-  color:  #0f3a4f;
+  color: #082a47;
   font-size: 14px;
   box-sizing: border-box;
   margin-bottom: 10px;
@@ -697,7 +591,7 @@ const templates = ['Modern', 'Classic', 'Minimal']
   height: 42px;
   border: none;
   border-radius: 8px;
-  background:  #0f3a4f;
+  background: #082a47;
   color: #ffffff;
   font-size: 15px;
   font-weight: 800;
@@ -705,13 +599,7 @@ const templates = ['Modern', 'Classic', 'Minimal']
 }
 
 .copy-btn:hover {
-  background:  #0f3a4f;
-}
-
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: #64748b;
+  background: #0b3558;
 }
 
 @media (max-width: 1100px) {

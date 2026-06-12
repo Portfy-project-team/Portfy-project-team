@@ -20,7 +20,7 @@ const totalBadges = computed(() => {
     <Sidebar />
 
     <div class="student-main">
-      <Topbar title="Badges" user-initials="AA" />
+      <Topbar title="Badges" user-initials="IH" />
 
       <main class="badges-page">
         <section class="page-title">

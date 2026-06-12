@@ -1,33 +1,30 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 
 const fileInput = ref(null)
-const avatarPreview = ref(localStorage.getItem('studentAvatar') || '')
+const avatarPreview = ref('')
 const showPasswordModal = ref(false)
 const portfolioDisabled = ref(false)
 const twoFactorEnabled = ref(false)
-const personalSaved = ref(false)
-const academicSaved = ref(false)
-const loading = ref(true)
 
 const personalForm = reactive({
-  firstName: '',
-  lastName: '',
-  email: '',
-  phone: '',
-  bio: '',
-  city: '',
+  firstName: 'Insaf',
+  lastName: 'Hamdane',
+  email: 'hamdane.insaf@etu.uae.ac.ma',
+  phone: '+212 6 12 34 56 78',
+  bio: 'Passionne par le developpement web et les nouvelles technologies.',
+  city: 'Tanger',
   country: 'Maroc'
 })
 
 const academicForm = reactive({
-  school: '',
-  field: '',
-  year: '',
-  promotion: ''
+  school: 'ENSA Tanger',
+  field: 'Genie Informatique',
+  year: '1ere annee',
+  promotion: '2028'
 })
 
 const notifications = reactive({
@@ -48,49 +45,11 @@ const passwordForm = reactive({
   confirmPassword: ''
 })
 
-onMounted(async () => {
-  await loadSettings()
-})
-
-async function loadSettings() {
-  try {
-    const token = localStorage.getItem('token')
-    
-    const res = await fetch('http://localhost:3000/api/settings', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    
-    const json = await res.json()
-    const data = json.data
-
-    // Remplir le formulaire personnel
-    const nameParts = data.fullName?.split(' ') || ['', '']
-    personalForm.firstName = nameParts[0] || ''
-    personalForm.lastName = nameParts.slice(1).join(' ') || ''
-    personalForm.email = data.email || ''
-    personalForm.phone = data.phone || ''
-    personalForm.bio = data.bio || ''
-    personalForm.city = data.city || ''
-    personalForm.country = data.country || 'Maroc'
-
-    // Remplir le formulaire académique
-    academicForm.school = data.etablissement || ''
-    academicForm.field = data.filiere || ''
-    academicForm.year = data.niveau || ''
-    academicForm.promotion = data.anneePromotion || ''
-
-    loading.value = false
-  } catch (err) {
-    console.error('Erreur chargement paramètres:', err)
-    loading.value = false
-  }
-}
-
 const initials = computed(() => {
   return `${personalForm.firstName[0] || ''}${personalForm.lastName[0] || ''}`.toUpperCase()
 })
 
-function openPhotoPicker() {
+function triggerFileInput() {
   fileInput.value.click()
 }
 
@@ -99,7 +58,7 @@ function changePhoto(event) {
 
   if (!file) return
 
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg']
+  const allowedTypes = ['image/jpeg', 'image/png']
 
   if (!allowedTypes.includes(file.type)) {
     alert('Veuillez choisir une image JPG ou PNG.')
@@ -111,19 +70,11 @@ function changePhoto(event) {
     return
   }
 
-  const reader = new FileReader()
-
-  reader.onload = () => {
-    avatarPreview.value = reader.result
-    localStorage.setItem('studentAvatar', reader.result)
-    window.dispatchEvent(new Event('student-avatar-updated'))
-    alert('Photo modifiee avec succes.')
-  }
-
-  reader.readAsDataURL(file)
+  avatarPreview.value = URL.createObjectURL(file)
+  alert('Photo modifiee avec succes.')
 }
 
-async function savePersonalInfo() {
+function savePersonalInfo() {
   if (!personalForm.firstName.trim() || !personalForm.lastName.trim()) {
     alert('Veuillez remplir le prenom et le nom.')
     return
@@ -134,68 +85,13 @@ async function savePersonalInfo() {
     return
   }
 
-  try {
-    const token = localStorage.getItem('token')
-    
-    await fetch('http://localhost:3000/api/settings/profile', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        firstName: personalForm.firstName,
-        lastName: personalForm.lastName,
-        email: personalForm.email,
-        phone: personalForm.phone,
-        bio: personalForm.bio,
-        city: personalForm.city,
-        country: personalForm.country
-      })
-    })
-
-    window.dispatchEvent(new Event('student-profile-updated'))
-
-    personalSaved.value = true
-
-    setTimeout(() => {
-      personalSaved.value = false
-    }, 2500)
-  } catch (err) {
-    console.error('Erreur sauvegarde profil:', err)
-    alert('Erreur lors de la sauvegarde')
-  }
+  localStorage.setItem('studentPersonalInfo', JSON.stringify(personalForm))
+  alert('Informations personnelles enregistrees avec succes.')
 }
 
-async function saveAcademicInfo() {
-  try {
-    const token = localStorage.getItem('token')
-    
-    await fetch('http://localhost:3000/api/settings/profile', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        etablissement: academicForm.school,
-        filiere: academicForm.field,
-        niveau: academicForm.year,
-        anneePromotion: academicForm.promotion
-      })
-    })
-
-    window.dispatchEvent(new Event('student-academic-updated'))
-
-    academicSaved.value = true
-
-    setTimeout(() => {
-      academicSaved.value = false
-    }, 2500)
-  } catch (err) {
-    console.error('Erreur sauvegarde académique:', err)
-    alert('Erreur lors de la sauvegarde')
-  }
+function saveAcademicInfo() {
+  localStorage.setItem('studentAcademicInfo', JSON.stringify(academicForm))
+  alert('Informations academiques enregistrees avec succes.')
 }
 
 function toggleNotification(key) {
@@ -205,7 +101,7 @@ function toggleNotification(key) {
 
 function saveAppearance() {
   localStorage.setItem('studentAppearance', JSON.stringify(appearance))
-  alert('Preferences d apparence enregistrees.')
+  alert('Preferences d’apparence enregistrees.')
 }
 
 function openPasswordModal() {
@@ -223,7 +119,7 @@ function resetPasswordForm() {
   passwordForm.confirmPassword = ''
 }
 
-async function changePassword() {
+function changePassword() {
   if (
     !passwordForm.currentPassword ||
     !passwordForm.newPassword ||
@@ -243,27 +139,8 @@ async function changePassword() {
     return
   }
 
-  try {
-    const token = localStorage.getItem('token')
-    
-    await fetch('http://localhost:3000/api/settings/password', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        current: passwordForm.currentPassword,
-        new: passwordForm.newPassword
-      })
-    })
-
-    alert('Mot de passe change avec succes.')
-    closePasswordModal()
-  } catch (err) {
-    console.error('Erreur changement mot de passe:', err)
-    alert('Erreur : ' + (err.message || 'Impossible de changer le mot de passe'))
-  }
+  alert('Mot de passe change avec succes.')
+  closePasswordModal()
 }
 
 function toggleTwoFactor() {
@@ -285,28 +162,14 @@ function disablePortfolio() {
   alert('Portfolio desactive.')
 }
 
-async function deleteAccount() {
+function deleteAccount() {
   const confirmed = confirm(
     'Action irreversible. Voulez-vous vraiment supprimer votre compte ?'
   )
 
   if (!confirmed) return
 
-  try {
-    const token = localStorage.getItem('token')
-    
-    await fetch('http://localhost:3000/api/settings/account', {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-
-    alert('Compte supprime. Vous allez etre deconnecte.')
-    localStorage.removeItem('token')
-    window.location.href = '/login'
-  } catch (err) {
-    console.error('Erreur suppression compte:', err)
-    alert('Erreur lors de la suppression du compte')
-  }
+  alert('Demande de suppression du compte envoyee.')
 }
 </script>
 
@@ -315,9 +178,9 @@ async function deleteAccount() {
     <Sidebar />
 
     <div class="student-main">
-      <Topbar title="Parametres du compte" user-initials="AA" />
+      <Topbar title="Parametres du compte" user-initials="IH" />
 
-      <main class="settings-page" v-if="!loading">
+      <main class="settings-page">
         <section class="page-header">
           <h2>Parametres du compte</h2>
           <p>Gerez votre profil et vos preferences</p>
@@ -343,7 +206,7 @@ async function deleteAccount() {
                   <button
                     type="button"
                     class="primary-btn small"
-                    @click="openPhotoPicker"
+                    @click="triggerFileInput"
                   >
                     Changer la photo
                   </button>
@@ -351,7 +214,7 @@ async function deleteAccount() {
                   <input
                     ref="fileInput"
                     type="file"
-                    accept="image/png, image/jpeg, image/jpg"
+                    accept="image/png, image/jpeg"
                     class="hidden-input"
                     @change="changePhoto"
                   />
@@ -411,9 +274,6 @@ async function deleteAccount() {
               >
                 Enregistrer les modifications
               </button>
-              <p v-if="personalSaved" class="success-message">
-                Modifications enregistrees avec succes.
-              </p>
             </section>
 
             <section class="card">
@@ -423,17 +283,31 @@ async function deleteAccount() {
               <div class="form-grid">
                 <div class="form-group">
                   <label>Etablissement</label>
-                  <input v-model="academicForm.school" type="text" />
+                  <select v-model="academicForm.school">
+                    <option>ENSA Tanger</option>
+                    <option>FSJES Tanger</option>
+                    <option>FST Tanger</option>
+                  </select>
                 </div>
 
                 <div class="form-group">
                   <label>Filiere</label>
-                  <input v-model="academicForm.field" type="text" />
+                  <select v-model="academicForm.field">
+                    <option>Genie Informatique</option>
+                    <option>Genie Reseaux</option>
+                    <option>Genie Industriel</option>
+                  </select>
                 </div>
 
                 <div class="form-group">
                   <label>Annee d'etudes</label>
-                  <input v-model="academicForm.year" type="text" />
+                  <select v-model="academicForm.year">
+                    <option>1ere annee</option>
+                    <option>2eme annee</option>
+                    <option>3eme annee</option>
+                    <option>4eme annee</option>
+                    <option>5eme annee</option>
+                  </select>
                 </div>
 
                 <div class="form-group">
@@ -449,9 +323,6 @@ async function deleteAccount() {
               >
                 Enregistrer
               </button>
-              <p v-if="academicSaved" class="success-message">
-                Modifications enregistrees avec succes.
-              </p>
             </section>
           </div>
 
@@ -576,10 +447,6 @@ async function deleteAccount() {
           </aside>
         </div>
       </main>
-
-      <div v-else class="loading">
-        Chargement des paramètres...
-      </div>
     </div>
 
     <div
@@ -641,13 +508,6 @@ async function deleteAccount() {
 </template>
 
 <style scoped>
-.success-message {
-  margin-top: 12px;
-  color: #16a34a;
-  font-weight: 700;
-  font-size: 14px;
-}
-
 .student-layout {
   display: flex;
   min-height: 100vh;
@@ -726,7 +586,7 @@ async function deleteAccount() {
   width: 62px;
   height: 62px;
   border-radius: 50%;
-  background:  #0f3a4f;
+  background: #082a47;
   color: #ffd24a;
   border: 3px dashed #cfe0ea;
   display: flex;
@@ -766,7 +626,7 @@ async function deleteAccount() {
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  color:  #0f3a4f;
+  color: #082a47;
   font-size: 14px;
   font-weight: 800;
 }
@@ -799,7 +659,7 @@ async function deleteAccount() {
 .primary-btn {
   border: none;
   border-radius: 9px;
-  background:  #0f3a4f;
+  background: #082a47;
   color: #ffffff;
   padding: 14px 22px;
   font-weight: 900;
@@ -808,7 +668,7 @@ async function deleteAccount() {
 }
 
 .primary-btn:hover {
-  background: #0f3a4f;
+  background: #0b3558;
 }
 
 .primary-btn.small {
@@ -925,7 +785,7 @@ async function deleteAccount() {
   background: #ffffff;
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 24px 60px  #0f3a4f;
+  box-shadow: 0 24px 60px rgba(8, 42, 71, 0.25);
 }
 
 .modal-header {
@@ -968,12 +828,6 @@ async function deleteAccount() {
   padding: 14px 18px;
   font-weight: 900;
   cursor: pointer;
-}
-
-.loading {
-  text-align: center;
-  padding: 40px;
-  color: #64748b;
 }
 
 @media (max-width: 1100px) {
