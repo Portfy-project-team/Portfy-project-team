@@ -74,6 +74,8 @@ export const createActivity = async (
       nom: data.nom,
       description: data.description,
       type: data.type,
+      organisation: data.organisation,
+      periode: data.periode,
       attestationUrl: data.attestationUrl,
       statutV: "PENDING",
       StudentActivite: {

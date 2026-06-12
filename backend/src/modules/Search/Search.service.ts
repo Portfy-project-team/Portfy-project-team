@@ -6,50 +6,54 @@ const prisma = new PrismaClient()
 export class SearchService {
 
   async searchPortfolios(query: SearchQuery): Promise<SearchResult[]> {
-    const { q, limit = 10 } = query
+    const { q, filiere, limit = 100 } = query
 
-    if (!q || q.trim().length < 2) return []
+    const where: any = {}
 
-    const portfolios = await prisma.portfolio.findMany({
-      where: {
-        visibilite: 'PUBLIC',
-        student: {
-          OR: [
-            { nom: { contains: q, mode: 'insensitive' } },
-            { prenom: { contains: q, mode: 'insensitive' } },
-            { etablissement: { contains: q, mode: 'insensitive' } },
-            { filiere: { contains: q, mode: 'insensitive' } },
-            {
-              skills: {
-                some: {
-                  skill: { nom: { contains: q, mode: 'insensitive' } },
-                },
-              },
-            },
-          ],
-        },
-      },
-      include: {
-        student: {
-          include: {
-            user: { select: { avatarUrl: true } },
-            skills: {
-              include: { skill: true },
-              take: 5,
+    if (q && q.trim().length >= 2) {
+      const searchTerm = q.trim()
+      where.OR = [
+        { nom: { contains: searchTerm, mode: 'insensitive' } },
+        { prenom: { contains: searchTerm, mode: 'insensitive' } },
+        { etablissement: { contains: searchTerm, mode: 'insensitive' } },
+        { filiere: { contains: searchTerm, mode: 'insensitive' } },
+        {
+          skills: {
+            some: {
+              skill: { nom: { contains: searchTerm, mode: 'insensitive' } },
             },
           },
         },
+      ]
+    }
+
+    if (filiere) {
+      where.filiere = { contains: filiere, mode: 'insensitive' }
+    }
+
+    const students = await prisma.student.findMany({
+      where,
+      include: {
+        user: { select: { avatarUrl: true } },
+        portfolio: true,
+        skills: {
+          include: { skill: true },
+          take: 5,
+        },
       },
       take: limit,
-      orderBy: { scoreCredibilite: 'desc' },
+      orderBy: [
+        { portfolio: { scoreCredibilite: 'desc' } },
+        { nom: 'asc' }
+      ],
     })
 
-    return portfolios.map((p) => {
-      const student = p.student
+    return students.map((student) => {
       const fullName = `${student.prenom ?? ''} ${student.nom ?? ''}`.trim()
+      const p = student.portfolio
 
       return {
-        id: p.id,
+        id: p?.id ?? 0,
         studentId: student.id,
         studentName: fullName,
         initials: this.getInitials(fullName),
@@ -57,8 +61,8 @@ export class SearchService {
         school: student.etablissement ?? '',
         filiere: student.filiere ?? '',
         tags: student.skills.map((s) => s.skill.nom),
-        scoreCredibilite: p.scoreCredibilite,
-        visibilite: p.visibilite,
+        scoreCredibilite: p?.scoreCredibilite ?? 0,
+        visibilite: p?.visibilite ?? 'PUBLIC',
       }
     })
   }

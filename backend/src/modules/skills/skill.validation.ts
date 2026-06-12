@@ -20,7 +20,9 @@ export const createStudentSkillSchema = z.object({
 }).strict();
 
 export const updateStudentSkillSchema = z.object({
-  niveau: z.enum(["DEBUTANT", "INTERMEDIAIRE", "AVANCE", "EXPERT"]),
+  nom: z.string().trim().min(2).max(100).optional(),
+  categorie: z.string().trim().min(2).max(100).optional(),
+  niveau: z.enum(["DEBUTANT", "INTERMEDIAIRE", "AVANCE", "EXPERT"]).optional(),
 }).strict();
 
 export type CreateStudentSkillInput = z.infer<typeof createStudentSkillSchema>;

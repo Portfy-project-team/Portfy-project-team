@@ -97,6 +97,19 @@ async function updateObjective() {
   }
 }
 
+async function updateVisibility(newVisibility) {
+  try {
+    await api.put('/portfolio/settings', {
+      visibilite: newVisibility
+    })
+    if (portfolio.value) {
+      portfolio.value.visibilite = newVisibility
+    }
+  } catch (err) {
+    console.error('Erreur mise à jour visibilité:', err)
+  }
+}
+
 function exportPDF() {
   const element = portfolioRef.value
 
@@ -271,17 +284,18 @@ const templates = ['Modern', 'Classic', 'Minimal']
             <div class="side-card">
               <h3>Visibilite</h3>
 
-              <ul class="visibility-list">
-                <li v-if="portfolio?.visibilite === 'PUBLIC'">
-                  🌐 Public
-                </li>
-                <li v-else-if="portfolio?.visibilite === 'LINK_ONLY'">
-                  🔗 Lien uniquement
-                </li>
-                <li v-else>
-                  🔒 Privé
-                </li>
-              </ul>
+              <div class="visibility-selector">
+                <button 
+                  v-for="v in ['PUBLIC', 'LINK_ONLY', 'PRIVATE']" 
+                  :key="v"
+                  :class="['visibility-btn', { active: portfolio?.visibilite === v }]"
+                  @click="updateVisibility(v)"
+                >
+                  <template v-if="v === 'PUBLIC'">🌐 Public</template>
+                  <template v-else-if="v === 'LINK_ONLY'">🔗 Lien uniquement</template>
+                  <template v-else>🔒 Privé</template>
+                </button>
+              </div>
             </div>
 
             <div class="side-card">
@@ -607,6 +621,31 @@ const templates = ['Modern', 'Classic', 'Minimal']
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.visibility-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.visibility-btn {
+  height: 46px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 8px;
+  text-align: left;
+  padding: 0 14px;
+  font-size: 15px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.visibility-btn.active {
+  background: #dff2ff;
+  border: 2px solid #0b78ff;
+  font-weight: 800;
+  color: #082a47;
 }
 
 .side-card {

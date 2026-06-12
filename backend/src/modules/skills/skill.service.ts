@@ -40,11 +40,9 @@ export const addStudentSkill = async (
   const nomSkill = data.nom.trim();
   const categorieSkill = data.categorie?.trim() || null;
 
-  let skill = await prisma.skill.findFirst({
-    where: {
-      nom: nomSkill,
-      categorie: categorieSkill,
-    },
+  // On cherche par nom d'abord (car unique)
+  let skill = await prisma.skill.findUnique({
+    where: { nom: nomSkill },
   });
 
   if (!skill) {
@@ -53,6 +51,12 @@ export const addStudentSkill = async (
         nom: nomSkill,
         categorie: categorieSkill,
       },
+    });
+  } else if (!skill.categorie && categorieSkill) {
+    // Si la catégorie était vide, on la met à jour
+    skill = await prisma.skill.update({
+      where: { id: skill.id },
+      data: { categorie: categorieSkill },
     });
   }
 
@@ -110,12 +114,78 @@ export const updateStudentSkill = async (
         skillId,
       },
     },
+    include: { skill: true }
   });
 
   if (!existing) {
     throw new SkillError("Compétence introuvable", 404);
   }
 
+  let targetSkillId = skillId;
+
+  // Si l'utilisateur change le nom de la compétence
+  if (data.nom && data.nom !== existing.skill.nom) {
+    let targetSkill = await prisma.skill.findUnique({
+      where: { nom: data.nom }
+    });
+
+    if (!targetSkill) {
+      targetSkill = await prisma.skill.create({
+        data: {
+          nom: data.nom,
+          categorie: data.categorie !== undefined ? data.categorie : existing.skill.categorie
+        }
+      });
+    } else if (data.categorie && targetSkill.categorie !== data.categorie) {
+      targetSkill = await prisma.skill.update({
+        where: { id: targetSkill.id },
+        data: { categorie: data.categorie }
+      });
+    }
+    targetSkillId = targetSkill.id;
+  } else if (data.categorie && data.categorie !== existing.skill.categorie) {
+    // Si on change juste la catégorie de la compétence existante
+    await prisma.skill.update({
+      where: { id: skillId },
+      data: { categorie: data.categorie }
+    });
+  }
+
+  // Si on a changé de compétence (nouveau nom -> nouvel ID)
+  if (targetSkillId !== skillId) {
+    await prisma.studentSkill.delete({
+      where: {
+        studentId_skillId: {
+          studentId: student.id,
+          skillId,
+        }
+      }
+    });
+
+    // Vérifier si le nouveau lien existe déjà
+    const existingNewLink = await prisma.studentSkill.findUnique({
+       where: { studentId_skillId: { studentId: student.id, skillId: targetSkillId } }
+    });
+    
+    if (existingNewLink) {
+       return prisma.studentSkill.update({
+          where: { studentId_skillId: { studentId: student.id, skillId: targetSkillId } },
+          data: { niveau: data.niveau !== undefined ? data.niveau : existing.niveau },
+          include: { skill: true }
+       });
+    }
+
+    return prisma.studentSkill.create({
+      data: {
+        studentId: student.id,
+        skillId: targetSkillId,
+        niveau: data.niveau !== undefined ? data.niveau : existing.niveau,
+      },
+      include: { skill: true }
+    });
+  }
+
+  // Sinon, mise à jour classique du niveau sur la compétence actuelle
   return prisma.studentSkill.update({
     where: {
       studentId_skillId: {
@@ -124,7 +194,7 @@ export const updateStudentSkill = async (
       },
     },
     data: {
-      niveau: data.niveau,
+      ...(data.niveau !== undefined && { niveau: data.niveau })
     },
     include: {
       skill: true,

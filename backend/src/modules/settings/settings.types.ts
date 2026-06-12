@@ -1,8 +1,13 @@
 export interface ProfileUpdate {
-  fullName:    string
-  email:       string
-  phone?:      string
-  institution?: string
+  firstName?:  string
+  lastName?:   string
+  fullName?:   string
+  email?:      string
+  bio?:        string
+  etablissement?: string
+  filiere?:    string
+  niveau?:     string
+  anneePromotion?: string
 }
 
 export interface NotificationsUpdate {

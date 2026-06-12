@@ -7,12 +7,8 @@
 
       <main class="help-page">
         <section class="help-hero">
-          <h1>Comment pouvons-nous vous aider ?</h1>
-          <p>Trouvez des reponses a vos questions ou contactez notre support technique.</p>
-          
-          <div class="search-help">
-            <input type="text" v-model="searchQuery" placeholder="Rechercher un guide, une fonctionnalite..." />
-          </div>
+          <h1>À propos de Portfy</h1>
+          <p>Portfy est votre plateforme de gestion de portfolio académique et professionnel. Elle vous permet de centraliser vos projets, valider vos compétences auprès de vos professeurs et booster votre visibilité auprès des recruteurs.</p>
         </section>
 
         <section class="help-categories">
@@ -46,19 +42,6 @@
           </div>
         </section>
 
-        <section class="support-footer">
-          <div class="support-card">
-            <h3>Support technique</h3>
-            <p>Une erreur ? Un bug ? Nos techniciens sont la pour vous.</p>
-            <button class="primary-btn">Ouvrir un ticket</button>
-          </div>
-          
-          <div class="support-card">
-            <h3>Guide d'utilisation</h3>
-            <p>Apprenez a tirer le meilleur parti de votre portfolio numerique.</p>
-            <button class="secondary-btn">Telecharger le PDF</button>
-          </div>
-        </section>
       </main>
     </div>
   </div>
@@ -122,20 +105,6 @@ function toggleFaq(index) {
 }
 
 .help-hero h1 { font-size: 36px; font-weight: 900; margin-bottom: 15px; }
-
-.search-help {
-  max-width: 500px;
-  margin: 30px auto 0;
-}
-
-.search-help input {
-  width: 100%;
-  padding: 15px 25px;
-  border-radius: 30px;
-  border: none;
-  font-size: 16px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
 
 .help-categories {
   display: grid;
@@ -212,40 +181,5 @@ function toggleFaq(index) {
   padding: 0 25px 20px;
   color: #64748b;
   line-height: 1.6;
-}
-
-.support-footer {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 25px;
-}
-
-.support-card {
-  background: #f8fafc;
-  padding: 35px;
-  border-radius: 15px;
-  border: 1px solid #e5e7eb;
-}
-
-.primary-btn {
-  background: #082a47;
-  color: white;
-  border: none;
-  padding: 12px 25px;
-  border-radius: 8px;
-  font-weight: 800;
-  cursor: pointer;
-  margin-top: 15px;
-}
-
-.secondary-btn {
-  background: white;
-  color: #082a47;
-  border: 1px solid #082a47;
-  padding: 12px 25px;
-  border-radius: 8px;
-  font-weight: 800;
-  cursor: pointer;
-  margin-top: 15px;
 }
 </style>

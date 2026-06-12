@@ -12,6 +12,7 @@ export interface SearchResult {
 }
 
 export interface SearchQuery {
-  q: string            // search term
+  q?: string            // search term
+  filiere?: string
   limit?: number       // max results (default 10)
 }

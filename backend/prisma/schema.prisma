@@ -80,6 +80,9 @@ model Student {
   linkedin         String?
   etablissement    String?
   skillsTexte      String?
+  phone            String?
+  city             String?
+  country          String?
   userId           Int                @unique
   id               Int                @id @default(autoincrement())
   Commentaire      Commentaire[]
@@ -241,6 +244,8 @@ model ActiviteParascolaire {
   nom             String?
   description     String?
   type            String?
+  organisation    String?
+  periode         String?
   statutV         StatutValidation  @default(PENDING)
   attestationUrl  String?
   adminId         Int?

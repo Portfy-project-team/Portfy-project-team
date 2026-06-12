@@ -16,6 +16,23 @@ const errorMsg    = ref(null)
 
 const showStageModal = ref(false)
 const selectedStage  = ref(null)
+const searchQuery    = ref('')
+
+function normalizeText(text) {
+  if (!text) return ''
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+const filteredStages = computed(() => {
+  if (!searchQuery.value || searchQuery.value.trim() === '') return stageList.value
+  const q = normalizeText(searchQuery.value.trim())
+  return stageList.value.filter(s => 
+    normalizeText(s.entreprise).includes(q) || normalizeText(s.mission).includes(q)
+  )
+})
 
 // ─── Data fetching ────────────────────────────────────────────────────────────
 
@@ -144,7 +161,12 @@ function closeStageModal() {
     <Sidebar />
 
     <div class="student-main">
-      <Topbar title="Stages" user-initials="AA" />
+      <Topbar 
+        title="Stages" 
+        search-placeholder="Rechercher par entreprise ou mission..."
+        disable-global-search
+        @search="searchQuery = $event"
+      />
 
       <main class="stages-page">
         <section class="page-header">
@@ -180,8 +202,12 @@ function closeStageModal() {
 
         <!-- Liste des stages -->
         <section v-else class="stages-list">
+          <div v-if="filteredStages.length === 0" class="feedback-state empty">
+            <p>Aucun stage ne correspond à votre recherche.</p>
+          </div>
+          
           <article
-            v-for="(stage, index) in stageList"
+            v-for="(stage, index) in filteredStages"
             :key="stage.id"
             class="stage-card"
           >

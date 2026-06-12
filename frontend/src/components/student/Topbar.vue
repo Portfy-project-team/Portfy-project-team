@@ -1,15 +1,29 @@
 <script setup>
 import { Search, Bell, X } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { api, useAuthStore } from '@/store/authStore.js'
 
 const props = defineProps({
   title: {
     type: String,
     default: 'Dashboard'
+  },
+  searchPlaceholder: {
+    type: String,
+    default: 'Rechercher un portfolio...'
+  },
+  disableGlobalSearch: {
+    type: Boolean,
+    default: false
+  },
+  showSearch: {
+    type: Boolean,
+    default: true
   }
 })
+
+const emit = defineEmits(['search'])
 
 const authStore = useAuthStore()
 const userInitials = computed(() => authStore.initials)
@@ -18,6 +32,17 @@ const searchQuery = ref('')
 const searchResults = ref([])
 const isSearching = ref(false)
 const showResults = ref(false)
+
+watch(searchQuery, (newVal) => {
+  emit('search', newVal)
+  
+  if (props.disableGlobalSearch) {
+    showResults.value = false
+    return
+  }
+  
+  performSearch()
+})
 
 async function performSearch() {
   if (searchQuery.value.trim().length < 2) {
@@ -55,6 +80,7 @@ function clearSearch() {
   searchQuery.value = ''
   searchResults.value = []
   showResults.value = false
+  emit('search', '')
 }
 
 function goToNotifications() {
@@ -79,15 +105,14 @@ function getScoreColor(score) {
     </h1>
 
     <div class="topbar-actions">
-      <div class="search-wrapper">
+      <div v-if="showSearch" class="search-wrapper">
         <div class="search-box">
           <Search size="18" />
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Rechercher un portfolio..."
-            @input="performSearch"
-            @focus="showResults = searchResults.length > 0"
+            :placeholder="searchPlaceholder"
+            @focus="!disableGlobalSearch && (showResults = searchResults.length > 0)"
           />
           <button
             v-if="searchQuery"
@@ -100,7 +125,7 @@ function getScoreColor(score) {
         </div>
 
         <!-- RÉSULTATS DE RECHERCHE -->
-        <div v-if="showResults && (searchResults.length > 0 || isSearching)" class="search-results">
+        <div v-if="!disableGlobalSearch && showResults && (searchResults.length > 0 || isSearching)" class="search-results">
           <div v-if="isSearching" class="search-item loading">
             Recherche en cours...
           </div>

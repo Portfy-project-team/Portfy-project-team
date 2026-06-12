@@ -1,22 +1,54 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { Plus, Edit3, Trash2 } from 'lucide-vue-next'
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 import CompetenceModal from '../../components/student/modals/CompetenceModal.vue'
+import Toast from '../../components/common/Toast.vue'
+import ConfirmModal from '../../components/common/ConfirmModal.vue'
 import { api } from '@/store/authStore.js'
 
+// --- État ---
 const activeFilter = ref('Toutes')
-const filters = ['Toutes', 'Technique', 'Soft Skill', 'Langue']
+const searchQuery = ref('')
+const filters = ['Toutes', 'Technique', 'Soft Skill', 'Langue', 'Autre']
+const displayLimit = ref(10)
+const isLoading = ref(true)
+const notifications = ref([])
+const showCompetenceModal = ref(false)
+const showConfirmModal = ref(false)
+const skillToDelete = ref(null)
+const selectedSkill = ref(null)
 
 const competenceGroupList = reactive({
   'Techniques': { title: 'Techniques', subtitle: 'Compétences technologiques', skills: [], color: 'purple' },
   'Soft Skills': { title: 'Soft Skills', subtitle: 'Compétences comportementales', skills: [], color: 'green' },
   'Langues': { title: 'Langues', subtitle: 'Langues maîtrisées', skills: [], color: 'orange' },
+  'Autres': { title: 'Autres', subtitle: 'Autres compétences', skills: [], color: 'default' },
 })
 
-const showCompetenceModal = ref(false)
-const isLoading = ref(true)
-const errorMessage = ref('')
+// --- Watchers ---
+watch([activeFilter, searchQuery], () => {
+  displayLimit.value = 10
+})
+
+// --- Helpers ---
+function showNotification(message, type = 'success') {
+  const id = Date.now()
+  notifications.value.push({ id, message, type })
+}
+
+function removeNotification(id) {
+  notifications.value = notifications.value.filter(n => n.id !== id)
+}
+
+function normalizeText(text) {
+  if (!text) return ''
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
 
 const niveauToLevel = {
   DEBUTANT: 25,
@@ -26,31 +58,62 @@ const niveauToLevel = {
 }
 
 const getCategoryLabel = (categorie) => {
-  if (categorie === 'Technique') return 'Technique'
-  if (categorie === 'Soft Skill') return 'Soft Skill'
-  if (categorie === 'Langue') return 'Langue'
-  return categorie
+  if (['FRONTEND', 'BACKEND', 'DESIGN', 'MOBILE', 'DEVOPS', 'DATA'].includes(categorie)) return 'Technique'
+  if (categorie === 'SOFT_SKILLS') return 'Soft Skill'
+  if (categorie === 'LANGUE') return 'Langue'
+  return 'Autre'
 }
 
 const getCategoryGroup = (categorie) => {
-  if (categorie === 'Technique') return 'Techniques'
-  if (categorie === 'Soft Skill') return 'Soft Skills'
-  if (categorie === 'Langue') return 'Langues'
-  return 'Techniques'
+  if (['FRONTEND', 'BACKEND', 'DESIGN', 'MOBILE', 'DEVOPS', 'DATA'].includes(categorie)) return 'Techniques'
+  if (categorie === 'SOFT_SKILLS') return 'Soft Skills'
+  if (categorie === 'LANGUE') return 'Langues'
+  return 'Autres'
 }
 
+// --- Computed ---
 const allCompetences = computed(() => {
   return Object.values(competenceGroupList).flatMap((group) => group.skills)
 })
 
 const filteredCompetences = computed(() => {
-  if (activeFilter.value === 'Toutes') {
-    return allCompetences.value
+  let list = allCompetences.value
+  if (activeFilter.value !== 'Toutes') {
+    list = list.filter((s) => s.category === activeFilter.value)
   }
-
-  return allCompetences.value.filter((skill) => skill.category === activeFilter.value)
+  if (searchQuery.value && searchQuery.value.trim() !== '') {
+    const q = normalizeText(searchQuery.value.trim())
+    list = list.filter((s) => normalizeText(s.name).includes(q))
+  }
+  return list
 })
 
+const filteredGroupList = computed(() => {
+  const filtered = {}
+  Object.keys(competenceGroupList).forEach(key => {
+    const group = competenceGroupList[key]
+    let skills = group.skills
+    
+    if (activeFilter.value !== 'Toutes') {
+      skills = skills.filter((s) => s.category === activeFilter.value)
+    }
+    if (searchQuery.value && searchQuery.value.trim() !== '') {
+      const q = normalizeText(searchQuery.value.trim())
+      skills = skills.filter((s) => normalizeText(s.name).includes(q))
+    }
+    
+    if (skills.length > 0 || (searchQuery.value.trim() === '' && activeFilter.value === 'Toutes')) {
+      filtered[key] = { ...group, skills }
+    }
+  })
+  return filtered
+})
+
+const displayedCompetences = computed(() => {
+  return filteredCompetences.value.slice(0, displayLimit.value)
+})
+
+// --- Méthodes UI ---
 function getCategoryClass(category) {
   if (category === 'Technique') return 'category-technique'
   if (category === 'Soft Skill') return 'category-soft'
@@ -65,78 +128,95 @@ function getProgressClass(category) {
   return 'progress-purple'
 }
 
+function openAddSkill() {
+  selectedSkill.value = null
+  showCompetenceModal.value = true
+}
+
+function openEditSkill(skill) {
+  selectedSkill.value = skill
+  showCompetenceModal.value = true
+}
+
+// --- API ---
 async function loadSkills() {
   isLoading.value = true
-  errorMessage.value = ''
   try {
     const { data } = await api.get('/skills/me')
     const skills = data.skills || []
 
-    // Réinitialiser les groupes
     Object.keys(competenceGroupList).forEach(key => {
       competenceGroupList[key].skills = []
     })
 
-    // Remplir les groupes
-    skills.forEach((skill) => {
-      const level = niveauToLevel[skill.niveau] || 50
-      const category = getCategoryLabel(skill.skill.categorie)
-      const group = getCategoryGroup(skill.skill.categorie)
+    skills.forEach((s) => {
+      const level = niveauToLevel[s.niveau] || 50
+      const rawCategory = s.skill.categorie
+      const category = getCategoryLabel(rawCategory)
+      const group = getCategoryGroup(rawCategory)
 
-      competenceGroupList[group].skills.push({
-        name: skill.skill.nom,
-        level,
-        category,
-        source: 'Portfolio',
-        skillId: skill.skillId,
-        niveau: skill.niveau,
-      })
+      if (competenceGroupList[group]) {
+        competenceGroupList[group].skills.push({
+          name: s.skill.nom,
+          level,
+          category,
+          rawCategory,
+          source: 'Portfolio',
+          skillId: s.skillId,
+          niveau: s.niveau,
+        })
+      }
     })
   } catch (err) {
-    errorMessage.value = 'Erreur lors du chargement des compétences'
+    showNotification('Erreur lors du chargement des compétences', 'error')
     console.error(err)
   } finally {
     isLoading.value = false
   }
 }
 
-async function addCompetence(skillData) {
+async function saveCompetence(skillData) {
   try {
-    await api.post('/skills/me', {
-      nom: skillData.name,
-      categorie: skillData.category,
-      niveau: skillData.niveau || 'DEBUTANT',
-    })
+    if (selectedSkill.value) {
+      await api.put(`/skills/me/${selectedSkill.value.skillId}`, {
+        nom: skillData.name,
+        categorie: skillData.category,
+        niveau: skillData.niveau || 'DEBUTANT',
+      })
+      showNotification('Compétence mise à jour avec succès !')
+    } else {
+      await api.post('/skills/me', {
+        nom: skillData.name,
+        categorie: skillData.category,
+        niveau: skillData.niveau || 'DEBUTANT',
+      })
+      showNotification('Compétence ajoutée avec succès !')
+    }
     await loadSkills()
     showCompetenceModal.value = false
-    alert('Compétence ajoutée.')
   } catch (err) {
-    errorMessage.value = err?.response?.data?.message || 'Erreur lors de l\'ajout'
+    showNotification(err?.response?.data?.message || "Erreur lors de l'enregistrement", 'error')
     console.error(err)
   }
 }
 
-async function deleteCompetence(skillId) {
-  if (!confirm('Êtes-vous sûr de vouloir supprimer cette compétence ?')) return
-
-  try {
-    await api.delete(`/skills/me/${skillId}`)
-    await loadSkills()
-  } catch (err) {
-    errorMessage.value = err?.response?.data?.message || 'Erreur lors de la suppression'
-    console.error(err)
-  }
+function confirmDelete(skillId) {
+  skillToDelete.value = skillId
+  showConfirmModal.value = true
 }
 
-async function updateCompetence(skillId, newNiveau) {
+async function deleteCompetence() {
+  if (!skillToDelete.value) return
   try {
-    await api.put(`/skills/me/${skillId}`, {
-      niveau: newNiveau,
-    })
+    await api.delete(`/skills/me/${skillToDelete.value}`)
     await loadSkills()
+    showNotification('Compétence supprimée avec succès')
   } catch (err) {
-    errorMessage.value = err?.response?.data?.message || 'Erreur lors de la mise à jour'
+    showNotification(err?.response?.data?.message || 'Erreur lors de la suppression', 'error')
     console.error(err)
+  } finally {
+    showConfirmModal.value = false
+    skillToDelete.value = null
   }
 }
 
@@ -150,7 +230,12 @@ onMounted(() => {
     <Sidebar />
 
     <div class="student-main">
-      <Topbar title="Competences" user-initials="AA" />
+      <Topbar 
+        title="Competences" 
+        search-placeholder="Rechercher par nom de compétence..."
+        disable-global-search
+        @search="searchQuery = $event"
+      />
 
       <main class="competences-page">
         <section class="page-header">
@@ -159,21 +244,21 @@ onMounted(() => {
             <p>Competences techniques, soft skills et langues</p>
           </div>
 
-          <button class="primary-btn" @click="showCompetenceModal=true">
+          <button class="primary-btn" @click="openAddSkill">
+            <Plus size="20" style="margin-right: 8px;" />
             Ajouter une competence
           </button>
         </section>
 
-        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-
-        <div v-if="isLoading" style="color: #64748b; font-size: 16px; padding: 20px;">
-          Chargement...
+        <div v-if="isLoading" class="loading-state">
+          <div class="spinner"></div>
+          Chargement de vos compétences...
         </div>
 
         <template v-else>
           <section class="groups-grid">
             <article
-              v-for="(group, key) in competenceGroupList"
+              v-for="(group, key) in filteredGroupList"
               :key="key"
               class="group-card"
             >
@@ -200,7 +285,7 @@ onMounted(() => {
                 </div>
 
                 <div v-if="group.skills.length === 0" class="empty-message">
-                  Aucune compétence dans cette catégorie
+                  Aucune compétence trouvée
                 </div>
               </div>
             </article>
@@ -218,207 +303,256 @@ onMounted(() => {
               </button>
             </div>
 
-            <table class="competences-table">
-              <thead>
-                <tr>
-                  <th>COMPETENCE</th>
-                  <th>CATEGORIE</th>
-                  <th>NIVEAU</th>
-                  <th>SOURCE</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
+            <div class="table-responsive">
+              <table class="competences-table">
+                <thead>
+                  <tr>
+                    <th>COMPETENCE</th>
+                    <th>CATEGORIE</th>
+                    <th>NIVEAU</th>
+                    <th>SOURCE</th>
+                    <th class="actions-th">ACTIONS</th>
+                  </tr>
+                </thead>
 
-              <tbody>
-                <tr
-                  v-for="skill in filteredCompetences"
-                  :key="skill.name"
-                >
-                  <td class="skill-name">
-                    {{ skill.name }}
-                  </td>
+                <tbody>
+                  <tr
+                    v-for="skill in displayedCompetences"
+                    :key="skill.name"
+                  >
+                    <td class="skill-name">
+                      {{ skill.name }}
+                    </td>
 
-                  <td>
-                    <span :class="['category-badge', getCategoryClass(skill.category)]">
-                      {{ skill.category }}
-                    </span>
-                  </td>
+                    <td>
+                      <span :class="['category-badge', getCategoryClass(skill.category)]">
+                        {{ skill.category }}
+                      </span>
+                    </td>
 
-                  <td>
-                    <div class="level-cell">
-                      <div class="mini-progress">
-                        <span
-                          :class="getProgressClass(skill.category)"
-                          :style="{ width: skill.level + '%' }"
-                        ></span>
+                    <td>
+                      <div class="level-cell">
+                        <div class="mini-progress">
+                          <span
+                            :class="getProgressClass(skill.category)"
+                            :style="{ width: skill.level + '%' }"
+                          ></span>
+                        </div>
+                        <span>{{ skill.level }}%</span>
                       </div>
-                      <span>{{ skill.level }}%</span>
-                    </div>
-                  </td>
+                    </td>
 
-                  <td>
-                    {{ skill.source }}
-                  </td>
+                    <td>
+                      <span class="source-badge">{{ skill.source }}</span>
+                    </td>
 
-                  <td class="action-cell">
-                    <button
-                      class="action-btn modify-btn"
-                      @click="updateCompetence(skill.skillId, skill.niveau)"
-                    >
-                      Modifier
-                    </button>
-                    <button
-                      class="action-btn delete-btn"
-                      @click="deleteCompetence(skill.skillId)"
-                    >
-                      Supprimer
-                    </button>
-                  </td>
-                </tr>
+                    <td class="action-cell">
+                      <button
+                        class="icon-btn edit-btn"
+                        @click="openEditSkill(skill)"
+                        title="Modifier"
+                      >
+                        <Edit3 size="18" />
+                      </button>
+                      <button
+                        class="icon-btn delete-btn"
+                        @click="confirmDelete(skill.skillId)"
+                        title="Supprimer"
+                      >
+                        <Trash2 size="18" />
+                      </button>
+                    </td>
+                  </tr>
 
-                <tr v-if="filteredCompetences.length === 0">
-                  <td colspan="5" style="text-align: center; padding: 20px; color: #64748b;">
-                    Aucune compétence trouvée
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  <tr v-if="filteredCompetences.length === 0">
+                    <td colspan="5" class="empty-table">
+                      Aucune compétence trouvée pour ce filtre.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div v-if="filteredCompetences.length > displayLimit" class="load-more-container">
+              <button class="load-more-btn" @click="displayLimit += 10">
+                Voir plus de compétences
+              </button>
+            </div>
           </section>
         </template>
       </main>
     </div>
 
+    <!-- Modals & Notifications -->
     <CompetenceModal
       v-if="showCompetenceModal"
+      :skill-to-edit="selectedSkill"
       @close="showCompetenceModal = false"
-      @save="addCompetence"
+      @save="saveCompetence"
+    />
+
+    <ConfirmModal
+      v-if="showConfirmModal"
+      title="Supprimer la compétence"
+      message="Êtes-vous sûr de vouloir supprimer cette compétence de votre profil ?"
+      confirm-text="Supprimer"
+      type="danger"
+      @confirm="deleteCompetence"
+      @cancel="showConfirmModal = false"
+    />
+
+    <Toast 
+      v-for="n in notifications" 
+      :key="n.id" 
+      :message="n.message" 
+      :type="n.type" 
+      @close="removeNotification(n.id)" 
     />
   </div>
 </template>
 
 <style scoped>
-.error-message {
-  color: #dc2626;
-  font-size: 14px;
-  padding: 12px 20px;
-  background: #fff1f1;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  margin-left: 38px;
-  margin-right: 38px;
-}
-
 .student-layout {
   display: flex;
   min-height: 100vh;
-  background: #f4f1ec;
+  background: #f8fafc;
 }
 
 .student-main {
   flex: 1;
   min-width: 0;
-  background: #f4f1ec;
+  background: #f8fafc;
 }
 
 .competences-page {
-  padding: 32px 38px 60px;
+  padding: 32px 40px;
 }
 
 .page-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 26px;
+  margin-bottom: 32px;
 }
 
 .page-header h2 {
-  margin: 0 0 8px;
   font-size: 32px;
   font-weight: 800;
-  color: #050505;
+  color: #0f172a;
+  margin-bottom: 4px;
 }
 
 .page-header p {
-  margin: 0;
   color: #64748b;
-  font-size: 17px;
+  font-size: 16px;
 }
 
 .primary-btn {
-  background: #082a47;
+  display: flex;
+  align-items: center;
+  background: #0f3a4f;
   color: #ffffff;
   border: none;
-  border-radius: 10px;
-  padding: 16px 34px;
-  font-size: 17px;
-  font-weight: 800;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px -1px rgba(15, 58, 79, 0.2);
 }
 
 .primary-btn:hover {
   background: #0b3558;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 15px -3px rgba(15, 58, 79, 0.3);
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0;
+  color: #64748b;
+  font-size: 16px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #0f3a4f;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .groups-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 22px;
-  margin-bottom: 26px;
+  gap: 24px;
+  margin-bottom: 32px;
 }
 
 .group-card {
   background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
   padding: 24px;
   min-height: 330px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .group-card h3 {
-  margin: 0 0 18px;
+  margin: 0 0 4px;
   font-size: 22px;
   font-weight: 800;
-  color: #050505;
+  color: #0f172a;
 }
 
 .group-subtitle {
-  margin: 0 0 18px;
+  margin: 0 0 24px;
   color: #64748b;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .skills-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .skill-item {
-  padding: 8px 0;
+  padding: 4px 0;
 }
 
 .skill-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 7px;
+  margin-bottom: 8px;
   font-size: 15px;
 }
 
 .skill-header span {
   font-weight: 700;
-  color: #050505;
+  color: #0f172a;
 }
 
 .skill-header strong {
-  color: #050505;
+  color: #64748b;
+  font-size: 14px;
 }
 
 .progress-bar {
   width: 100%;
   height: 8px;
   border-radius: 999px;
-  background: #e5e7eb;
+  background: #f1f5f9;
   overflow: hidden;
 }
 
@@ -426,19 +560,12 @@ onMounted(() => {
   display: block;
   height: 100%;
   border-radius: 999px;
+  transition: width 0.5s ease-out;
 }
 
-.progress-purple {
-  background: #6257f2;
-}
-
-.progress-green {
-  background: #10b981;
-}
-
-.progress-orange {
-  background: #f0a91f;
-}
+.progress-purple { background: #6366f1; }
+.progress-green { background: #10b981; }
+.progress-orange { background: #f59e0b; }
 
 .empty-message {
   text-align: center;
@@ -446,105 +573,133 @@ onMounted(() => {
   font-size: 14px;
   padding: 20px;
   font-style: italic;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px dashed #e2e8f0;
 }
 
 .table-card {
   background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 22px;
-  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .filters {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 22px;
+  margin-bottom: 24px;
 }
 
 .filter-btn {
   background: #ffffff;
-  border: 1px solid #e5e7eb;
-  color: #334155;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
   border-radius: 999px;
-  padding: 10px 22px;
-  font-size: 15px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background: #f8fafc;
+  color: #0f172a;
 }
 
 .filter-btn.active {
-  background: #082a47;
+  background: #0f3a4f;
   color: #ffffff;
-  font-weight: 800;
+  border-color: #0f3a4f;
+}
+
+.table-responsive {
+  overflow-x: auto;
 }
 
 .competences-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 900px;
+  min-width: 800px;
 }
 
 .competences-table th {
   text-align: left;
-  padding: 14px 12px;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 16px 12px;
+  border-bottom: 2px solid #f1f5f9;
   color: #64748b;
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.actions-th {
+  text-align: right !important;
+  padding-right: 24px !important;
 }
 
 .competences-table td {
-  padding: 14px 12px;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 16px 12px;
+  border-bottom: 1px solid #f1f5f9;
   color: #334155;
   font-size: 15px;
+  vertical-align: middle;
+}
+
+.competences-table tr:hover td {
+  background: #f8fafc;
 }
 
 .skill-name {
-  font-weight: 800;
-  color: #050505 !important;
+  font-weight: 700;
+  color: #0f172a !important;
 }
 
 .category-badge {
   display: inline-flex;
-  padding: 7px 12px;
-  border-radius: 7px;
+  padding: 6px 12px;
+  border-radius: 8px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
-.category-technique {
-  background: #ebe7ff;
-  color: #5b4cc4;
-}
-
-.category-soft {
-  background: #d6f7e4;
-  color: #078143;
-}
-
-.category-langue {
-  background: #fff2d8;
-  color: #c77a00;
-}
-
-.category-default {
-  background: #eef2f7;
-  color: #475569;
-}
+.category-technique { background: #eef2ff; color: #4f46e5; }
+.category-soft { background: #dcfce7; color: #16a34a; }
+.category-langue { background: #fef3c7; color: #d97706; }
+.category-default { background: #f1f5f9; color: #475569; }
 
 .level-cell {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+}
+
+.level-select {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+
+.level-select:focus {
+  border-color: #0f3a4f;
+  box-shadow: 0 0 0 2px rgba(15, 58, 79, 0.1);
 }
 
 .mini-progress {
-  width: 110px;
-  height: 8px;
+  width: 80px;
+  height: 6px;
   border-radius: 999px;
-  background: #e5e7eb;
+  background: #f1f5f9;
   overflow: hidden;
 }
 
@@ -552,59 +707,96 @@ onMounted(() => {
   display: block;
   height: 100%;
   border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.source-badge {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #64748b;
 }
 
 .action-cell {
-  display: flex;
-  gap: 8px;
+  text-align: right;
+  padding-right: 24px !important;
 }
 
-.action-btn {
-  background: transparent;
-  border: none;
-  font-size: 15px;
-  font-weight: 800;
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
   cursor: pointer;
-}
-
-.modify-btn {
-  color: #f59e0b;
-}
-
-.modify-btn:hover {
-  text-decoration: underline;
-}
-
-.delete-btn {
-  color: #dc2626;
+  transition: all 0.2s;
 }
 
 .delete-btn:hover {
-  text-decoration: underline;
+  background: #fef2f2;
+  color: #ef4444;
+  border-color: #fca5a5;
+}
+
+.empty-table {
+  text-align: center;
+  padding: 40px !important;
+  color: #94a3b8 !important;
+  font-style: italic;
+}
+
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  padding-top: 24px;
+}
+
+.load-more-btn {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  padding: 8px 24px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.load-more-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
 }
 
 @media (max-width: 1200px) {
   .groups-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 768px) {
+  .groups-grid {
+    grid-template-columns: 1fr;
+  }
+  
   .competences-page {
-    padding: 22px;
+    padding: 24px;
   }
 
   .page-header {
     flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
   }
 
   .primary-btn {
-    width: 100%;
-  }
-
-  .action-cell {
-    flex-direction: column;
-    gap: 4px;
+    justify-content: center;
   }
 }
 </style>

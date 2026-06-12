@@ -114,12 +114,16 @@ if (req.file) {
   try {
     const user = await registerUser(parsed.data, verificationDocumentUrl);
 
-    sendVerificationEmail(user.id, user.email).catch((err) => {
-      console.error("[registerController] Echec envoi email:", err);
-    });
+    if (user.role !== 'STUDENT') {
+      sendVerificationEmail(user.id, user.email).catch((err) => {
+        console.error("[registerController] Echec envoi email:", err);
+      });
+    }
 
     res.status(201).json({
-      message: "Compte créé avec succès. Vérifiez votre email pour activer votre compte.",
+      message: user.role === 'STUDENT'
+        ? "Compte créé avec succès. Vous pouvez maintenant vous connecter."
+        : "Compte créé avec succès. Vérifiez votre email pour activer votre compte.",
       user,
     });
   } catch (error) {

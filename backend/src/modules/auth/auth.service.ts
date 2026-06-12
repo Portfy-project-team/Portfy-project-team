@@ -41,7 +41,10 @@ return await prisma.$transaction(
       role === "STUDENT"
         ? UserStatus.ACTIVE
         : UserStatus.PENDING;
-        const anneeEntree =
+
+    const isEmailVerified = role === "STUDENT";
+
+    const anneeEntree =
   data.anneeEntree != null
     ? Number(data.anneeEntree)
     : null;
@@ -57,6 +60,7 @@ const diplomePrevu =
         password: hashedPassword,
         role,
         status,
+        isEmailVerified,
 // ── STUDENT
         ...(role === "STUDENT" && {
           student: { create: {
@@ -167,7 +171,7 @@ export const loginUser = async (
     ? true
     : user.isEmailVerified;
 
-if (!isEmailVerified) {
+if (!isEmailVerified && user.role !== "STUDENT") {
   const error: any = new Error(
     "Veuillez vérifier votre email avant de vous connecter"
   );

@@ -5,21 +5,27 @@ import { api } from '../../store/authStore.js'
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 
+import { useI18n } from 'vue-i18n'
+
+const { locale } = useI18n()
+
 const fileInput = ref(null)
 const avatarPreview = ref(localStorage.getItem('studentAvatar') || '')
 const showPasswordModal = ref(false)
+const passwordSaved = ref(false)
 const portfolioDisabled = ref(false)
 const twoFactorEnabled = ref(false)
 const personalSaved = ref(false)
 const academicSaved = ref(false)
+const academicReadOnly = ref(false)
 const loading = ref(true)
 
 const personalForm = reactive({
   firstName: '',
   lastName: '',
   email: '',
-  phone: '',
   bio: '',
+  phone: '',
   city: '',
   country: 'Maroc'
 })
@@ -39,8 +45,8 @@ const notifications = reactive({
 })
 
 const appearance = reactive({
-  theme: 'Clair',
-  language: 'Francais'
+  theme: localStorage.getItem('portfy-theme') === 'dark' ? 'Sombre' : 'Clair',
+  language: localStorage.getItem('app_language') === 'ar' ? 'Arabe' : (localStorage.getItem('app_language') === 'en' ? 'Anglais' : 'Francais')
 })
 
 const passwordForm = reactive({
@@ -50,6 +56,7 @@ const passwordForm = reactive({
 })
 
 onMounted(async () => {
+  applyTheme(appearance.theme)
   await loadSettings()
 })
 
@@ -61,19 +68,23 @@ async function loadSettings() {
 
     // Remplir le formulaire personnel
     const nameParts = data.fullName?.split(' ') || ['', '']
-    personalForm.firstName = nameParts[0] || ''
-    personalForm.lastName = nameParts.slice(1).join(' ') || ''
+    personalForm.firstName = data.firstName || nameParts[0] || ''
+    personalForm.lastName = data.lastName || nameParts.slice(1).join(' ') || ''
     personalForm.email = data.email || ''
-    personalForm.phone = data.phone || ''
     personalForm.bio = data.bio || ''
+    personalForm.phone = data.phone || ''
     personalForm.city = data.city || ''
     personalForm.country = data.country || 'Maroc'
 
     // Remplir le formulaire académique
-    academicForm.school = data.etablissement || ''
+    academicForm.school = data.institution || data.etablissement || ''
     academicForm.field = data.filiere || ''
     academicForm.year = data.niveau || ''
     academicForm.promotion = data.anneePromotion || ''
+
+    if (academicForm.school || academicForm.field || academicForm.year || academicForm.promotion) {
+      academicReadOnly.value = true
+    }
 
     loading.value = false
   } catch (err) {
@@ -83,7 +94,9 @@ async function loadSettings() {
 }
 
 const initials = computed(() => {
-  return `${personalForm.firstName[0] || ''}${personalForm.lastName[0] || ''}`.toUpperCase()
+  const f = personalForm.firstName ? personalForm.firstName[0] : ''
+  const l = personalForm.lastName ? personalForm.lastName[0] : ''
+  return (f + l).toUpperCase() || 'U'
 })
 
 function openPhotoPicker() {
@@ -135,8 +148,8 @@ async function savePersonalInfo() {
       firstName: personalForm.firstName,
       lastName: personalForm.lastName,
       email: personalForm.email,
-      phone: personalForm.phone,
       bio: personalForm.bio,
+      phone: personalForm.phone,
       city: personalForm.city,
       country: personalForm.country
     })
@@ -150,7 +163,7 @@ async function savePersonalInfo() {
     }, 2500)
   } catch (err) {
     console.error('Erreur sauvegarde profil:', err)
-    alert('Erreur lors de la sauvegarde')
+    alert('Erreur lors de la sauvegarde : ' + (err.response?.data?.message || err.message))
   }
 }
 
@@ -166,14 +179,19 @@ async function saveAcademicInfo() {
     window.dispatchEvent(new Event('student-academic-updated'))
 
     academicSaved.value = true
+    academicReadOnly.value = true
 
     setTimeout(() => {
       academicSaved.value = false
     }, 2500)
   } catch (err) {
     console.error('Erreur sauvegarde académique:', err)
-    alert('Erreur lors de la sauvegarde')
+    alert('Erreur lors de la sauvegarde : ' + (err.response?.data?.message || err.message))
   }
+}
+
+function editAcademicInfo() {
+  academicReadOnly.value = false
 }
 
 function toggleNotification(key) {
@@ -181,14 +199,30 @@ function toggleNotification(key) {
   localStorage.setItem('studentNotifications', JSON.stringify(notifications))
 }
 
+function applyTheme(themeName) {
+  const isDark = themeName === 'Sombre'
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light')
+  localStorage.setItem('portfy-theme', isDark ? 'dark' : 'light')
+}
+
 function saveAppearance() {
+  applyTheme(appearance.theme)
+  
+  // Gestion de la langue
+  let langCode = 'fr'
+  if (appearance.language === 'Anglais') langCode = 'en'
+  if (appearance.language === 'Arabe')   langCode = 'ar'
+  
+  locale.value = langCode
+  localStorage.setItem('app_language', langCode)
+  
   localStorage.setItem('studentAppearance', JSON.stringify(appearance))
-  alert('Preferences d apparence enregistrees.')
 }
 
 function openPasswordModal() {
   showPasswordModal.value = true
 }
+
 
 function closePasswordModal() {
   showPasswordModal.value = false
@@ -227,8 +261,11 @@ async function changePassword() {
       new: passwordForm.newPassword
     })
 
-    alert('Mot de passe change avec succes.')
-    closePasswordModal()
+    passwordSaved.value = true
+    setTimeout(() => {
+      passwordSaved.value = false
+      closePasswordModal()
+    }, 2000)
   } catch (err) {
     console.error('Erreur changement mot de passe:', err)
     alert('Erreur : ' + (err.response?.data?.message || err.message || 'Impossible de changer le mot de passe'))
@@ -279,7 +316,7 @@ async function deleteAccount() {
     <Sidebar />
 
     <div class="student-main">
-      <Topbar title="Parametres du compte" user-initials="AA" />
+      <Topbar title="Parametres du compte" :show-search="false" />
 
       <main class="settings-page" v-if="!loading">
         <section class="page-header">
@@ -381,32 +418,38 @@ async function deleteAccount() {
             </section>
 
             <section class="card">
-              <h3>Informations academiques</h3>
+              <div class="card-header-flex">
+                <h3>Informations academiques</h3>
+                <button v-if="academicReadOnly" type="button" class="edit-icon-btn" @click="editAcademicInfo">
+                  Modifier
+                </button>
+              </div>
               <p class="card-subtitle">Votre parcours et institution</p>
 
               <div class="form-grid">
                 <div class="form-group">
                   <label>Etablissement</label>
-                  <input v-model="academicForm.school" type="text" />
+                  <input v-model="academicForm.school" type="text" :readonly="academicReadOnly" :class="{ 'readonly-field': academicReadOnly }" />
                 </div>
 
                 <div class="form-group">
                   <label>Filiere</label>
-                  <input v-model="academicForm.field" type="text" />
+                  <input v-model="academicForm.field" type="text" :readonly="academicReadOnly" :class="{ 'readonly-field': academicReadOnly }" />
                 </div>
 
                 <div class="form-group">
                   <label>Annee d'etudes</label>
-                  <input v-model="academicForm.year" type="text" />
+                  <input v-model="academicForm.year" type="text" :readonly="academicReadOnly" :class="{ 'readonly-field': academicReadOnly }" />
                 </div>
 
                 <div class="form-group">
                   <label>Annee promotion</label>
-                  <input v-model="academicForm.promotion" type="text" />
+                  <input v-model="academicForm.promotion" type="text" :readonly="academicReadOnly" :class="{ 'readonly-field': academicReadOnly }" />
                 </div>
               </div>
 
               <button
+                v-if="!academicReadOnly"
                 type="button"
                 class="primary-btn"
                 @click="saveAcademicInfo"
@@ -505,15 +548,6 @@ async function deleteAccount() {
                   <option>Sombre</option>
                 </select>
               </div>
-
-              <div class="form-group">
-                <label>Langue</label>
-                <select v-model="appearance.language" @change="saveAppearance">
-                  <option>Francais</option>
-                  <option>Anglais</option>
-                  <option>Arabe</option>
-                </select>
-              </div>
             </section>
 
             <section class="card danger-card">
@@ -552,53 +586,62 @@ async function deleteAccount() {
       @click.self="closePasswordModal"
     >
       <div class="modal-card">
-        <div class="modal-header">
-          <div>
-            <h3>Changer le mot de passe</h3>
-            <p>Choisissez un nouveau mot de passe securise</p>
+        <template v-if="!passwordSaved">
+          <div class="modal-header">
+            <div>
+              <h3>Changer le mot de passe</h3>
+              <p>Choisissez un nouveau mot de passe securise</p>
+            </div>
+
+            <button
+              type="button"
+              class="close-btn"
+              @click="closePasswordModal"
+            >
+              ×
+            </button>
           </div>
 
-          <button
-            type="button"
-            class="close-btn"
-            @click="closePasswordModal"
-          >
-            ×
-          </button>
-        </div>
+          <div class="form-group">
+            <label>Mot de passe actuel</label>
+            <input v-model="passwordForm.currentPassword" type="password" />
+          </div>
 
-        <div class="form-group">
-          <label>Mot de passe actuel</label>
-          <input v-model="passwordForm.currentPassword" type="password" />
-        </div>
+          <div class="form-group">
+            <label>Nouveau mot de passe</label>
+            <input v-model="passwordForm.newPassword" type="password" />
+          </div>
 
-        <div class="form-group">
-          <label>Nouveau mot de passe</label>
-          <input v-model="passwordForm.newPassword" type="password" />
-        </div>
+          <div class="form-group">
+            <label>Confirmer le mot de passe</label>
+            <input v-model="passwordForm.confirmPassword" type="password" />
+          </div>
 
-        <div class="form-group">
-          <label>Confirmer le mot de passe</label>
-          <input v-model="passwordForm.confirmPassword" type="password" />
-        </div>
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="cancel-btn"
+              @click="closePasswordModal"
+            >
+              Annuler
+            </button>
 
-        <div class="modal-actions">
-          <button
-            type="button"
-            class="cancel-btn"
-            @click="closePasswordModal"
-          >
-            Annuler
-          </button>
-
-          <button
-            type="button"
-            class="primary-btn"
-            @click="changePassword"
-          >
-            Enregistrer
-          </button>
-        </div>
+            <button
+              type="button"
+              class="primary-btn"
+              @click="changePassword"
+            >
+              Enregistrer
+            </button>
+          </div>
+        </template>
+        <template v-else>
+          <div class="success-content">
+            <div class="success-icon-circle">✓</div>
+            <h3>Succès !</h3>
+            <p>Votre mot de passe a été modifié avec succès.</p>
+          </div>
+        </template>
       </div>
     </div>
   </div>
@@ -938,6 +981,69 @@ async function deleteAccount() {
   text-align: center;
   padding: 40px;
   color: #64748b;
+}
+
+.card-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.edit-icon-btn {
+  background: #f0a91f;
+  color: #ffffff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.edit-icon-btn:hover {
+  background: #d4951a;
+}
+
+.success-content {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.success-icon-circle {
+  width: 80px;
+  height: 80px;
+  background: #dcfce7;
+  color: #16a34a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  margin: 0 auto 20px;
+  animation: scaleIn 0.3s ease-out;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.success-content h3 {
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.success-content p {
+  color: #64748b;
+}
+
+.readonly-field {
+  background-color: #f8fafc !important;
+  color: #64748b !important;
+  border-style: dashed !important;
+  cursor: default;
 }
 
 @media (max-width: 1100px) {

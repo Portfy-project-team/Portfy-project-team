@@ -1,6 +1,20 @@
 <script setup>
 import { reactive, computed, watch, onMounted, ref } from 'vue'
 import { api } from '@/store/authStore.js'
+import { 
+  X, 
+  Type, 
+  AlignLeft, 
+  Folder, 
+  User, 
+  Cpu, 
+  Github, 
+  ExternalLink, 
+  Upload,
+  Check,
+  Save,
+  Send
+} from 'lucide-vue-next'
 
 const props = defineProps({
   projectToEdit: {
@@ -113,8 +127,8 @@ function saveProject(status) {
     <div class="project-modal">
       <div class="modal-header">
         <div>
-          <h2>{{ isEditMode ? 'Modifier le projet' : 'Ajouter un projet' }}</h2>
-          <p>Ajoutez un projet academique ou personnel</p>
+          <h2>{{ isEditMode ? 'Modifier le projet' : 'Nouveau projet' }}</h2>
+          <p>Completez les informations ci-dessous pour votre projet</p>
         </div>
 
         <button
@@ -122,126 +136,150 @@ function saveProject(status) {
           class="close-btn"
           @click="$emit('close')"
         >
-          ×
+          <X size="24" />
         </button>
       </div>
 
-      <div class="form-group">
-        <label>Titre du projet <span class="required">*</span></label>
-        <input
-          v-model="form.title"
-          type="text"
-          placeholder="Ex: API REST avec Node.js"
-        />
-      </div>
-
-      <div class="form-group">
-        <label>Description <span class="required">*</span></label>
-        <textarea
-          v-model="form.description"
-          placeholder="Decrivez votre projet..."
-        ></textarea>
-      </div>
-
-      <div class="form-row">
+      <div class="modal-body">
         <div class="form-group">
-          <label>Type de projet</label>
-          <select v-model="form.type">
-            <option v-for="t in projectTypes" :key="t.value" :value="t.value">
-              {{ t.label }}
-            </option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Enseignant encadrant</label>
-          <select v-model="form.supervisorId">
-            <option value="">Optionnel...</option>
-            <option v-for="p in profs" :key="p.id" :value="p.id">
-              Pr. {{ p.prenom }} {{ p.nom }}
-            </option>
-          </select>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Technologies utilisees</label>
-        <input
-          v-model="form.technologies"
-          type="text"
-          placeholder="Ex: React, Node.js, MongoDB"
-        />
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Lien GitHub</label>
+          <label>
+            <Type size="16" />
+            Titre du projet <span class="required">*</span>
+          </label>
           <input
-            v-model="form.github"
+            v-model="form.title"
             type="text"
-            placeholder="https://github.com/..."
+            placeholder="Ex: API REST avec Node.js"
           />
         </div>
 
         <div class="form-group">
-          <label>Lien de demo</label>
+          <label>
+            <AlignLeft size="16" />
+            Description <span class="required">*</span>
+          </label>
+          <textarea
+            v-model="form.description"
+            placeholder="Decrivez les objectifs, les defis et les solutions de votre projet..."
+          ></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>
+              <Folder size="16" />
+              Type de projet
+            </label>
+            <select v-model="form.type">
+              <option v-for="t in projectTypes" :key="t.value" :value="t.value">
+                {{ t.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <User size="16" />
+              Enseignant encadrant
+            </label>
+            <select v-model="form.supervisorId">
+              <option value="">Optionnel...</option>
+              <option v-for="p in profs" :key="p.id" :value="p.id">
+                Pr. {{ p.prenom }} {{ p.nom }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <Cpu size="16" />
+            Technologies utilisees
+          </label>
           <input
-            v-model="form.demo"
+            v-model="form.technologies"
             type="text"
-            placeholder="https://..."
+            placeholder="Ex: React, Node.js, MongoDB (separes par des virgules)"
           />
         </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>
+              <Github size="16" />
+              Lien GitHub
+            </label>
+            <input
+              v-model="form.github"
+              type="url"
+              placeholder="https://github.com/votre-repo"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>
+              <ExternalLink size="16" />
+              Lien de demo
+            </label>
+            <input
+              v-model="form.demo"
+              type="url"
+              placeholder="https://votre-demo.com"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Captures d'ecran</label>
+          <label class="upload-box" :class="{ 'has-file': form.screenshotFileName }">
+            <input
+              type="file"
+              accept="image/png, image/jpeg, image/jpg"
+              hidden
+              @change="handleScreenshotUpload"
+            />
+            <div class="upload-icon">
+              <Upload size="32" v-if="!form.screenshotFileName" />
+              <Check size="32" v-else />
+            </div>
+            <strong>
+              {{ form.screenshotFileName || 'Cliquez pour uploader une image' }}
+            </strong>
+            <span>PNG, JPG jusqu'a 5MB</span>
+          </label>
+        </div>
       </div>
-
-     <div class="form-group">
-  <label>Captures d'ecran</label>
-
-  <label class="upload-box">
-    <input
-      type="file"
-      accept="image/png, image/jpeg, image/jpg"
-      hidden
-      @change="handleScreenshotUpload"
-    />
-
-    <div class="upload-icon">↑</div>
-
-    <strong>
-      {{ form.screenshotFileName || 'Cliquez pour uploader' }}
-    </strong>
-
-    <span>PNG, JPG jusqu'a 5MB</span>
-  </label>
-</div>
 
       <div class="modal-actions">
-  <button
-    type="button"
-    class="cancel-btn"
-    @click="$emit('close')"
-  >
-    Annuler
-  </button>
+        <button
+          type="button"
+          class="cancel-btn"
+          @click="$emit('close')"
+        >
+          Annuler
+        </button>
 
-  <button
-    v-if="!isEditMode || props.projectToEdit.status === 'Brouillon'" 
-    type="button"
-    class="draft-btn"
-    :disabled="!isFormValid"
-    @click="saveProject('Brouillon')"
-  >
-    Enregistrer comme brouillon
-  </button>
+        <button
+          v-if="!isEditMode || props.projectToEdit.status === 'Brouillon'" 
+          type="button"
+          class="draft-btn"
+          :disabled="!isFormValid"
+          @click="saveProject('Brouillon')"
+        >
+          <Save size="18" />
+          Brouillon
+        </button>
 
-  <button
-    type="button"
-    class="submit-btn"
-    :disabled="!isFormValid"
-    @click="saveProject('En attente')"
-  >
-    {{ isEditMode ? 'Enregistrer les modifications' : 'Soumettre a validation' }}
-  </button>
-</div>
+        <button
+          type="button"
+          class="submit-btn"
+          :disabled="!isFormValid"
+          @click="saveProject('En attente')"
+        >
+          <Send size="18" />
+          {{ isEditMode ? 'Enregistrer' : 'Soumettre' }}
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -250,8 +288,8 @@ function saveProject(status) {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(8, 42, 71, 0.62);
-  backdrop-filter: blur(2px);
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(4px);
   z-index: 3000;
   display: flex;
   align-items: center;
@@ -261,28 +299,29 @@ function saveProject(status) {
 
 .project-modal {
   width: 100%;
-  max-width: 580px;
+  max-width: 640px;
   max-height: 90vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   background: #ffffff;
-  border-radius: 16px;
-  padding: 26px;
-  box-shadow: 0 24px 60px rgba(8, 42, 71, 0.25);
+  border-radius: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
 }
 
 .modal-header {
+  padding: 24px 32px;
+  border-bottom: 1px solid #f1f5f9;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 22px;
 }
 
 .modal-header h2 {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   font-size: 24px;
   font-weight: 800;
-  color: #050505;
+  color: #0f172a;
 }
 
 .modal-header p {
@@ -293,29 +332,51 @@ function saveProject(status) {
 
 .close-btn {
   border: none;
-  background: transparent;
+  background: #f1f5f9;
   color: #64748b;
-  font-size: 30px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  line-height: 1;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.modal-body {
+  padding: 32px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 20px;
 }
 
 label {
-  display: block;
-  margin-bottom: 8px;
-  color: #082a47;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: #334155;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
+}
+
+label svg {
+  color: #0f3a4f;
 }
 
 .required { color: #ef4444; }
@@ -325,108 +386,124 @@ select,
 textarea {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  border-radius: 9px;
-  padding: 12px 14px;
-  color: #050505;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: #0f172a;
   font-size: 15px;
   outline: none;
+  transition: all 0.2s;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: #f0a91f;
-  box-shadow: 0 0 0 3px rgba(240, 169, 31, 0.18);
+  background: #ffffff;
+  border-color: #0f3a4f;
+  box-shadow: 0 0 0 4px rgba(15, 58, 79, 0.1);
 }
 
 textarea {
-  min-height: 92px;
+  min-height: 120px;
   resize: vertical;
 }
 
 .upload-box {
-  border: 2px dashed #e5e7eb;
-  border-radius: 14px;
-  min-height: 110px;
-  background: #fafafa;
+  border: 2px dashed #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  background: #f8fafc;
   color: #64748b;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upload-box:hover {
+  border-color: #0f3a4f;
+  background: #0f3a4f05;
+}
+
+.upload-box.has-file {
+  border-color: #10b981;
+  background: #10b98105;
+  color: #065f46;
 }
 
 .upload-icon {
-  font-size: 28px;
-  color: #082a47;
+  color: #0f3a4f;
 }
 
-.upload-box strong {
-  color: #082a47;
-  font-size: 14px;
-}
-
-.upload-box span {
-  font-size: 13px;
+.upload-box.has-file .upload-icon {
+  color: #10b981;
 }
 
 .modal-actions {
+  padding: 24px 32px;
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 24px;
 }
 
 .cancel-btn,
 .draft-btn,
 .submit-btn {
-  border-radius: 9px;
-  padding: 13px 18px;
-  font-size: 14px;
-  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .cancel-btn {
   background: #ffffff;
   color: #64748b;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e2e8f0;
 }
 
 .draft-btn {
   background: #ffffff;
-  color: #082a47;
-  border: 1px solid #e5e7eb;
+  color: #0f3a4f;
+  border: 1px solid #0f3a4f;
 }
 
 .submit-btn {
-  background: #082a47;
+  background: #0f3a4f;
   color: #ffffff;
-  border: 1px solid #082a47;
+  border: none;
 }
 
 .submit-btn:hover {
   background: #0b3558;
+  transform: translateY(-1px);
 }
 
 .draft-btn:hover {
-  border-color: #f0a91f;
-  color: #f59e0b;
+  background: #0f3a4f05;
 }
 
 .cancel-btn:hover {
-  background: #f8fafc;
+  background: #f1f5f9;
 }
 
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none !important;
 }
 
-@media (max-width: 650px) {
+@media (max-width: 640px) {
   .form-row {
     grid-template-columns: 1fr;
   }
@@ -439,6 +516,7 @@ button:disabled {
   .draft-btn,
   .submit-btn {
     width: 100%;
+    justify-content: center;
   }
 }
 </style>

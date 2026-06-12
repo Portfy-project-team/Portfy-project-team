@@ -1,11 +1,8 @@
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcrypt'
+import { prisma } from '../../utils/prisma.js'
+import bcrypt from 'bcryptjs'
 import {
-  ProfileUpdate, NotificationsUpdate,
-  DisplayUpdate, PasswordUpdate, SettingsResponse
+  PasswordUpdate, SettingsResponse
 } from './settings.types.js'
-
-const prisma = new PrismaClient()
 
 // ── Récupérer les paramètres actuels ──────────────────────
 export async function getSettings(userId: number, role: string): Promise<SettingsResponse> {
@@ -27,13 +24,17 @@ export async function getSettings(userId: number, role: string): Promise<Setting
       notifications: { recommendations: true, comments: true, portfolios: true, weekly: false }
     }
   } else {
-    const student = await prisma.student.findUniqueOrThrow({
+    const student = await prisma.student.findUnique({
       where: { userId },
       select: {
-        nom: true, prenom: true, etablissement: true, filiere: true, niveau: true, anneePromotion: true, bio: true, phone: true, city: true, country: true,
+        nom: true, prenom: true, etablissement: true, filiere: true, niveau: true, anneePromotion: true, bio: true,
+        phone: true, city: true, country: true,
         user: { select: { email: true } }
       }
     })
+
+    if (!student) throw new Error("Étudiant non trouvé")
+
     return {
       fullName:    `${student.prenom ?? ''} ${student.nom ?? ''}`.trim(),
       email:       student.user.email,
@@ -59,55 +60,76 @@ export async function updateProfile(userId: number, role: string, data: any) {
     include: { student: true, prof: true }
   })
 
+  const updateData: any = {}
+
+  // 1. Gestion de l'email
+  if (data.email && data.email !== user.email) {
+    const existing = await prisma.user.findUnique({ where: { email: data.email } })
+    if (existing && existing.id !== userId) {
+      throw new Error("Cet email est déjà utilisé par un autre compte.")
+    }
+    updateData.email = data.email
+  }
+
+  // 2. Gestion des données spécifiques au rôle
   if (role === 'PROF') {
-    const parts    = (data.fullName || '').trim().split(' ')
-    const prenom   = data.firstName || parts[0] || user.prof?.prenom || ''
-    const nom      = data.lastName || parts.slice(1).join(' ') || user.prof?.nom || ''
+    const profData: any = {}
+    const parts = (data.fullName || '').trim().split(' ')
     
-    await prisma.prof.update({
-      where: { userId },
-      data:  { 
-        prenom, 
-        nom, 
-        etablissement: data.institution || data.etablissement || user.prof?.etablissement 
-      }
-    })
+    if (data.firstName !== undefined) profData.prenom = data.firstName
+    else if (data.fullName) profData.prenom = parts[0]
+    
+    if (data.lastName !== undefined) profData.nom = data.lastName
+    else if (data.fullName && parts.length > 1) profData.nom = parts.slice(1).join(' ')
+
+    if (data.institution !== undefined || data.etablissement !== undefined) {
+      profData.etablissement = data.institution || data.etablissement
+    }
+
+    if (Object.keys(profData).length > 0) {
+      updateData.prof = { update: profData }
+    }
   } else {
     const studentData: any = {}
+    const parts = (data.fullName || '').trim().split(' ')
     
-    if (data.fullName) {
-      const parts = data.fullName.trim().split(' ')
-      studentData.prenom = parts[0]
-      studentData.nom = parts.slice(1).join(' ') || parts[0]
-    }
+    if (data.firstName !== undefined) studentData.prenom = data.firstName
+    else if (data.fullName) studentData.prenom = parts[0]
     
-    if (data.firstName)      studentData.prenom = data.firstName
-    if (data.lastName)       studentData.nom = data.lastName
-    if (data.etablissement)  studentData.etablissement = data.etablissement
-    if (data.filiere)        studentData.filiere = data.filiere
-    if (data.niveau)         studentData.niveau = data.niveau
-    if (data.anneePromotion) studentData.anneePromotion = String(data.anneePromotion)
-    if (data.bio)            studentData.bio = data.bio
-    if (data.phone)          studentData.phone = data.phone
-    if (data.city)           studentData.city = data.city
-    if (data.country)        studentData.country = data.country
+    if (data.lastName !== undefined) studentData.nom = data.lastName
+    else if (data.fullName && parts.length > 1) studentData.nom = parts.slice(1).join(' ')
 
-    if (user.student) {
-      await prisma.student.update({
-        where: { userId },
-        data: studentData
-      })
+    if (data.etablissement !== undefined) studentData.etablissement = data.etablissement
+    if (data.filiere !== undefined) studentData.filiere = data.filiere
+    if (data.niveau !== undefined) studentData.niveau = data.niveau
+    if (data.anneePromotion !== undefined) studentData.anneePromotion = data.anneePromotion ? String(data.anneePromotion) : null
+    if (data.bio !== undefined) studentData.bio = data.bio
+    if (data.phone !== undefined) studentData.phone = data.phone
+    if (data.city !== undefined) studentData.city = data.city
+    if (data.country !== undefined) studentData.country = data.country
+
+    if (Object.keys(studentData).length > 0) {
+      if (user.student) {
+        updateData.student = { update: studentData }
+      } else {
+        // Au cas où le profil étudiant n'existe pas, on le crée avec les données reçues
+        // On s'assure d'avoir au moins les champs requis par le schéma si nécessaire
+        updateData.student = { 
+          create: {
+            nom: studentData.nom || '',
+            prenom: studentData.prenom || '',
+            ...studentData
+          }
+        }
+      }
     }
   }
 
-  // Update email only if it changed and is valid
-  if (data.email && data.email !== user.email) {
-    const existing = await prisma.user.findUnique({ where: { email: data.email } })
-    if (existing) throw new Error("Cet email est déjà utilisé par un autre compte.")
-    
+  // 3. Exécution de la mise à jour
+  if (Object.keys(updateData).length > 0) {
     await prisma.user.update({
       where: { id: userId },
-      data:  { email: data.email }
+      data: updateData
     })
   }
 }

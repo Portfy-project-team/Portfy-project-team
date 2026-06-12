@@ -1,36 +1,43 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
-
+import { Plus, Edit3, Trash2, Search, Calendar, Building2, Tag, FileText } from 'lucide-vue-next'
 import Sidebar from '../../components/student/Sidebar.vue'
 import Topbar from '../../components/student/Topbar.vue'
 import StatusBadge from '../../components/student/StatusBadge.vue'
 import StatCard from '../../components/student/StatCard.vue'
 import ActivityModal from '../../components/student/modals/ActivityModal.vue'
+import Toast from '../../components/common/Toast.vue'
+import ConfirmModal from '../../components/common/ConfirmModal.vue'
 import { api } from '@/store/authStore.js'
 
-// ─── API ──────────────────────────────────────────────────────────────────────
+// --- État ---
+const activityList = ref([])
+const loading = ref(false)
+const error = ref(null)
+const showActivityModal = ref(false)
+const showConfirmModal = ref(false)
+const selectedActivity = ref(null)
+const activityToDelete = ref(null)
+const searchQuery = ref('')
+const notifications = ref([])
 
-async function apiFetchMyActivities() {
-  const res = await api.get('/activities/me')
-  return res.data.activities
+// --- Helpers ---
+function showNotification(message, type = 'success') {
+  const id = Date.now()
+  notifications.value.push({ id, message, type })
 }
 
-async function apiCreateActivity(payload) {
-  const res = await api.post('/activities', payload)
-  return res.data.activity
+function removeNotification(id) {
+  notifications.value = notifications.value.filter(n => n.id !== id)
 }
 
-async function apiUpdateActivity(id, payload) {
-  const res = await api.put(`/activities/${id}`, payload)
-  return res.data.activity
+function normalizeText(text) {
+  if (!text) return ''
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
 }
-
-async function apiDeleteActivity(id) {
-  const res = await api.delete(`/activities/${id}`)
-  return res.data
-}
-
-// ─── Mapping back → UI ────────────────────────────────────────────────────────
 
 const TYPE_CLASS_MAP = {
   Hackathon: 'type-hackathon',
@@ -47,12 +54,12 @@ function mapActivity(raw) {
     role: raw.description ?? '',
     type: raw.type ?? '',
     typeClass: TYPE_CLASS_MAP[raw.type] ?? 'type-club',
-    organisation: raw.type ?? '',
-    periode: '',
+    organisation: raw.organisation ?? '',
+    periode: raw.periode ?? '',
     status: raw.statutV === 'VALIDATED'
-      ? 'Verifiee'
+      ? 'Valide'
       : raw.statutV === 'REJECTED'
-        ? 'Rejetee'
+        ? 'Refuse'
         : 'En attente',
     statutV: raw.statutV,
     attestationUrl: raw.attestationUrl ?? null,
@@ -61,45 +68,97 @@ function mapActivity(raw) {
   }
 }
 
-// ─── État ─────────────────────────────────────────────────────────────────────
-
-const activityList = ref([])
-const loading = ref(false)
-const error = ref(null)
-const showActivityModal = ref(false)
-const selectedActivity = ref(null)
-
-// ─── Stats ────────────────────────────────────────────────────────────────────
+// --- Computed ---
+const filteredActivities = computed(() => {
+  if (!searchQuery.value || searchQuery.value.trim() === '') return activityList.value
+  const q = normalizeText(searchQuery.value.trim())
+  return activityList.value.filter(a => 
+    normalizeText(a.title).includes(q) || 
+    normalizeText(a.type).includes(q) || 
+    normalizeText(a.organisation).includes(q)
+  )
+})
 
 const totalActivities = computed(() => activityList.value.length)
-
 const verifiedActivities = computed(() =>
   activityList.value.filter((a) => a.statutV === 'VALIDATED').length,
 )
-
 const pendingActivities = computed(() =>
   activityList.value.filter((a) => a.statutV === 'PENDING').length,
 )
 
-// ─── Chargement ───────────────────────────────────────────────────────────────
-
+// --- API ---
 async function loadActivities() {
   loading.value = true
   error.value = null
   try {
-    const raw = await apiFetchMyActivities()
+    const res = await api.get('/activities/me')
+    const raw = res.data.activities
     activityList.value = raw.map(mapActivity)
   } catch (err) {
-    error.value = err.message || 'Impossible de charger les activités.'
+    console.error('Erreur load activities:', err)
+    showNotification('Impossible de charger les activités', 'error')
   } finally {
     loading.value = false
   }
 }
 
-onMounted(loadActivities)
+async function saveActivity(activityData) {
+  try {
+    const payload = {
+      nom: activityData.nom,
+      description: activityData.description || '',
+      type: activityData.type || 'Autre',
+      organisation: activityData.organisation || '',
+      periode: activityData.periode || '',
+    }
 
-// ─── Modal ────────────────────────────────────────────────────────────────────
+    const isUpdating = !!selectedActivity.value
+    if (isUpdating) {
+      await api.put(`/activities/${selectedActivity.value.id}`, payload)
+      showNotification('Activité mise à jour avec succès !')
+    } else {
+      await api.post('/activities', payload)
+      showNotification('Activité ajoutée avec succès !')
+    }
+    
+    await loadActivities()
+    closeActivityModal()
+  } catch (err) {
+    console.error('Erreur save activity:', err)
+    showNotification('Erreur lors de la sauvegarde', 'error')
+  }
+}
 
+function confirmDelete(activity) {
+  activityToDelete.value = activity
+  showConfirmModal.value = true
+}
+
+async function removeActivity() {
+  if (!activityToDelete.value) return
+  try {
+    await api.delete(`/activities/${activityToDelete.value.id}`)
+    showNotification('Activité supprimée avec succès')
+    await loadActivities()
+  } catch (err) {
+    console.error('Erreur delete activity:', err)
+    showNotification('Erreur lors de la suppression', 'error')
+  } finally {
+    showConfirmModal.value = false
+    activityToDelete.value = null
+  }
+}
+
+function viewAttestation(activity) {
+  if (activity.attestationUrl) {
+    window.open(activity.attestationUrl, '_blank')
+    return
+  }
+  showNotification('Aucune attestation disponible', 'info')
+}
+
+// --- Modal handlers ---
 function openAddActivity() {
   selectedActivity.value = null
   showActivityModal.value = true
@@ -115,53 +174,7 @@ function closeActivityModal() {
   selectedActivity.value = null
 }
 
-async function saveActivity(activityData) {
-  error.value = null
-  try {
-    const payload = {
-      nom: activityData.nom,
-      description: activityData.description || '',
-      type: activityData.type || 'Autre',
-      attestationUrl: activityData.attestationUrl || undefined,
-    }
-
-    if (selectedActivity.value) {
-      const updated = await apiUpdateActivity(selectedActivity.value.id, payload)
-      const idx = activityList.value.findIndex((a) => a.id === selectedActivity.value.id)
-      if (idx !== -1) activityList.value[idx] = mapActivity(updated)
-    } else {
-      const created = await apiCreateActivity(payload)
-      activityList.value.unshift(mapActivity(created))
-    }
-    closeActivityModal()
-    alert('Activite enregistree.')
-  } catch (err) {
-    error.value = err.response?.data?.message || err.message || 'Une erreur est survenue.'
-  }
-}
-
-// ─── Suppression ──────────────────────────────────────────────────────────────
-
-async function removeActivity(activity) {
-  if (!confirm(`Supprimer « ${activity.title} » ?`)) return
-  error.value = null
-  try {
-    await apiDeleteActivity(activity.id)
-    activityList.value = activityList.value.filter((a) => a.id !== activity.id)
-  } catch (err) {
-    error.value = err.message || "Impossible de supprimer l'activité."
-  }
-}
-
-// ─── Attestation ──────────────────────────────────────────────────────────────
-
-function viewAttestation(activity) {
-  if (activity.attestationUrl) {
-    window.open(activity.attestationUrl, '_blank')
-    return
-  }
-  alert('Aucune attestation disponible pour cette activité.')
-}
+onMounted(loadActivities)
 </script>
 
 <template>
@@ -169,115 +182,150 @@ function viewAttestation(activity) {
     <Sidebar />
 
     <div class="student-main">
-      <Topbar title="Activites parascolaires" user-initials="AA" />
+      <Topbar 
+        title="Activités parascolaires" 
+        search-placeholder="Rechercher par activité, type..."
+        disable-global-search
+        @search="searchQuery = $event"
+      />
 
       <main class="activities-page">
         <section class="page-header">
           <div>
-            <h2>Mes activites</h2>
-            <p>Clubs, evenements, hackathons et engagements associatifs</p>
+            <h2>Mes activités</h2>
+            <p>Clubs, événements, hackathons et engagements associatifs</p>
           </div>
 
           <button type="button" class="primary-btn" @click="openAddActivity">
-            Nouvelle activite
+            <Plus size="20" style="margin-right: 8px" />
+            Nouvelle activité
           </button>
         </section>
 
-        <div v-if="error" class="error-banner">
-          {{ error }}
-        </div>
-
         <div v-if="loading" class="loading-state">
-          Chargement des activités…
+          <div class="spinner"></div>
+          <p>Chargement des activités…</p>
         </div>
 
         <template v-else>
           <section class="stats-grid">
-            <StatCard title="Total activites" :value="totalActivities" color="cream" subtitle="" />
-            <StatCard title="Verifiees" :value="verifiedActivities" color="green" subtitle="" />
+            <StatCard title="Total activités" :value="totalActivities" color="blue" subtitle="" />
+            <StatCard title="Vérifiées" :value="verifiedActivities" color="green" subtitle="" />
             <StatCard title="En attente" :value="pendingActivities" color="yellow" subtitle="" />
           </section>
 
           <section class="table-card">
-            <div v-if="activityList.length === 0" class="empty-state">
-              Aucune activité pour le moment. Ajoutez-en une !
+            <div v-if="filteredActivities.length === 0" class="empty-state">
+              <div class="empty-icon"><Search size="48" /></div>
+              <h3>Aucune activité trouvée</h3>
+              <p v-if="searchQuery">Aucun résultat ne correspond à votre recherche "{{ searchQuery }}"</p>
+              <p v-else>Vous n'avez pas encore ajouté d'activité parascolaire.</p>
+              <button v-if="!searchQuery" class="secondary-btn" @click="openAddActivity" style="margin-top: 20px">Ajouter ma première activité</button>
             </div>
 
-            <table v-else class="activities-table">
-              <thead>
-                <tr>
-                  <th>ACTIVITE</th>
-                  <th>TYPE</th>
-                  <th>ORGANISATION</th>
-                  <th>PERIODE</th>
-                  <th>STATUT</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
+            <div v-else class="table-responsive">
+              <table class="activities-table">
+                <thead>
+                  <tr>
+                    <th>ACTIVITÉ</th>
+                    <th>TYPE</th>
+                    <th>ORGANISATION</th>
+                    <th>PÉRIODE</th>
+                    <th>STATUT</th>
+                    <th class="actions-th">ACTIONS</th>
+                  </tr>
+                </thead>
 
-              <tbody>
-                <tr v-for="activity in activityList" :key="activity.id">
-                  <td>
-                    <div class="activity-name">{{ activity.title }}</div>
-                    <div class="activity-role">{{ activity.role }}</div>
-                  </td>
-
-                  <td>
-                    <span :class="['type-badge', activity.typeClass]">
-                      {{ activity.type }}
-                    </span>
-                  </td>
-
-                  <td>{{ activity.organisation }}</td>
-                  <td>{{ activity.periode }}</td>
-
-                  <td>
-                    <StatusBadge :status="activity.status" />
-                  </td>
-
-                  <td>
-                    <div class="actions">
+                <tbody>
+                  <tr v-for="activity in filteredActivities" :key="activity.id">
+                    <td>
+                      <div class="activity-cell-info">
+                        <span class="activity-name">{{ activity.title }}</span>
+                        <span class="activity-role" v-if="activity.role">{{ activity.role }}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span :class="['type-badge', activity.typeClass]">
+                        <Tag size="14" style="margin-right: 6px" />
+                        {{ activity.type }}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="info-with-icon">
+                        <Building2 size="14" />
+                        {{ activity.organisation || 'N/A' }}
+                      </div>
+                    </td>
+                    <td>
+                      <div class="info-with-icon">
+                        <Calendar size="14" />
+                        {{ activity.periode || 'N/A' }}
+                      </div>
+                    </td>
+                    <td>
+                      <StatusBadge :status="activity.status" />
+                    </td>
+                    <td class="action-cell">
                       <button
-                        v-if="activity.statutV === 'VALIDATED'"
-                        type="button"
-                        class="action-btn"
+                        v-if="activity.attestationUrl"
+                        class="icon-btn attestation-btn"
                         @click="viewAttestation(activity)"
+                        title="Voir l'attestation"
                       >
-                        Attestation
+                        <FileText size="18" />
                       </button>
 
                       <button
                         v-if="activity.statutV !== 'VALIDATED'"
-                        type="button"
-                        class="action-btn"
+                        class="icon-btn edit-btn"
                         @click="openEditActivity(activity)"
+                        title="Modifier"
                       >
-                        Modifier
+                        <Edit3 size="18" />
                       </button>
 
                       <button
                         v-if="activity.statutV !== 'VALIDATED'"
-                        type="button"
-                        class="action-btn action-btn--danger"
-                        @click="removeActivity(activity)"
+                        class="icon-btn delete-btn"
+                        @click="confirmDelete(activity)"
+                        title="Supprimer"
                       >
-                        Supprimer
+                        <Trash2 size="18" />
                       </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </section>
         </template>
       </main>
     </div>
 
+    <!-- Modals & Notifications -->
     <ActivityModal
       v-if="showActivityModal"
       :activity-to-edit="selectedActivity"
       @close="closeActivityModal"
       @save="saveActivity"
+    />
+
+    <ConfirmModal
+      v-if="showConfirmModal"
+      title="Supprimer l'activité"
+      :message="`Voulez-vous vraiment supprimer l'activité « ${activityToDelete?.title } » ? Cette action est irréversible.`"
+      confirm-text="Supprimer"
+      type="danger"
+      @confirm="removeActivity"
+      @cancel="showConfirmModal = false"
+    />
+
+    <Toast 
+      v-for="n in notifications" 
+      :key="n.id" 
+      :message="n.message" 
+      :type="n.type" 
+      @close="removeNotification(n.id)" 
     />
   </div>
 </template>
@@ -286,91 +334,81 @@ function viewAttestation(activity) {
 .student-layout {
   display: flex;
   min-height: 100vh;
-  background: #f4f1ec;
+  background: #f8fafc;
 }
 
 .student-main {
   flex: 1;
   min-width: 0;
-  background: #f4f1ec;
+  background: #f8fafc;
 }
 
 .activities-page {
-  padding: 32px 38px;
+  padding: 32px 40px;
 }
 
 .page-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 26px;
+  margin-bottom: 32px;
 }
 
 .page-header h2 {
-  margin: 0 0 8px;
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 800;
-  color: #050505;
+  color: #0f172a;
+  margin-bottom: 4px;
 }
 
 .page-header p {
-  margin: 0;
-  color: #64748b;
-  font-size: 17px;
-}
-
-.error-banner {
-  background: #fee2e2;
-  color: #dc2626;
-  border: 1px solid #fca5a5;
-  border-radius: 10px;
-  padding: 14px 20px;
-  margin-bottom: 20px;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.loading-state,
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
   color: #64748b;
   font-size: 16px;
 }
 
 .primary-btn {
-  background: #082a47;
+  display: flex;
+  align-items: center;
+  background: #0f3a4f;
   color: #ffffff;
   border: none;
-  border-radius: 10px;
-  padding: 16px 34px;
-  font-size: 17px;
-  font-weight: 800;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px -1px rgba(15, 58, 79, 0.2);
 }
 
 .primary-btn:hover {
   background: #0b3558;
+  transform: translateY(-1px);
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 22px;
-  margin-bottom: 26px;
+  gap: 24px;
+  margin-bottom: 32px;
 }
 
 .table-card {
   background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.table-responsive {
+  overflow-x: auto;
 }
 
 .activities-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 900px;
 }
 
 .activities-table thead {
@@ -379,39 +417,57 @@ function viewAttestation(activity) {
 
 .activities-table th {
   text-align: left;
-  padding: 20px 26px;
-  font-size: 14px;
-  font-weight: 800;
+  padding: 16px 24px;
+  border-bottom: 2px solid #f1f5f9;
   color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .activities-table td {
-  padding: 20px 26px;
-  border-top: 1px solid #e5e7eb;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
   color: #334155;
-  font-size: 16px;
+  font-size: 15px;
   vertical-align: middle;
 }
 
+.activity-cell-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .activity-name {
-  font-size: 16px;
-  font-weight: 800;
-  color: #050505;
-  margin-bottom: 4px;
+  font-weight: 700;
+  color: #0f172a;
 }
 
 .activity-role {
-  font-size: 14px;
+  font-size: 13px;
   color: #64748b;
+}
+
+.info-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.info-with-icon svg {
+  color: #94a3b8;
 }
 
 .type-badge {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 7px 14px;
+  padding: 6px 12px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -422,38 +478,100 @@ function viewAttestation(activity) {
 .type-competition { background: #fee2e2; color: #dc2626; }
 .type-association { background: #d6f7e4; color: #078143; }
 
-.actions {
+.actions-th { text-align: right !important; padding-right: 24px !important; }
+.action-cell { text-align: right; padding-right: 24px !important; white-space: nowrap; }
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: 8px;
+}
+
+.icon-btn:hover { background: #f8fafc; color: #0f172a; }
+.edit-btn:hover { border-color: #fcd34d; color: #f59e0b; background: #fffbeb; }
+.delete-btn:hover { border-color: #fca5a5; color: #ef4444; background: #fef2f2; }
+.attestation-btn:hover { border-color: #93c5fd; color: #2563eb; background: #eff6ff; }
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0;
+  color: #64748b;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #0f3a4f;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 18px;
+  justify-content: center;
+  margin-bottom: 20px;
 }
 
-.action-btn {
-  background: transparent;
-  border: none;
-  color: #f59e0b;
-  font-size: 15px;
+.empty-state h3 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  color: #64748b;
+  max-width: 400px;
+}
+
+.secondary-btn {
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #0f3a4f;
+  padding: 10px 20px;
+  border-radius: 10px;
   font-weight: 700;
   cursor: pointer;
-  padding: 0;
-}
-
-.action-btn:hover { text-decoration: underline; }
-
-.action-btn--danger {
-  color: #dc2626;
 }
 
 @media (max-width: 1100px) {
   .stats-grid { grid-template-columns: 1fr; }
-  .table-card { overflow-x: auto; }
-  .activities-table { min-width: 950px; }
 }
 
 @media (max-width: 700px) {
-  .activities-page { padding: 22px; }
-  .page-header { flex-direction: column; }
-  .primary-btn { width: 100%; }
+  .activities-page { padding: 24px; }
+  .page-header { flex-direction: column; align-items: stretch; gap: 16px; }
+  .primary-btn { justify-content: center; }
 }
 </style>
