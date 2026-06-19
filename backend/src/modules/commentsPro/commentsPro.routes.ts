@@ -11,20 +11,12 @@ const controller =
 
 router.use(verifyToken)
 
-/**
- * POST
- * /api/comments-pro
- */
 router.post(
   '/',
   (req, res) =>
     controller.create(req, res)
 )
 
-/**
- * GET
- * /api/comments-pro/portfolio/:portfolioId
- */
 router.get(
   '/portfolio/:portfolioId',
   (req, res) =>
@@ -32,9 +24,35 @@ router.get(
 )
 
 /**
- * DELETE
- * /api/comments-pro/:id
+ * NOUVEAU
+ * Mes commentaires
  */
+router.get(
+  '/me',
+  (req, res) =>
+    controller.getMine(req, res)
+)
+
+/**
+ * NOUVEAU
+ * Un commentaire
+ */
+router.get(
+  '/:id',
+  (req, res) =>
+    controller.getOne(req, res)
+)
+
+/**
+ * NOUVEAU
+ * Modifier
+ */
+router.put(
+  '/:id',
+  (req, res) =>
+    controller.update(req, res)
+)
+
 router.delete(
   '/:id',
   (req, res) =>
