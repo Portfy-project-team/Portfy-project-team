@@ -115,7 +115,7 @@ import { useRouter } from 'vue-router'
 import { Search, Bell, X, MessageCircle, Eye, Folder, BellRing } from 'lucide-vue-next'
 import { useAuthStore } from '@/store/authStore.js'
 import { api } from '@/store/authStore.js'
-import { searchService } from '../../services/professor/search.service.js'
+import { searchService } from '../../services/professor/Search.service.js'
 
 const props = defineProps({ title: String })
 const router = useRouter()
