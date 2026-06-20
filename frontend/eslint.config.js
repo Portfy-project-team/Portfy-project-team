@@ -1,11 +1,13 @@
 import js from "@eslint/js";
 
 export default [
-  {
-    ignores: [
-      "dist/**"
-    ]
-  },
+{
+  ignores: [
+    "dist/**",
+    "cypress/**",
+    "cypress.config.js"
+  ]
+},
 
   js.configs.recommended,
 
@@ -54,7 +56,9 @@ export default [
       after: "readonly",
       afterEach: "readonly",
       require: "readonly",
-      module: "readonly"
+      module: "readonly",
+      Cypress: "readonly",
+      expect: "readonly"
     }
   }
 }
