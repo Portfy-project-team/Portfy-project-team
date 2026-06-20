@@ -43,9 +43,22 @@ export const AdminServices = {
     await prisma.user.delete({ where: { id } });
   },
   async updateUserStatus(id: number, status: UserStatus) {
+    const existingUser = await prisma.user.findUnique({
+      where: { id },
+      select: { role: true }
+    });
+
     return prisma.user.update({
       where: { id },
-      data: { status },
+      data: { 
+        status,
+        ...(status === UserStatus.ACTIVE && {
+          isEmailVerified: true,
+          ...(existingUser?.role === Role.PRO && {
+            professionnel: { update: { statusV: 'VALIDATED' } }
+          })
+        })
+      },
       select: { id: true, email: true, status: true },
     });
   },
@@ -67,7 +80,7 @@ export const AdminServices = {
       const existingUser = await prisma.user.findUnique({
     where: { id },
     // select: { email: true, name: true, status: true },
-     select: { email: true, status: true },
+     select: { email: true, status: true, role: true },
   });
 
   if (!existingUser) {
@@ -79,7 +92,13 @@ export const AdminServices = {
   }
     const user = await prisma.user.update({
       where: { id, status: UserStatus.PENDING },
-      data: { status: UserStatus.ACTIVE }
+      data: { 
+        status: UserStatus.ACTIVE,
+        isEmailVerified: true,
+        ...(existingUser.role === Role.PRO && {
+          professionnel: { update: { statusV: 'VALIDATED' } }
+        })
+      }
     });
   if (!existingUser.email ) {
     throw new Error("User email not found");

@@ -1,16 +1,16 @@
 import {z} from "zod";
-// z perrmet de creer des shemas de validaion 
-const optionalUrl = z
 //creation d'un champ URL optionnel 
+const optionalUrl = z
   .string()
   .trim()
-  .url("URL invalide")
   .max(500, "URL trop longue")
-  .optional();
+  .optional()
+  .nullable()
+  .or(z.literal(""));
 
   //creation d'un texte optionnel 
 const optionalText = (max= 1000)=>
-  z.string().trim().max(max , "Texte trop long").optional();
+  z.string().trim().max(max , "Texte trop long").optional().nullable().or(z.literal(""));
 
 //creation d'un  projet
 //z.object pour creer un objet avec ces champs 
@@ -36,14 +36,17 @@ export const createProjectSchema = z.object({
       "PERSONNEL",
       "STAGE"
     ])
-    .optional(),
+    .optional()
+    .nullable(),
+
+  profId: z.preprocess((val) => (val === "" ? null : val), z.number().int().positive().optional().nullable()),
+  github: optionalUrl,
+  demo: optionalUrl,
 })
-//sert a empecher l'ajout de champs non autorises dans un projet 
-  .strict();
 
 // .partial() cette methode transforme tous les champs en optionnels 
 //modifier un projet 
-export const updateProjectSchema = createProjectSchema.partial().strict();
+export const updateProjectSchema = createProjectSchema.partial();
 
 //ici on cree un shema pour une decision/professeur comme apreciation , note , evaluation de projet 
 export const projectDecisionSchema = z
@@ -53,15 +56,16 @@ export const projectDecisionSchema = z
       .trim() //supprime les espaces inutiles 
       .min(3, "L'appréciation doit contenir au moins 3 caractères")
       .max(2000, "L'appréciation est trop longue")
-      .optional(),
+      .optional()
+      .nullable(),
 
     score: z
       .number()
       .min(0, "Le score doit être positif")
       .max(20, "Le score ne peut pas dépasser 20")
-      .optional(),
+      .optional()
+      .nullable(),
   })
-  .strict();
 
 //typeof prends le type de cette variable 
 //z.infer<> deduis automatiquement le type typescript 

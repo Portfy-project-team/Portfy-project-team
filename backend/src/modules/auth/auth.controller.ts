@@ -1,4 +1,6 @@
 import type { Request, Response } from "express";
+import fs from "fs";
+import path from "path";
 import {
   registerSchema,
   loginSchema,
@@ -14,10 +16,8 @@ import {
   sendVerificationEmail,
   resendVerificationEmail,
   forgotPasswordService,
-  resetPasswordService} from "./auth.service.js";
-import { generateAccessToken, generateRefreshToken } from "../../utils/jwt.js";
-import { completeGoogleRegistration, loginOrRegisterWithGoogle, verifyAndGetGoogleUser } from "./auth.google.service.js";
-import { prisma } from "../../utils/prisma.js";
+  resetPasswordService,
+} from "./auth.service.js";
 
 const ACCESS_COOKIE_OPTIONS = {
   httpOnly: true,
@@ -52,9 +52,22 @@ function handleError(error: unknown, res: Response, context: string): void {
       res.status(status).json({ message: error.message });
       return;
     }
+
+    // Gestion spécifique des erreurs Prisma
+    if (error.name === "PrismaClientInitializationError") {
+      console.error(`[${context}] Erreur d'initialisation Prisma:`, error);
+      res.status(503).json({ 
+        message: "Le service de base de données est temporairement indisponible." 
+      });
+      return;
+    }
   }
+  
   console.error(`[${context}]`, error);
-  res.status(500).json({ message: "Une erreur est survenue" });
+  res.status(500).json({ 
+    message: "Une erreur est survenue",
+    details: process.env.NODE_ENV === "development" && error instanceof Error ? error.message : undefined
+  });
 }
 
 // ── Register ──────────────────────────────────────────────────────
@@ -62,32 +75,55 @@ export const registerController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  // const data = req.body
-  // console.log(data)
-  // // const parsed = registerSchema.safeParse(data.data);
-  // const parsed = registerSchema.safeParse(req.body?.data ?? req.body); // ← CORRECT
-
-   const body = req.body?.data ?? req.body;
-  const parsed = registerSchema.safeParse(body);
+if (req.body.skills) {
+  try {
+    req.body.skills = JSON.parse(req.body.skills);
+  } catch {
+    req.body.skills = [];
+  }
+}
+console.log('=== BODY REÇU ===', JSON.stringify(req.body, null, 2))
+  const parsed = registerSchema.safeParse(req.body);
 
   if (!parsed.success) {
+    console.log('=== ERREURS ZOD ===', JSON.stringify(parsed.error.issues, null, 2))
     res.status(400).json({
       message: "Donnees invalides",
       errors:  parsed.error.flatten().fieldErrors,
     });
     return;
   }
-
+let verificationDocumentUrl: string | null = null
+if (req.file) {
   try {
-    const user = await registerUser(parsed.data);
+  const uploadDir = path.join(process.cwd(), "uploads", "verification")
+      fs.mkdirSync(uploadDir, { recursive: true })
 
-  sendVerificationEmail(user.id, user.email).catch((err) => {
-      console.error("[registerController] Echec envoi email:", err);
-    });
+      const ext      = path.extname(req.file.originalname)
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
+      const filepath = path.join(uploadDir, filename)
+
+      fs.writeFileSync(filepath, req.file.buffer)
+
+      verificationDocumentUrl = `/uploads/verification/${filename}`
+      console.log('=== FICHIER SAUVEGARDÉ ===', verificationDocumentUrl)
+    } catch (err) {
+      console.error("[registerController] Erreur sauvegarde fichier:", err)
+    }
+}
+  try {
+    const user = await registerUser(parsed.data, verificationDocumentUrl);
+
+    if (user.role !== 'STUDENT') {
+      sendVerificationEmail(user.id, user.email).catch((err) => {
+        console.error("[registerController] Echec envoi email:", err);
+      });
+    }
 
     res.status(201).json({
-      success : true,
-      message: "Compte créé avec succès. Vérifiez votre email pour activer votre compte.",
+      message: user.role === 'STUDENT'
+        ? "Compte créé avec succès. Vous pouvez maintenant vous connecter."
+        : "Compte créé avec succès. Vérifiez votre email pour activer votre compte.",
       user,
     });
   } catch (error) {
@@ -260,152 +296,5 @@ export const resetPasswordController = async (
     });
   } catch (error) {
     handleError(error, res, "resetPasswordController");
-  }
-};
-
-
-
-// ── Google OAuth Callback ─────────────────────────────────────────
-export const googleCallbackController = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  const { supabaseAccessToken } = req.body;
-
-  if (!supabaseAccessToken || typeof supabaseAccessToken !== "string") {
-    res.status(400).json({ message: "Token Supabase manquant" });
-    return;
-  }
-
-  try {
-    const { user, accessToken, refreshToken } =
-      await loginOrRegisterWithGoogle(supabaseAccessToken, {
-        ip:        req.ip,
-        userAgent: req.headers["user-agent"] as string,
-      });
-
-    res.cookie("access_token",  accessToken,  ACCESS_COOKIE_OPTIONS);
-    res.cookie("refresh_token", refreshToken, REFRESH_COOKIE_OPTIONS);
-
-    res.status(200).json({
-      message: "Connexion Google réussie",
-      user,
-    });
-  } catch (error) {
-    handleError(error, res, "googleCallbackController");
-  }
-};
-
-// ── Étape 1 : Vérifier token Google ──────────────────────────────
-// Vérifie le token Supabase et retourne si c'est un nouvel utilisateur
-export const googleVerifyController = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  const { supabaseAccessToken } = req.body;
-
-  if (!supabaseAccessToken || typeof supabaseAccessToken !== "string") {
-    res.status(400).json({ message: "Token Supabase manquant" });
-    return;
-  }
-
-  try {
-    const googleUser = await verifyAndGetGoogleUser(supabaseAccessToken);
-
-    // Vérifier si l'utilisateur existe déjà en DB
-    const existing = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { googleId: googleUser.googleId },
-          { email:    googleUser.email    },
-        ],
-      },
-      select: { id: true, role: true, status: true },
-    });
-
-    if (existing) {
-      // Utilisateur existant — connexion directe
-      const result = await completeGoogleRegistration(
-        googleUser.googleId,
-        googleUser.email,
-        googleUser.avatarUrl,
-        existing.role as "STUDENT" | "PRO" | "PROF",
-        { ip: req.ip, userAgent: req.headers["user-agent"] as string }
-      );
-
-      if (result.pending) {
-        res.status(200).json({ status: "PENDING", user: result.user });
-        return;
-      }
-
-      res.cookie("access_token",  result.accessToken!,  ACCESS_COOKIE_OPTIONS);
-      res.cookie("refresh_token", result.refreshToken!, REFRESH_COOKIE_OPTIONS);
-      res.status(200).json({ status: "OK", user: result.user });
-      return;
-    }
-
-    // Nouvel utilisateur — retourner les infos pour la page de sélection du rôle
-    res.status(200).json({
-      status:    "NEW_USER",
-      googleId:  googleUser.googleId,
-      email:     googleUser.email,
-      avatarUrl: googleUser.avatarUrl,
-    });
-  } catch (error) {
-    handleError(error, res, "googleVerifyController");
-  }
-};
-
-// ── Étape 2 : Compléter l'inscription ────────────────────────────
-// Reçoit le rôle choisi et crée le compte
-export const googleCompleteController = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  const { googleId, email, avatarUrl, role, supabaseAccessToken } = req.body;
-
-  // Validation du rôle — ADMIN ne peut pas s'inscrire via Google
-  const allowedRoles = ["STUDENT", "PRO", "PROF"];
-  if (!role || !allowedRoles.includes(role)) {
-    res.status(400).json({ message: "Rôle invalide" });
-    return;
-  }
-
-  // Re-vérifier le token Supabase pour sécurité
-  if (!supabaseAccessToken || typeof supabaseAccessToken !== "string") {
-    res.status(400).json({ message: "Token Supabase manquant" });
-    return;
-  }
-
-  try {
-    // Vérification que le token correspond bien au googleId envoyé
-    const googleUser = await verifyAndGetGoogleUser(supabaseAccessToken);
-    if (googleUser.googleId !== googleId || googleUser.email !== email) {
-      res.status(403).json({ message: "Données invalides" });
-      return;
-    }
-
-    const result = await completeGoogleRegistration(
-      googleId,
-      email,
-      avatarUrl,
-      role,
-      { ip: req.ip, userAgent: req.headers["user-agent"] as string }
-    );
-
-    if (result.pending) {
-      res.status(200).json({
-        status:  "PENDING",
-        message: "Compte en attente de validation par un administrateur",
-        user:    result.user,
-      });
-      return;
-    }
-
-    res.cookie("access_token",  result.accessToken!,  ACCESS_COOKIE_OPTIONS);
-    res.cookie("refresh_token", result.refreshToken!, REFRESH_COOKIE_OPTIONS);
-    res.status(200).json({ status: "OK", user: result.user });
-  } catch (error) {
-    handleError(error, res, "googleCompleteController");
   }
 };

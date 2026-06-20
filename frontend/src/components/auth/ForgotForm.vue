@@ -1,6 +1,12 @@
 <script setup>
 import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter , useRoute } from 'vue-router'
+import logo from '../../assets/logo.png'
+import '../../styles/auth.css' 
+import { api } from '../../store/authStore.js'
+import PHOTOPF from '../../assets/PHOTOPF.png'
+
+const route = useRoute()
 // étape actuelle
 const forgotStep = ref(1)
 
@@ -30,24 +36,25 @@ const clearErrors = () => {
 }
 
 // envoyer code
-const sendCode = () => {
+const sendCode = async () => {
   clearErrors()
-  let isValid = true
 
   if (email.value.trim() === '') {
     errors.email = 'Email obligatoire'
-    isValid = false
+    return
   } else if (!emailRegex.test(email.value.trim())) {
     errors.email = 'Veuillez entrer un email valide'
-    isValid = false
-  }
-
-  if (!isValid) {
     return
   }
 
-  console.log('Code envoyé à:', email.value)
-  forgotStep.value = 2
+  try {
+    await api.post('/auth/forgot-password', {
+      email: email.value.trim().toLowerCase()
+    })
+    forgotStep.value = 2
+  } catch (err) {
+    errors.email = 'Une erreur est survenue, réessayez.'
+  }
 }
 
 // retour étape précédente
@@ -96,11 +103,11 @@ const verifyCode = () => {
 }
 
 // réinitialiser le mot de passe
-const resetPassword = () => {
+const resetPassword = async () => {
   clearErrors()
   let isValid = true
 
-  if (newPassword.value.trim() === '') {
+  if (!newPassword.value.trim()) {
     errors.newPassword = 'Nouveau mot de passe obligatoire'
     isValid = false
   } else if (newPassword.value.length < 8) {
@@ -108,7 +115,7 @@ const resetPassword = () => {
     isValid = false
   }
 
-  if (confirmPassword.value.trim() === '') {
+  if (!confirmPassword.value.trim()) {
     errors.confirmPassword = 'Veuillez confirmer le mot de passe'
     isValid = false
   } else if (newPassword.value !== confirmPassword.value) {
@@ -116,14 +123,23 @@ const resetPassword = () => {
     isValid = false
   }
 
-  if (!isValid) {
+  if (!isValid) return
+  const token = route.query.token
+
+  if (!token) {
+    errors.newPassword = 'Token manquant. Utilisez le lien reçu par email.'
     return
   }
-
-  console.log('Email:', email.value)
-  console.log('Nouveau mot de passe:', newPassword.value)
-
-  forgotStep.value = 4
+ try {
+    await api.post('/auth/reset-password', {
+      token:    token,
+      password: newPassword.value
+    })
+    forgotStep.value = 4
+  } catch (err) {
+    errors.newPassword =
+      err.response?.data?.message || 'Token invalide ou expiré'
+  }
 }
 
 const router = useRouter()
@@ -139,7 +155,7 @@ function goToLogin() {
     <section class="left-panel">
       <div class="left-top">
         <div class="logo">
-          <div class="logo-icon">P</div>
+          <img :src="logo" alt="Portfy" class="logo-img">
           <span class="logo-name">Portfy</span>
         </div>
 
@@ -150,11 +166,14 @@ function goToLogin() {
       </div>
 
       <div class="headline">
-        <h1>
-          <span class="line-white">Votre profil.</span>
-          <span class="line-gold">Validé.</span>
-          <span class="line-white">Certifié.</span>
-        </h1>
+        <div class="headline-content">
+          <h1>
+            <span class="line-white">Votre profil.</span>
+            <span class="line-gold">Validé.</span>
+            <span class="line-white">Certifié.</span>
+          </h1>
+          <img :src="PHOTOPF" alt="Portfolio illustration" class="hero-img">
+        </div>
       </div>
 
       <div class="stats-footer">
@@ -208,10 +227,11 @@ function goToLogin() {
         <!-- STEP 1 -->
         <div v-if="forgotStep === 1">
           <div class="forgot-header">
-            <h2>Mot de passe oublié</h2>
+            <h2>Email envoyé !</h2>
             <p>
-              Entrez l’adresse e-mail liée à votre compte.
-              Nous vous enverrons un code de vérification.
+              Un lien de réinitialisation a été envoyé à
+              <strong>{{ email }}</strong>.
+              Cliquez sur le lien dans votre email pour continuer.
             </p>
           </div>
 
@@ -253,7 +273,7 @@ function goToLogin() {
         <!-- STEP 2 -->
         <div v-if="forgotStep === 2">
           <div class="forgot-header">
-            <h2>Vérification OTP</h2>
+            <h2>Email envoyé !</h2>
             <p>
               Un code à 6 chiffres a été envoyé à
               <strong>votre adresse e-mail</strong>

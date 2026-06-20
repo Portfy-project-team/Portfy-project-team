@@ -133,10 +133,15 @@ export const createProject = async (
 ) => {
   //cette fct cherche etudiant , recupere son portfolio , cree un portfolio s'il n'existe pas 
   const { portfolio } = await getStudentWithPortfolio(userId);
+  
+  const { github, demo, ...rest } = data as any;
+
   //sert a inserer une nouvelle ligne dans la db 
   return prisma.projet.create({
     data: { //donnees a enrregistrer 
-      ...data, // copie tous les champs de data 
+      ...rest, // copie tous les champs de data 
+      githubLink: github || rest.githubLink,
+      youtubeLink: demo || rest.youtubeLink,
       portfolioId: portfolio.id,
       statusV: "PENDING",
       dateSoumission: null,
@@ -200,10 +205,16 @@ export const updateProject = async (
     throw new ProjectError("Un projet validé ne peut pas être modifié", 400);
   }
 
+  const { github, demo, ...rest } = data as any;
+
   // update DB 
   return prisma.projet.update({
     where: { id: projectId }, // quel projet modifier 
-    data, // nouvelle valeur 
+    data: {
+      ...rest,
+      githubLink: github !== undefined ? github : rest.githubLink,
+      youtubeLink: demo !== undefined ? demo : rest.youtubeLink,
+    },
   });
 };
 

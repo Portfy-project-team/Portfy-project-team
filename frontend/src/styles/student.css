@@ -20,11 +20,11 @@
 
 /* ============================================
    SIDEBAR
-   ============================================ */
+   ============================================ 
 .student-sidebar {
   width: 220px;
   min-height: 100vh;
-  background: #082a47;
+  background: #134351;
   color: white;
   transition: width 0.3s ease;
   overflow-y: auto;
@@ -37,8 +37,8 @@
 }
 
 .sidebar-header {
-  height: 60px;
-  padding: 12px 18px;
+  height: 100px;
+  padding: 5px 5px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -50,24 +50,6 @@
   gap: 8px;
 }
 
-.logo-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: 2px solid white;
-  color: #f3aa1c;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 14px;
-}
-
-.logo-text {
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: -0.3px;
-}
 
 .toggle-btn {
   width: 22px;
@@ -97,14 +79,13 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #f0a91f;
-  color: #082a47;
+  background: #e5b230;
+  color: #fff;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
-  font-size: 13px;
-  flex-shrink: 0;
+  font-size: 0.8rem;
 }
 
 .user-info h3 {
@@ -132,7 +113,7 @@
 }
 
 .score-card strong {
-  color: #f0a91f;
+  color: #e5b230;
   font-size: 13px;
 }
 
@@ -198,11 +179,11 @@
   padding: 0;
   font-weight: 700;
 }
-
+*/
 /* ============================================
    TOPBAR
    ============================================ */
-.topbar {
+/*.topbar {
   height: 60px;
   background: #ffffff;
   border-bottom: 1px solid #e5e7eb;
@@ -213,11 +194,11 @@
   width: 100%;
 }
 
-.topbar-title {
-  margin: 0;
-  font-size: 19px;
-  font-weight: 800;
-  color: #050505;
+.topbar-title { 
+  font-size: 1.3rem; 
+  font-weight: 700; 
+  color: #0f172a; 
+  margin: 0; 
 }
 
 .topbar-actions {
@@ -227,23 +208,22 @@
 }
 
 .search-box {
-  width: 240px;
-  height: 34px;
-  border: 1px solid #e1e5ea;
-  border-radius: 999px;
-  background: #f8f9fb;
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
+  display: flex; 
+  align-items: center; 
+  background: #f8f9fb; 
+  border: 1px solid #e2e8f0; 
+  border-radius: 8px; 
+  padding: 8px 14px; 
+  gap: 8px; 
 }
 
 .search-box input {
-  width: 100%;
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 13px;
-  color: #333;
+  border: none; 
+  background: transparent; 
+  outline: none; 
+  font-size: 0.875rem; 
+  width: 180px; 
+  color: #0f172a;
 }
 
 .search-box input::placeholder {
@@ -281,7 +261,7 @@
   font-weight: 800;
   cursor: pointer;
 }
-
+*/
 /* ============================================
    STAT CARD (composant)
    ============================================ */

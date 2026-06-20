@@ -1,0 +1,33 @@
+{
+  "stages": [
+    {
+      "id": 1,
+      "company": "OCP Group",
+      "position": "Développeur Full Stack Stagiaire",
+      "location": "Casablanca, Maroc",
+      "period": "Juillet 2024 à Août 2024",
+      "duration": "2 mois",
+      "status": "Valide",
+      "iconColor": "cream",
+      "missions": ["Développement application", "Intégration API", "Tests automatisés"],
+      "technologies": ["React", "Node.js", "PostgreSQL", "Docker"],
+      "companySupervisor": "M. Hassan Benjelloun",
+      "academicSupervisor": "Pr. Benali",
+      "validationMessage": "Rapport approuvé"
+    },
+    {
+      "id": 2,
+      "company": "Softline Group",
+      "position": "Junior DevOps Engineer",
+      "location": "Rabat, Maroc",
+      "period": "Mars 2025 à Avril 2025",
+      "duration": "2 mois",
+      "status": "En attente",
+      "iconColor": "blue",
+      "missions": ["Deployment automation", "CI/CD pipeline", "Infrastructure monitoring"],
+      "technologies": ["Kubernetes", "Jenkins", "AWS"],
+      "companySupervisor": "Mlle. Sophia Martin",
+      "academicSupervisor": "Pr. Idrissi"
+    }
+  ]
+}

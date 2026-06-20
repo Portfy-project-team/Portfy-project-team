@@ -103,29 +103,26 @@ security:trivy-postgres:
   
   before_script:
     - echo " SCAN TRIVY - PostgreSQL"
-    - echo "Type: $SCAN_TYPE"
-    - echo "Image: $IMAGE_NAME"
-    - echo "Sévérité: $TRIVY_SEVERITY"
+    - echo "Type  $SCAN_TYPE"
+    - echo "Image  $IMAGE_NAME"
+    - echo "Sévérité  $TRIVY_SEVERITY"
   
   script:
-    # Télécharger la base de données CVE (si pas en cache)
     - echo "Mise à jour de la base de données CVE..."
     - trivy image --download-db-only
-    
-    # Scanner l'image PostgreSQL
     - echo " Scan en cours..."
-    - trivy image 
-        --severity $TRIVY_SEVERITY 
-        --exit-code $TRIVY_EXIT_CODE 
-        --format $TRIVY_FORMAT
-        --timeout $TRIVY_TIMEOUT
-        --output trivy-postgres-scan.txt
+    - |
+      trivy image \
+        --severity $TRIVY_SEVERITY \
+        --exit-code $TRIVY_EXIT_CODE \
+        --format $TRIVY_FORMAT \
+        --timeout $TRIVY_TIMEOUT \
+        --output trivy-postgres-scan.txt \
         $IMAGE_NAME
     
-    - echo " PostgreSQL $IMAGE_NAME : Aucune vulnérabilité CRITICAL/HIGH"
-  
+      - echo " PostgreSQL $IMAGE_NAME : Aucune vulnérabilité CRITICAL/HIGH" 
   after_script:
-    - echo "Rapport sauvegardé : trivy-postgres-scan.txt"
+     - echo "Rapport sauvegardé trivy-postgres-scan.txt"
   
   allow_failure: false #en cas de vulnerabilites la pipeline est bloque
   
@@ -160,10 +157,10 @@ security:trivy-backend:
     SCAN_TYPE: "Backend Code (npm)"
   
   before_script:
-    - echo "SCAN TRIVY - Backend"
-    - echo "Type: $SCAN_TYPE"
-    - echo "Path: $SCAN_PATH"
-    - echo "Sévérité: $TRIVY_SEVERITY"
+  - "echo SCAN_TRIVY_POSTGRESQL"
+  - "echo $SCAN_TYPE"
+  - "echo $IMAGE_NAME"
+  - "echo $TRIVY_SEVERITY"
   
   script:
     # Vérifier que le dossier existe
@@ -184,20 +181,21 @@ security:trivy-backend:
     
     # Scanner le code backend
     - echo "Scan du code backend..."
-    - trivy fs 
-        --severity $TRIVY_SEVERITY 
-        --exit-code $TRIVY_EXIT_CODE 
-        --format $TRIVY_FORMAT
-        --timeout $TRIVY_TIMEOUT
-        --output trivy-backend-scan.txt
-        $SCAN_PATH
+    - |
+        trivy fs \
+          --severity $TRIVY_SEVERITY \
+          --exit-code $TRIVY_EXIT_CODE \
+          --format $TRIVY_FORMAT \
+          --timeout $TRIVY_TIMEOUT \
+          --output trivy-backend-scan.txt \
+          $SCAN_PATH
     
     # Afficher le résultat
     - cat trivy-backend-scan.txt
-    - echo "Backend : Aucune vulnérabilité CRITICAL/HIGH"
+    - echo "Backend  Aucune vulnérabilité CRITICAL/HIGH"
   
   after_script:
-    - echo "Rapport sauvegardé : trivy-backend-scan.txt"
+    - echo "Rapport sauvegardé trivy-backend-scan.txt"
   
   allow_failure: false
   
@@ -229,9 +227,9 @@ security:trivy-frontend:
   
   before_script:
     - echo " SCAN TRIVY - Frontend"
-    - echo "Type: $SCAN_TYPE"
-    - echo "Path: $SCAN_PATH"
-    - echo "Sévérité: $TRIVY_SEVERITY"
+    - echo "Type  $SCAN_TYPE"
+    - echo "Path  $SCAN_PATH"
+    - echo "Sévérité $TRIVY_SEVERITY"
   
   script:
     # Vérifier que le dossier existe
@@ -252,20 +250,21 @@ security:trivy-frontend:
     
     # Scanner le code frontend
     - echo "Scan du code frontend..."
-    - trivy fs 
-        --severity $TRIVY_SEVERITY 
-        --exit-code $TRIVY_EXIT_CODE 
-        --format $TRIVY_FORMAT
-        --timeout $TRIVY_TIMEOUT
-        --output trivy-frontend-scan.txt
-        $SCAN_PATH
+    - |
+        trivy fs \
+          --severity $TRIVY_SEVERITY \
+          --exit-code $TRIVY_EXIT_CODE \
+          --format $TRIVY_FORMAT \
+          --timeout $TRIVY_TIMEOUT \
+          --output trivy-frontend-scan.txt \
+          $SCAN_PATH
     
     # Afficher le résultat
     - cat trivy-frontend-scan.txt
-    - echo "Frontend : Aucune vulnérabilité CRITICAL/HIGH"
+    - echo "Frontend  Aucune vulnérabilité CRITICAL/HIGH"
   
   after_script:
-    - echo "Rapport sauvegardé : trivy-frontend-scan.txt"
+    - echo "Rapport sauvegardé  trivy-frontend-scan.txt"
   
   allow_failure: false
   
@@ -300,7 +299,7 @@ security:secrets-scan:
   
   before_script:
     - echo "SCAN SECRETS - TruffleHog"
-    - echo "Type: $SCAN_TYPE"
+    - echo "Type  $SCAN_TYPE"
   
   script:
     - echo "Scan des secrets exposés..."
@@ -330,7 +329,7 @@ security:secrets-scan:
       fi
   
   after_script:
-    - echo " Rapport sauvegardé : secrets-report.json"
+    - echo " Rapport sauvegardé  secrets-report.json"
   
   # CRITIQUE : Bloque le pipeline si secrets trouvés
   allow_failure: false
@@ -570,7 +569,7 @@ security:summary:
     - echo "Rapports disponibles dans les artifacts"
     - echo "════════════════════════════════════════════════════════"
     - echo ""
-    - echo "Pipeline sécurité : SUCCÈS"
+    - echo "Pipeline sécurité SUCCÈS"
     - echo ""
   
   # S'exécute SEULEMENT si tous les jobs précédents ont réussi

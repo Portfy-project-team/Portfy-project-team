@@ -1,0 +1,46 @@
+{
+  "competences": [
+    {
+      "id": 1,
+      "name": "React.js",
+      "category": "Technique",
+      "level": 85,
+      "source": "Projets académiques"
+    },
+    {
+      "id": 2,
+      "name": "Node.js",
+      "category": "Technique",
+      "level": 78,
+      "source": "Stages"
+    },
+    {
+      "id": 3,
+      "name": "Leadership",
+      "category": "Soft Skill",
+      "level": 72,
+      "source": "Club de programmation"
+    },
+    {
+      "id": 4,
+      "name": "Français",
+      "category": "Langue",
+      "level": 95,
+      "source": "Natif"
+    },
+    {
+      "id": 5,
+      "name": "English",
+      "category": "Langue",
+      "level": 82,
+      "source": "TOEFL"
+    },
+    {
+      "id": 6,
+      "name": "Docker",
+      "category": "Technique",
+      "level": 68,
+      "source": "Formation"
+    }
+  ]
+}

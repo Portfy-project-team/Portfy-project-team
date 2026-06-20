@@ -3,7 +3,8 @@
     "target": "ES2020",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "rootDir": "./src",
+    "jsx": "react-jsx",
+    "rootDir": ".",
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
@@ -11,17 +12,13 @@
     "skipLibCheck": true,
     "types": ["jest", "node"]
   },
-// "include": ["src/**/*", "src/types/**/*.d.ts"],
   "include": [
     "src/**/*",
-    "src/types/**/*.d.ts",
-    "tests/**/*"
+    "src/types/**/*.d.ts"
   ],
-  // "exclude": ["node_modules", "dist","tests"]
-  "exclude": ["node_modules", "dist"]
-
-  // "include": ["src/**/*", "src/types/**/*.d.ts"],
-  // "exclude": ["node_modules", "dist","tests",
-  //   "**/*.test.ts"]
-
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests"
+  ]
 }

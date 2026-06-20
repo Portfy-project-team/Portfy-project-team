@@ -4,7 +4,7 @@
     <aside class="left-panel">
       <div class="left-top">
         <div class="logo">
-          <span class="logo-icon">P</span>
+          <img :src="logo" alt="Portfy" class="logo-img">
           <span class="logo-name">Portfy</span>
         </div>
  
@@ -15,13 +15,16 @@
       </div>
  
       <div class="headline">
-        <h1>
-          <span class="line-white">Votre profil.</span>
-          <span class="line-gold">Validé.</span>
-          <span class="line-white">Certifié.</span>
-        </h1>
+       <div class="headline-content">
+          <h1>
+            <span class="line-white">Votre profil.</span>
+            <span class="line-gold">Validé.</span>
+            <span class="line-white">Certifié.</span>
+          </h1>
+          <img :src="PHOTOPF" alt="Portfolio illustration" class="hero-img">
+        </div>
       </div>
- 
+
       <footer class="stats-footer">
         <div class="stat">
           <span class="stat-value">2 400+</span>
@@ -66,11 +69,11 @@
         <!-- Form Header -->
         <div class="form-header">
           <h2>Bon retour</h2>
-          <p>Connectez-vous à votre espace étudiant Portfy.</p>
+          <p>Connectez-vous à votre espace Portfy.</p>
         </div>
  
         <!-- Form -->
-        <form class="auth-form" @submit.prevent="handleLogin" novalidate>
+        <form class="auth-form login-form" @submit.prevent="handleLogin" novalidate>
           <div class="field-group">
             <label for="email">Adresse E-mail</label>
             <div class="input-wrapper">
@@ -142,7 +145,7 @@
         <div class="form-footer">
           <p class="no-account">
             Pas de compte ?
-            <router-link to="/register" class="inline-link">Continuer quand même</router-link>
+            <router-link to="/register" class="inline-link">Créer un compte</router-link>
           </p>
           <p class="security-note">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -157,11 +160,13 @@
 </template>
 
 <script setup>
-import { useAuthStore } from '../../store/authStore'
+import { useAuthStore, api } from '../../store/authStore.js'
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import '../../styles/auth.css' // 👈 مهم
-import axios from 'axios'
+import '../../styles/auth.css'
+
+import PHOTOPF from '../../assets/PHOTOPF.png'
+import logo from '../../assets/logo.png'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -211,26 +216,23 @@ async function handleLogin() {
 
   isLoading.value = true
   try {
-    // simulate API
-    const res = await axios.post("http://localhost:3000/api/auth/login", {
-    email: form.email,
-    password : form.password
-  } )
+    const response = await api.post('/auth/login', {
+      email:    form.email,
+      password: form.password,
+    })
 
-    const response = res.json();
-    console.log(response)
+    const user = response.data.user
+    authStore.login(user)
 
-
-    const fakeUser = {
-      email: form.email
-    }
-
-    authStore.login(fakeUser)
-
-    router.push('/student/dashboard')
+    // Redirection selon le rôle
+    if (user.role === 'PROF')         router.push('/professor/dashboard')
+    else if (user.role === 'STUDENT') router.push('/student/dashboard')
+    else if (user.role === 'PRO')     router.push('/pro/dashboard')
+    else if (user.role === 'ADMIN')   router.push('/admin/dashboard')
+    else                              router.push('/dashboard')
 
   } catch (err) {
-    serverError.value = "Identifiants incorrects."
+    serverError.value = err.response?.data?.message ?? 'Identifiants incorrects.'
   } finally {
     isLoading.value = false
   }
