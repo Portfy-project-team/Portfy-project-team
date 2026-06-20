@@ -43,17 +43,19 @@ export default [
 
   // Configuration Cypress pour les tests
   {
-    files: ["cypress/**/*.js"],
-    languageOptions: {
-      globals: {
-        cy: "readonly",
-        describe: "readonly",
-        it: "readonly",
-        before: "readonly",
-        beforeEach: "readonly",
-        after: "readonly",
-        afterEach: "readonly"
-      }
+  files: ["cypress/**/*.js"],
+  languageOptions: {
+    globals: {
+      cy: "readonly",
+      describe: "readonly",
+      it: "readonly",
+      before: "readonly",
+      beforeEach: "readonly",
+      after: "readonly",
+      afterEach: "readonly",
+      require: "readonly",
+      module: "readonly"
     }
   }
+}
 ];
