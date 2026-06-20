@@ -1,0 +1,33 @@
+{
+  "professor": {
+    "email": "professor@test.com",
+    "password": "password123",
+    "firstName": "Ahmed",
+    "lastName": "Benali",
+    "role": "professor",
+    "department": "Informatique",
+    "courses": ["Algorithmique", "Base de données", "Développement Web"]
+  },
+  "professorInvalid": {
+    "email": "professor@test.com",
+    "password": "wrongpassword"
+  },
+  "professorUnknown": {
+    "email": "inconnu@test.com",
+    "password": "password123"
+  },
+  "admin": {
+    "email": "admin@test.com",
+    "password": "admin123",
+    "firstName": "Sara",
+    "lastName": "El Mansouri",
+    "role": "admin"
+  },
+  "student": {
+    "email": "student@test.com",
+    "password": "student123",
+    "firstName": "Youssef",
+    "lastName": "Khalil",
+    "role": "student"
+  }
+}

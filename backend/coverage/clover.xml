@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1778295396865" clover="3.2.0">
+  <project timestamp="1778295396865" name="All files">
+    <metrics statements="304" coveredstatements="220" conditionals="124" coveredconditionals="74" methods="33" coveredmethods="21" elements="461" coveredelements="315" complexity="0" loc="304" ncloc="304" packages="4" files="9" classes="9"/>
+    <package name="src">
+      <metrics statements="27" coveredstatements="24" conditionals="8" coveredconditionals="4" methods="2" coveredmethods="0"/>
+      <file name="index.ts" path="C:\Users\zBook\Portfy-project-team\backend\src\index.ts">
+        <metrics statements="27" coveredstatements="24" conditionals="8" coveredconditionals="4" methods="2" coveredmethods="0"/>
+        <line num="1" count="9" type="stmt"/>
+        <line num="2" count="9" type="stmt"/>
+        <line num="3" count="9" type="stmt"/>
+        <line num="4" count="9" type="stmt"/>
+        <line num="5" count="9" type="stmt"/>
+        <line num="6" count="9" type="stmt"/>
+        <line num="7" count="9" type="stmt"/>
+        <line num="9" count="9" type="stmt"/>
+        <line num="11" count="9" type="stmt"/>
+        <line num="12" count="9" type="stmt"/>
+        <line num="13" count="9" type="stmt"/>
+        <line num="18" count="9" type="stmt"/>
+        <line num="21" count="9" type="stmt"/>
+        <line num="35" count="9" type="cond" truecount="2" falsecount="0"/>
+        <line num="36" count="9" type="stmt"/>
+        <line num="44" count="9" type="stmt"/>
+        <line num="45" count="9" type="stmt"/>
+        <line num="46" count="9" type="stmt"/>
+        <line num="49" count="9" type="stmt"/>
+        <line num="58" count="9" type="cond" truecount="2" falsecount="2"/>
+        <line num="59" count="0" type="stmt"/>
+        <line num="62" count="9" type="stmt"/>
+        <line num="65" count="9" type="stmt"/>
+        <line num="66" count="0" type="stmt"/>
+        <line num="74" count="9" type="stmt"/>
+        <line num="75" count="0" type="stmt"/>
+        <line num="78" count="9" type="stmt"/>
+      </file>
+    </package>
+    <package name="src.middlewares">
+      <metrics statements="21" coveredstatements="13" conditionals="8" coveredconditionals="3" methods="3" coveredmethods="1"/>
+      <file name="auth.middleware.ts" path="C:\Users\zBook\Portfy-project-team\backend\src\middlewares\auth.middleware.ts">
+        <metrics statements="21" coveredstatements="13" conditionals="8" coveredconditionals="3" methods="3" coveredmethods="1"/>
+        <line num="3" count="9" type="stmt"/>
+        <line num="6" count="9" type="stmt"/>
+        <line num="8" count="9" type="cond" truecount="1" falsecount="1"/>
+        <line num="9" count="0" type="stmt"/>
+        <line num="26" count="9" type="stmt"/>
+        <line num="33" count="5" type="stmt"/>
+        <line num="35" count="5" type="cond" truecount="2" falsecount="0"/>
+        <line num="36" count="1" type="stmt"/>
+        <line num="37" count="1" type="stmt"/>
+        <line num="40" count="4" type="stmt"/>
+        <line num="41" count="4" type="stmt"/>
+        <line num="46" count="4" type="stmt"/>
+        <line num="51" count="4" type="stmt"/>
+        <line num="54" count="0" type="stmt"/>
+        <line num="55" count="0" type="stmt"/>
+        <line num="62" count="9" type="stmt"/>
+        <line num="63" count="0" type="stmt"/>
+        <line num="64" count="0" type="cond" truecount="0" falsecount="4"/>
+        <line num="66" count="0" type="stmt"/>
+        <line num="67" count="0" type="stmt"/>
+        <line num="69" count="0" type="stmt"/>
+      </file>
+    </package>
+    <package name="src.modules.auth">
+      <metrics statements="224" coveredstatements="157" conditionals="92" coveredconditionals="54" methods="22" coveredmethods="17"/>
+      <file name="auth.controller.ts" path="C:\Users\zBook\Portfy-project-team\backend\src\modules\auth\auth.controller.ts">
+        <metrics statements="88" coveredstatements="67" conditionals="24" coveredconditionals="15" methods="11" coveredmethods="8"/>
+        <line num="2" count="9" type="stmt"/>
+        <line num="8" count="9" type="stmt"/>
+        <line num="20" count="9" type="stmt"/>
+        <line num="28" count="9" type="stmt"/>
+        <line num="36" count="9" type="stmt"/>
+        <line num="47" count="5" type="cond" truecount="1" falsecount="1"/>
+        <line num="48" count="5" type="stmt"/>
+        <line num="49" count="5" type="cond" truecount="1" falsecount="1"/>
+        <line num="50" count="5" type="stmt"/>
+        <line num="51" count="5" type="stmt"/>
+        <line num="54" count="0" type="stmt"/>
+        <line num="55" count="0" type="stmt"/>
+        <line num="59" count="9" type="stmt"/>
+        <line num="63" count="16" type="stmt"/>
+        <line num="65" count="16" type="cond" truecount="2" falsecount="0"/>
+        <line num="66" count="5" type="stmt"/>
+        <line num="70" count="5" type="stmt"/>
+        <line num="73" count="11" type="stmt"/>
+        <line num="74" count="11" type="stmt"/>
+        <line num="76" count="10" type="stmt"/>
+        <line num="77" count="0" type="stmt"/>
+        <line num="80" count="10" type="stmt"/>
+        <line num="85" count="1" type="stmt"/>
+        <line num="90" count="9" type="stmt"/>
+        <line num="94" count="9" type="stmt"/>
+        <line num="96" count="9" type="cond" truecount="1" falsecount="1"/>
+        <line num="97" count="0" type="stmt"/>
+        <line num="98" count="0" type="stmt"/>
+        <line num="101" count="9" type="stmt"/>
+        <line num="102" count="9" type="stmt"/>
+        <line num="107" count="6" type="stmt"/>
+        <line num="108" count="6" type="stmt"/>
+        <line num="110" count="6" type="stmt"/>
+        <line num="115" count="3" type="stmt"/>
+        <line num="120" count="9" type="stmt"/>
+        <line num="124" count="2" type="stmt"/>
+        <line num="126" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="127" count="1" type="stmt"/>
+        <line num="128" count="1" type="stmt"/>
+        <line num="131" count="1" type="stmt"/>
+        <line num="132" count="1" type="stmt"/>
+        <line num="133" count="1" type="stmt"/>
+        <line num="134" count="1" type="stmt"/>
+        <line num="136" count="0" type="stmt"/>
+        <line num="141" count="9" type="stmt"/>
+        <line num="145" count="4" type="stmt"/>
+        <line num="147" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="148" count="4" type="stmt"/>
+        <line num="152" count="0" type="stmt"/>
+        <line num="156" count="4" type="stmt"/>
+        <line num="157" count="4" type="stmt"/>
+        <line num="159" count="4" type="stmt"/>
+        <line num="163" count="9" type="stmt"/>
+        <line num="167" count="2" type="stmt"/>
+        <line num="169" count="2" type="cond" truecount="4" falsecount="0"/>
+        <line num="170" count="1" type="stmt"/>
+        <line num="171" count="1" type="stmt"/>
+        <line num="174" count="1" type="stmt"/>
+        <line num="175" count="1" type="stmt"/>
+        <line num="176" count="0" type="stmt"/>
+        <line num="180" count="1" type="stmt"/>
+        <line num="185" count="9" type="stmt"/>
+        <line num="189" count="0" type="stmt"/>
+        <line num="191" count="0" type="cond" truecount="0" falsecount="4"/>
+        <line num="192" count="0" type="stmt"/>
+        <line num="193" count="0" type="stmt"/>
+        <line num="196" count="0" type="stmt"/>
+        <line num="197" count="0" type="stmt"/>
+        <line num="198" count="0" type="stmt"/>
+        <line num="202" count="0" type="stmt"/>
+        <line num="207" count="9" type="stmt"/>
+        <line num="211" count="4" type="stmt"/>
+        <line num="215" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="216" count="2" type="stmt"/>
+        <line num="219" count="2" type="stmt"/>
+        <line num="222" count="2" type="stmt"/>
+        <line num="223" count="2" type="stmt"/>
+        <line num="224" count="2" type="stmt"/>
+        <line num="228" count="0" type="stmt"/>
+        <line num="233" count="9" type="stmt"/>
+        <line num="237" count="4" type="stmt"/>
+        <line num="239" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="240" count="4" type="stmt"/>
+        <line num="244" count="4" type="stmt"/>
+        <line num="247" count="0" type="stmt"/>
+        <line num="248" count="0" type="stmt"/>
+        <line num="249" count="0" type="stmt"/>
+        <line num="253" count="0" type="stmt"/>
+      </file>
+      <file name="auth.routes.ts" path="C:\Users\zBook\Portfy-project-team\backend\src\modules\auth\auth.routes.ts">
+        <metrics statements="26" coveredstatements="26" conditionals="12" coveredconditionals="6" methods="0" coveredmethods="0"/>
+        <line num="1" count="9" type="stmt"/>
+        <line num="3" count="9" type="stmt"/>
+        <line num="4" count="9" type="stmt"/>
+        <line num="14" count="9" type="stmt"/>
+        <line num="17" count="9" type="stmt"/>
+        <line num="19" count="9" type="stmt"/>
+        <line num="20" count="9" type="stmt"/>
+        <line num="22" count="9" type="stmt"/>
+        <line num="31" count="9" type="stmt"/>
+        <line num="39" count="9" type="stmt"/>
+        <line num="49" count="9" type="stmt"/>
+        <line num="58" count="9" type="stmt"/>
+        <line num="66" count="9" type="stmt"/>
+        <line num="75" count="9" type="stmt"/>
+        <line num="83" count="9" type="cond" truecount="2" falsecount="2"/>
+        <line num="87" count="9" type="cond" truecount="2" falsecount="2"/>
+        <line num="91" count="9" type="cond" truecount="2" falsecount="2"/>
+        <line num="96" count="9" type="stmt"/>
+        <line num="97" count="9" type="stmt"/>
+        <line num="98" count="9" type="stmt"/>
+        <line num="104" count="9" type="stmt"/>
+        <line num="105" count="9" type="stmt"/>
+        <line num="106" count="9" type="stmt"/>
+        <line num="107" count="9" type="stmt"/>
+        <line num="113" count="9" type="stmt"/>
+        <line num="117" count="9" type="stmt"/>
+      </file>
+      <file name="auth.service.ts" path="C:\Users\zBook\Portfy-project-team\backend\src\modules\auth\auth.service.ts">
+        <metrics statements="103" coveredstatements="57" conditionals="56" coveredconditionals="33" methods="10" coveredmethods="8"/>
+        <line num="1" count="9" type="stmt"/>
+        <line num="2" count="9" type="stmt"/>
+        <line num="4" count="9" type="stmt"/>
+        <line num="10" count="9" type="stmt"/>
+        <line num="11" count="9" type="stmt"/>
+        <line num="13" count="9" type="stmt"/>
+        <line num="16" count="9" type="stmt"/>
+        <line num="19" count="9" type="stmt"/>
+        <line num="20" count="11" type="stmt"/>
+        <line num="22" count="11" type="stmt"/>
+        <line num="24" count="11" type="stmt"/>
+        <line num="29" count="11" type="cond" truecount="2" falsecount="0"/>
+        <line num="30" count="1" type="stmt"/>
+        <line num="31" count="1" type="stmt"/>
+        <line num="32" count="1" type="stmt"/>
+        <line num="35" count="10" type="stmt"/>
+        <line num="36" count="10" type="stmt"/>
+        <line num="55" count="9" type="stmt"/>
+        <line num="59" count="9" type="stmt"/>
+        <line num="61" count="9" type="stmt"/>
+        <line num="72" count="9" type="stmt"/>
+        <line num="77" count="9" type="cond" truecount="4" falsecount="0"/>
+        <line num="78" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="79" count="1" type="stmt"/>
+        <line num="88" count="3" type="stmt"/>
+        <line num="89" count="3" type="stmt"/>
+        <line num="90" count="3" type="stmt"/>
+        <line num="101" count="6" type="cond" truecount="1" falsecount="1"/>
+        <line num="105" count="6" type="cond" truecount="1" falsecount="1"/>
+        <line num="106" count="0" type="stmt"/>
+        <line num="109" count="0" type="stmt"/>
+        <line num="110" count="0" type="stmt"/>
+        <line num="114" count="6" type="cond" truecount="1" falsecount="1"/>
+        <line num="115" count="0" type="stmt"/>
+        <line num="119" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="120" count="0" type="stmt"/>
+        <line num="123" count="0" type="stmt"/>
+        <line num="124" count="0" type="stmt"/>
+        <line num="128" count="6" type="stmt"/>
+        <line num="129" count="6" type="stmt"/>
+        <line num="131" count="6" type="stmt"/>
+        <line num="149" count="6" type="stmt"/>
+        <line num="157" count="9" type="stmt"/>
+        <line num="158" count="1" type="stmt"/>
+        <line num="162" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="163" count="0" type="stmt"/>
+        <line num="164" count="0" type="stmt"/>
+        <line num="165" count="0" type="stmt"/>
+        <line num="168" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="169" count="0" type="stmt"/>
+        <line num="170" count="0" type="stmt"/>
+        <line num="171" count="0" type="stmt"/>
+        <line num="172" count="0" type="stmt"/>
+        <line num="175" count="1" type="stmt"/>
+        <line num="177" count="1" type="stmt"/>
+        <line num="183" count="9" type="stmt"/>
+        <line num="188" count="4" type="stmt"/>
+        <line num="192" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="193" count="4" type="stmt"/>
+        <line num="205" count="4" type="stmt"/>
+        <line num="209" count="9" type="stmt"/>
+        <line num="213" count="10" type="cond" truecount="1" falsecount="1"/>
+        <line num="214" count="0" type="stmt"/>
+        <line num="215" count="0" type="stmt"/>
+        <line num="220" count="0" type="stmt"/>
+        <line num="228" count="0" type="stmt"/>
+        <line num="229" count="0" type="stmt"/>
+        <line num="231" count="0" type="stmt"/>
+        <line num="235" count="9" type="stmt"/>
+        <line num="236" count="0" type="stmt"/>
+        <line num="241" count="0" type="cond" truecount="0" falsecount="4"/>
+        <line num="243" count="0" type="stmt"/>
+        <line num="247" count="9" type="stmt"/>
+        <line num="248" count="1" type="cond" truecount="3" falsecount="1"/>
+        <line num="249" count="1" type="stmt"/>
+        <line num="250" count="1" type="stmt"/>
+        <line num="251" count="1" type="stmt"/>
+        <line num="254" count="0" type="stmt"/>
+        <line num="259" count="0" type="stmt"/>
+        <line num="268" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="269" count="0" type="stmt"/>
+        <line num="270" count="0" type="stmt"/>
+        <line num="271" count="0" type="stmt"/>
+        <line num="274" count="0" type="stmt"/>
+        <line num="285" count="9" type="stmt"/>
+        <line num="286" count="2" type="stmt"/>
+        <line num="291" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="295" count="0" type="stmt"/>
+        <line num="300" count="0" type="stmt"/>
+        <line num="301" count="0" type="stmt"/>
+        <line num="306" count="0" type="stmt"/>
+        <line num="314" count="0" type="stmt"/>
+        <line num="315" count="0" type="stmt"/>
+        <line num="317" count="0" type="stmt"/>
+        <line num="321" count="9" type="stmt"/>
+        <line num="325" count="0" type="stmt"/>
+        <line num="330" count="0" type="stmt"/>
+        <line num="339" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="340" count="0" type="stmt"/>
+        <line num="341" count="0" type="stmt"/>
+        <line num="342" count="0" type="stmt"/>
+        <line num="345" count="0" type="stmt"/>
+        <line num="347" count="0" type="stmt"/>
+      </file>
+      <file name="auth.validation.ts" path="C:\Users\zBook\Portfy-project-team\backend\src\modules\auth\auth.validation.ts">
+        <metrics statements="7" coveredstatements="7" conditionals="0" coveredconditionals="0" methods="1" coveredmethods="1"/>
+        <line num="1" count="9" type="stmt"/>
+        <line num="3" count="9" type="stmt"/>
+        <line num="20" count="1" type="stmt"/>
+        <line num="27" count="9" type="stmt"/>
+        <line num="42" count="9" type="stmt"/>
+        <line num="46" count="9" type="stmt"/>
+        <line num="57" count="9" type="stmt"/>
+      </file>
+    </package>
+    <package name="src.utils">
+      <metrics statements="32" coveredstatements="26" conditionals="16" coveredconditionals="13" methods="6" coveredmethods="3"/>
+      <file name="jwt.ts" path="C:\Users\zBook\Portfy-project-team\backend\src\utils\jwt.ts">
+        <metrics statements="13" coveredstatements="11" conditionals="4" coveredconditionals="3" methods="3" coveredmethods="3"/>
+        <line num="1" count="9" type="stmt"/>
+        <line num="4" count="9" type="stmt"/>
+        <line num="5" count="9" type="stmt"/>
+        <line num="8" count="9" type="cond" truecount="3" falsecount="1"/>
+        <line num="9" count="0" type="stmt"/>
+        <line num="21" count="9" type="stmt"/>
+        <line num="22" count="7" type="stmt"/>
+        <line num="30" count="9" type="stmt"/>
+        <line num="31" count="6" type="stmt"/>
+        <line num="40" count="9" type="stmt"/>
+        <line num="41" count="1" type="stmt"/>
+        <line num="42" count="1" type="stmt"/>
+        <line num="45" count="0" type="stmt"/>
+      </file>
+      <file name="mailer.ts" path="C:\Users\zBook\Portfy-project-team\backend\src\utils\mailer.ts">
+        <metrics statements="14" coveredstatements="10" conditionals="8" coveredconditionals="7" methods="3" coveredmethods="0"/>
+        <line num="1" count="9" type="stmt"/>
+        <line num="4" count="9" type="stmt"/>
+        <line num="5" count="9" type="stmt"/>
+        <line num="6" count="9" type="stmt"/>
+        <line num="7" count="9" type="stmt"/>
+        <line num="8" count="9" type="cond" truecount="2" falsecount="0"/>
+        <line num="10" count="9" type="cond" truecount="5" falsecount="1"/>
+        <line num="11" count="0" type="stmt"/>
+        <line num="16" count="9" type="stmt"/>
+        <line num="36" count="9" type="stmt"/>
+        <line num="37" count="0" type="stmt"/>
+        <line num="47" count="9" type="stmt"/>
+        <line num="50" count="0" type="stmt"/>
+        <line num="80" count="0" type="stmt"/>
+      </file>
+      <file name="prisma.ts" path="C:\Users\zBook\Portfy-project-team\backend\src\utils\prisma.ts">
+        <metrics statements="5" coveredstatements="5" conditionals="4" coveredconditionals="3" methods="0" coveredmethods="0"/>
+        <line num="1" count="9" type="stmt"/>
+        <line num="3" count="9" type="stmt"/>
+        <line num="7" count="9" type="stmt"/>
+        <line num="11" count="9" type="cond" truecount="1" falsecount="1"/>
+        <line num="12" count="9" type="stmt"/>
+      </file>
+    </package>
+  </project>
+</coverage>

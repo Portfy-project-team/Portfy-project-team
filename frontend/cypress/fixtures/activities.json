@@ -1,0 +1,38 @@
+{
+  "activities": [
+    {
+      "id": 1,
+      "title": "Hackathon UMBP 2024",
+      "role": "Participant - Équipe gagnante",
+      "type": "Hackathon",
+      "typeClass": "type-hackathon",
+      "organisation": "ENSA Tanger",
+      "periode": "Novembre 2024",
+      "description": "Développement d'une application mobile pour gérer les déchets",
+      "status": "Valide",
+      "proofFileName": "hackathon-certificate.pdf"
+    },
+    {
+      "id": 2,
+      "title": "Club de Programmation",
+      "role": "Président",
+      "type": "Club",
+      "typeClass": "type-club",
+      "organisation": "ENSA Tanger",
+      "periode": "2023 - 2025",
+      "description": "Organisation de workshops et événements tech",
+      "status": "En attente",
+      "proofFileName": "club-membership.pdf"
+    },
+    {
+      "id": 3,
+      "title": "Google Cloud Study Jam",
+      "role": "Participant actif",
+      "type": "Evenement",
+      "typeClass": "type-event",
+      "organisation": "Google Developers",
+      "periode": "Septembre 2024",
+      "status": "Valide"
+    }
+  ]
+}

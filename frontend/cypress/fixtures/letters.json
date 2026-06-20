@@ -1,0 +1,33 @@
+{
+  "letters": [
+    {
+      "id": 1,
+      "initials": "PMB",
+      "professor": "Pr. Mohamed Benali",
+      "meta": "ENSA Tanger",
+      "status": "En attente",
+      "visibility": "Privée",
+      "quote": "",
+      "object": "Candidature Master",
+      "date": "",
+      "requestText": "Demande envoyée aujourd'hui - En attente de rédaction",
+      "avatarColor": "yellow",
+      "purpose": "Candidature Master",
+      "message": "Je souhaite une lettre de recommandation pour ma candidature au Master InfoSec"
+    },
+    {
+      "id": 2,
+      "initials": "PI",
+      "professor": "Pr. Abdelhakim Idrissi",
+      "meta": "ENSA Tanger",
+      "status": "Valide",
+      "visibility": "Publique",
+      "quote": "Ahmed est un excellent étudiant...",
+      "object": "Candidature Emploi",
+      "date": "15 janvier 2025",
+      "requestText": "Demande validée le 20 janvier",
+      "avatarColor": "blue",
+      "purpose": "Emploi"
+    }
+  ]
+}

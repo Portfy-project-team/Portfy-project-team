@@ -1,0 +1,942 @@
+// // import request from "supertest";
+// // import app from "../../src/index";
+// // import { prisma } from "../../src/utils/prisma";
+
+// // describe("PUT /api/user/me/profile", () => {
+
+// //   let studentCookies: string[] = [];
+// //   let secondStudentCookies: string[] = [];
+
+// //   beforeAll(async () => {
+
+// //     // STUDENT 1
+// //     const studentEmail = `student${Date.now()}@test.com`;
+
+// //     await request(app)
+// //       .post("/api/auth/register")
+// //       .send({
+// //         email: studentEmail,
+// //         password: "SecurePassword123!!!",
+// //         role: "STUDENT",
+// //       });
+
+// //     await prisma.user.update({
+// //       where: { email: studentEmail },
+// //       data: { isEmailVerified: true },
+// //     });
+
+// //     const studentLogin = await request(app)
+// //       .post("/api/auth/login")
+// //       .send({
+// //         email: studentEmail,
+// //         password: "SecurePassword123!!!",
+// //       });
+
+// //     studentCookies = Array.isArray(studentLogin.headers["set-cookie"])
+// //       ? studentLogin.headers["set-cookie"]
+// //       : [];
+
+// //     // STUDENT 2
+// //     const secondEmail = `second${Date.now()}@test.com`;
+
+// //     await request(app)
+// //       .post("/api/auth/register")
+// //       .send({
+// //         email: secondEmail,
+// //         password: "SecurePassword123!!!",
+// //         role: "STUDENT",
+// //       });
+
+// //     await prisma.user.update({
+// //       where: { email: secondEmail },
+// //       data: { isEmailVerified: true },
+// //     });
+
+// //     const secondLogin = await request(app)
+// //       .post("/api/auth/login")
+// //       .send({
+// //         email: secondEmail,
+// //         password: "SecurePassword123!!!",
+// //       });
+
+// //     secondStudentCookies = Array.isArray(secondLogin.headers["set-cookie"])
+// //       ? secondLogin.headers["set-cookie"]
+// //       : [];
+// //   });
+
+// //   // afterAll(async () => {
+// //   //   const testUsers = await prisma.user.findMany({
+// //   //     where: { email: { contains: "@test.com" } },
+// //   //     select: { id: true },
+// //   //   });
+// //   //   const userIds = testUsers.map((u) => u.id);
+
+// //   //   const students = await prisma.student.findMany({
+// //   //     where: { userId: { in: userIds } },
+// //   //     select: { id: true },
+// //   //   });
+// //   //   const studentIds = students.map((s) => s.id);
+
+// //   //   const portfolios = await prisma.portfolio.findMany({
+// //   //     where: { studentId: { in: studentIds } },
+// //   //     select: { id: true },
+// //   //   });
+// //   //   const portfolioIds = portfolios.map((p) => p.id);
+
+// //   //   // Ordre FK correct : enfants avant parents
+// //   //   await prisma.studentSkill.deleteMany({
+// //   //     where: { student: { userId: { in: userIds } } },
+// //   //   });
+// //   //   await prisma.loginLog.deleteMany({
+// //   //     where: { userId: { in: userIds } },
+// //   //   });
+// //   //   await prisma.passwordResetToken.deleteMany({
+// //   //     where: { userId: { in: userIds } },
+// //   //   });
+// //   //   await prisma.refreshToken.deleteMany({
+// //   //     where: { userId: { in: userIds } },
+// //   //   });
+// //   //   // Stage avant Student
+// //   //   await prisma.stage.deleteMany({
+// //   //     where: { studentId: { in: studentIds } },
+// //   //   });
+// //   //   // Projet avant Portfolio
+// //   //   await prisma.projet.deleteMany({
+// //   //     where: { portfolioId: { in: portfolioIds } },
+// //   //   });
+// //   //   // Portfolio avant Student
+// //   //   await prisma.portfolio.deleteMany({
+// //   //     where: { studentId: { in: studentIds } },
+// //   //   });
+// //   //   await prisma.student.deleteMany({
+// //   //     where: { userId: { in: userIds } },
+// //   //   });
+// //   //   await prisma.skill.deleteMany({
+// //   //     where: { nom: { contains: "React-" } },
+// //   //   });
+// //   //   await prisma.user.deleteMany({
+// //   //     where: { id: { in: userIds } },
+// //   //   });
+
+// //   //   await prisma.$disconnect();
+// //   // });
+// //   afterAll(async () => {
+// //     const testUsers = await prisma.user.findMany({
+// //       where: { email: { contains: "@test.com" } },
+// //       select: { id: true },
+// //     });
+// //     const userIds = testUsers.map((u) => u.id);
+
+// //     const students = await prisma.student.findMany({
+// //       where: { userId: { in: userIds } },
+// //       select: { id: true },
+// //     });
+// //     const studentIds = students.map((s) => s.id);
+
+// //     const portfolios = await prisma.portfolio.findMany({
+// //       where: { studentId: { in: studentIds } },
+// //       select: { id: true },
+// //     });
+// //     const portfolioIds = portfolios.map((p) => p.id);
+
+// //     // Ordre FK correct : enfants avant parents
+// //     await prisma.studentSkill.deleteMany({
+// //       where: { student: { userId: { in: userIds } } },
+// //     });
+// //     await prisma.loginLog.deleteMany({
+// //       where: { userId: { in: userIds } },
+// //     });
+// //     await prisma.passwordResetToken.deleteMany({
+// //       where: { userId: { in: userIds } },
+// //     });
+// //     await prisma.refreshToken.deleteMany({
+// //       where: { userId: { in: userIds } },
+// //     });
+// //     await prisma.stage.deleteMany({
+// //       where: { studentId: { in: studentIds } },
+// //     });
+// //     await prisma.projet.deleteMany({
+// //       where: { portfolioId: { in: portfolioIds } },
+// //     });
+// //     await prisma.portfolio.deleteMany({
+// //       where: { studentId: { in: studentIds } },
+// //     });
+// //     await prisma.student.deleteMany({
+// //       where: { userId: { in: userIds } },
+// //     });
+// //     // Professionnel avant User
+// //     await prisma.professionnel.deleteMany({
+// //       where: { userId: { in: userIds } },
+// //     });
+// //     await prisma.prof.deleteMany({
+// //       where: { userId: { in: userIds } },
+// //     });
+// //     await prisma.admin.deleteMany({
+// //       where: { userId: { in: userIds } },
+// //     });
+// //     await prisma.skill.deleteMany({
+// //       where: { nom: { contains: "React-" } },
+// //     });
+// //     await prisma.user.deleteMany({
+// //       where: { id: { in: userIds } },
+// //     });
+
+// //     await prisma.$disconnect();
+// //   });
+
+// //   it("UP-01 : update student profile", async () => {
+
+// //     const skill = await prisma.skill.create({
+// //       data: { nom: `React-${Date.now()}` },
+// //     });
+
+// //     const res = await request(app)
+// //       .put("/api/user/me/profile")
+// //       .set("Cookie", studentCookies)
+// //       .send({
+// //         nom: "Wissal",
+// //         prenom: "Test",
+// //         filiere: "GI",
+// //         skills: [{ skillId: skill.id, niveau: "AVANCE" }],
+// //       });
+
+// //     expect(res.status).toBe(200);
+// //     expect(res.body.user.student.nom).toBe("Wissal");
+// //     expect(res.body.user.student.skills.length).toBeGreaterThan(0);
+// //   });
+
+// //   it("UP-02 : update another student profile", async () => {
+
+// //     const res = await request(app)
+// //       .put("/api/user/me/profile")
+// //       .set("Cookie", secondStudentCookies)
+// //       .send({
+// //         nom: "Second",
+// //         prenom: "User",
+// //         filiere: "DEV",
+// //       });
+
+// //     expect(res.status).toBe(200);
+// //     expect(res.body.user.student.nom).toBe("Second");
+// //   });
+
+// //   it("UP-03 : unauthorized", async () => {
+
+// //     const res = await request(app)
+// //       .put("/api/user/me/profile")
+// //       .send({ nom: "Test" });
+
+// //     expect(res.status).toBe(401);
+// //   });
+
+// //   it("UP-04 : invalid bio", async () => {
+
+// //     const res = await request(app)
+// //       .put("/api/user/me/profile")
+// //       .set("Cookie", studentCookies)
+// //       .send({ bio: "a".repeat(600) });
+
+// //     expect([400, 500]).toContain(res.status);
+// //   });
+
+// // });
+// // // import request from "supertest";
+// // // import app from "../../src/index";
+// // // import { prisma } from "../../src/utils/prisma";
+
+// // // describe("PUT /api/user/me/profile", () => {
+
+// // //   let studentCookies: string[] = [];
+// // //   let secondStudentCookies: string[] = [];
+
+// // //   beforeAll(async () => {
+
+// // //     // STUDENT 1
+// // //     const studentEmail = `student${Date.now()}@test.com`;
+
+// // //     await request(app)
+// // //       .post("/api/auth/register")
+// // //       .send({
+// // //         email: studentEmail,
+// // //         password: "SecurePassword123!!!",
+// // //         role: "STUDENT",
+// // //       });
+
+// // //     await prisma.user.update({
+// // //       where: { email: studentEmail },
+// // //       data: { isEmailVerified: true },
+// // //     });
+
+// // //     const studentLogin = await request(app)
+// // //       .post("/api/auth/login")
+// // //       .send({
+// // //         email: studentEmail,
+// // //         password: "SecurePassword123!!!",
+// // //       });
+
+// // //     studentCookies = Array.isArray(studentLogin.headers["set-cookie"])
+// // //       ? studentLogin.headers["set-cookie"]
+// // //       : [];
+
+// // //     // STUDENT 2
+// // //     const secondEmail = `second${Date.now()}@test.com`;
+
+// // //     await request(app)
+// // //       .post("/api/auth/register")
+// // //       .send({
+// // //         email: secondEmail,
+// // //         password: "SecurePassword123!!!",
+// // //         role: "STUDENT",
+// // //       });
+
+// // //     await prisma.user.update({
+// // //       where: { email: secondEmail },
+// // //       data: { isEmailVerified: true },
+// // //     });
+
+// // //     const secondLogin = await request(app)
+// // //       .post("/api/auth/login")
+// // //       .send({
+// // //         email: secondEmail,
+// // //         password: "SecurePassword123!!!",
+// // //       });
+
+// // //     secondStudentCookies = Array.isArray(secondLogin.headers["set-cookie"])
+// // //       ? secondLogin.headers["set-cookie"]
+// // //       : [];
+// // //   });
+
+// // //   // afterAll(async () => {
+// // //   //   // Ordre FK correct : enfants avant parents
+// // //   //   await prisma.studentSkill.deleteMany();
+// // //   //   await prisma.loginLog.deleteMany();
+// // //   //   await prisma.passwordResetToken.deleteMany();
+// // //   //   await prisma.refreshToken.deleteMany();
+// // //   //   await prisma.student.deleteMany();
+// // //   //   await prisma.skill.deleteMany();
+// // //   //   await prisma.user.deleteMany({
+// // //   //     where: {
+// // //   //       email: { contains: "@test.com" },
+// // //   //     },
+// // //   //   });
+// // //   //   await prisma.$disconnect();
+// // //   // });
+// // //   afterAll(async () => {
+// // //   // Récupérer les IDs des users de test uniquement
+// // //   const testUsers = await prisma.user.findMany({
+// // //     where: { email: { contains: "@test.com" } },
+// // //     select: { id: true },
+// // //   });
+// // //   const userIds = testUsers.map((u) => u.id);
+
+// // //   // Supprimer uniquement les données liées à CES users
+// // //   await prisma.studentSkill.deleteMany({
+// // //     where: { student: { userId: { in: userIds } } },
+// // //   });
+// // //   await prisma.loginLog.deleteMany({
+// // //     where: { userId: { in: userIds } },
+// // //   });
+// // //   await prisma.passwordResetToken.deleteMany({
+// // //     where: { userId: { in: userIds } },
+// // //   });
+// // //   await prisma.refreshToken.deleteMany({
+// // //     where: { userId: { in: userIds } },
+// // //   });
+// // //   await prisma.student.deleteMany({
+// // //     where: { userId: { in: userIds } },
+// // //   });
+// // //   await prisma.skill.deleteMany({
+// // //     where: { nom: { contains: "React-" } },
+// // //   });
+// // //   await prisma.user.deleteMany({
+// // //     where: { id: { in: userIds } },
+// // //   });
+
+// // //   await prisma.$disconnect();
+// // // });
+
+// // //   it("UP-01 : update student profile", async () => {
+
+// // //     const skill = await prisma.skill.create({
+// // //       data: { nom: `React-${Date.now()}` },
+// // //     });
+
+// // //     const res = await request(app)
+// // //       .put("/api/user/me/profile")
+// // //       .set("Cookie", studentCookies)
+// // //       .send({
+// // //         nom: "Wissal",
+// // //         prenom: "Test",
+// // //         filiere: "GI",
+// // //         skills: [{ skillId: skill.id, niveau: "AVANCE" }],
+// // //       });
+
+// // //     expect(res.status).toBe(200);
+// // //     expect(res.body.user.student.nom).toBe("Wissal");
+// // //     expect(res.body.user.student.skills.length).toBeGreaterThan(0);
+// // //   });
+
+// // //   it("UP-02 : update another student profile", async () => {
+
+// // //     const res = await request(app)
+// // //       .put("/api/user/me/profile")
+// // //       .set("Cookie", secondStudentCookies)
+// // //       .send({
+// // //         nom: "Second",
+// // //         prenom: "User",
+// // //         filiere: "DEV",
+// // //       });
+
+// // //     expect(res.status).toBe(200);
+// // //     expect(res.body.user.student.nom).toBe("Second");
+// // //   });
+
+// // //   it("UP-03 : unauthorized", async () => {
+
+// // //     const res = await request(app)
+// // //       .put("/api/user/me/profile")
+// // //       .send({ nom: "Test" });
+
+// // //     expect(res.status).toBe(401);
+// // //   });
+
+// // //   it("UP-04 : invalid bio", async () => {
+
+// // //     const res = await request(app)
+// // //       .put("/api/user/me/profile")
+// // //       .set("Cookie", studentCookies)
+// // //       .send({ bio: "a".repeat(600) });
+
+// // //     expect([400, 500]).toContain(res.status);
+// // //   });
+
+// // // });
+// // // afterAll(async () => {
+// // //   // Supprimer dans l'ordre FK : enfants avant parents
+// // //   await prisma.studentSkill.deleteMany();
+// // //   await prisma.loginLog.deleteMany();
+// // //   await prisma.passwordResetToken.deleteMany();
+// // //   await prisma.refreshToken.deleteMany();   // ← doit être avant user
+// // //   await prisma.student.deleteMany();
+// // //   await prisma.skill.deleteMany();
+// // //   await prisma.user.deleteMany({
+// // //     where: {
+// // //       email: {
+// // //         contains: "@test.com",
+// // //       },
+// // //     },
+// // //   });
+
+// // //   await prisma.$disconnect();
+// // // });
+// // // import request from "supertest";
+// // // import app from "../../src/index";
+// // // import { prisma } from "../../src/utils/prisma";
+
+// // // describe("PUT /api/user/me/profile", () => {
+
+// // //   let studentCookies: string[] = [];
+// // //   let secondStudentCookies: string[] = [];
+
+// // //   beforeAll(async () => {
+
+// // //     // STUDENT 1
+// // //     const studentEmail = `student${Date.now()}@test.com`;
+
+// // //     await request(app)
+// // //       .post("/api/auth/register")
+// // //       .send({
+// // //         email: studentEmail,
+// // //         password: "SecurePassword123!!!",
+// // //         role: "STUDENT",
+// // //       });
+
+// // //     await prisma.user.update({
+// // //       where: { email: studentEmail },
+// // //       data: {
+// // //         isEmailVerified: true,
+// // //       },
+// // //     });
+
+// // //     const studentLogin = await request(app)
+// // //       .post("/api/auth/login")
+// // //       .send({
+// // //         email: studentEmail,
+// // //         password: "SecurePassword123!!!",
+// // //       });
+
+// // //     studentCookies = Array.isArray(studentLogin.headers["set-cookie"])
+// // //       ? studentLogin.headers["set-cookie"]
+// // //       : [];
+
+
+
+// // //     // STUDENT 2
+// // //     const secondEmail = `second${Date.now()}@test.com`;
+
+// // //     await request(app)
+// // //       .post("/api/auth/register")
+// // //       .send({
+// // //         email: secondEmail,
+// // //         password: "SecurePassword123!!!",
+// // //         role: "STUDENT",
+// // //       });
+
+// // //     await prisma.user.update({
+// // //       where: { email: secondEmail },
+// // //       data: {
+// // //         isEmailVerified: true,
+// // //       },
+// // //     });
+
+// // //     const secondLogin = await request(app)
+// // //       .post("/api/auth/login")
+// // //       .send({
+// // //         email: secondEmail,
+// // //         password: "SecurePassword123!!!",
+// // //       });
+
+// // //     secondStudentCookies = Array.isArray(secondLogin.headers["set-cookie"])
+// // //       ? secondLogin.headers["set-cookie"]
+// // //       : [];
+// // //   });
+
+
+
+// // //   afterAll(async () => {
+
+// // //     await prisma.studentSkill.deleteMany();
+
+// // //     await prisma.refreshToken.deleteMany();
+
+// // //     await prisma.loginLog.deleteMany();
+
+// // //     await prisma.passwordResetToken.deleteMany();
+
+// // //     await prisma.student.deleteMany();
+
+// // //     await prisma.skill.deleteMany();
+
+// // //     await prisma.user.deleteMany({
+// // //       where: {
+// // //         email: {
+// // //           contains: "@test.com",
+// // //         },
+// // //       },
+// // //     });
+
+// // //     await prisma.$disconnect();
+// // //   });
+
+
+
+// // //   it("UP-01 : update student profile", async () => {
+
+// // //     const skill = await prisma.skill.create({
+// // //       data: {
+// // //         nom: `React-${Date.now()}`,
+// // //       },
+// // //     });
+
+// // //     const res = await request(app)
+// // //       .put("/api/user/me/profile")
+// // //       .set("Cookie", studentCookies)
+// // //       .send({
+// // //         nom: "Wissal",
+// // //         prenom: "Test",
+// // //         filiere: "GI",
+// // //         skills: [
+// // //           {
+// // //             skillId: skill.id,
+// // //             niveau: "AVANCE",
+// // //           },
+// // //         ],
+// // //       });
+
+// // //     expect(res.status).toBe(200);
+// // //     expect(res.body.user.student.nom).toBe("Wissal");
+// // //     expect(res.body.user.student.skills.length).toBeGreaterThan(0);
+// // //   });
+
+
+
+// // //   it("UP-02 : update another student profile", async () => {
+
+// // //     const res = await request(app)
+// // //       .put("/api/user/me/profile")
+// // //       .set("Cookie", secondStudentCookies)
+// // //       .send({
+// // //         nom: "Second",
+// // //         prenom: "User",
+// // //         filiere: "DEV",
+// // //       });
+
+// // //     expect(res.status).toBe(200);
+// // //     expect(res.body.user.student.nom).toBe("Second");
+// // //   });
+
+
+
+// // //   it("UP-03 : unauthorized", async () => {
+
+// // //     const res = await request(app)
+// // //       .put("/api/user/me/profile")
+// // //       .send({
+// // //         nom: "Test",
+// // //       });
+
+// // //     expect(res.status).toBe(401);
+// // //   });
+
+
+
+// // //   it("UP-04 : invalid bio", async () => {
+
+// // //     const res = await request(app)
+// // //       .put("/api/user/me/profile")
+// // //       .set("Cookie", studentCookies)
+// // //       .send({
+// // //         bio: "a".repeat(600),
+// // //       });
+
+  
+// // //     expect([400, 500]).toContain(res.status);
+// // //   });
+
+// // // });
+// // // import request from "supertest";
+// // // import bcrypt from "bcryptjs";
+// // // import app from "../../src/index";
+// // // import { prisma } from "../../src/utils/prisma";
+
+// // // describe("PUT /api/user/me/profile", () => {
+
+// // //   let studentCookies: string[] = [];
+// // //   let profCookies: string[] = [];
+// // //   let proCookies: string[] = [];
+
+// // //   beforeAll(async () => {
+
+// // //     // =========================
+// // //     // STUDENT
+// // //     // =========================
+
+// // //     const studentEmail = `student${Date.now()}@test.com`;
+
+// // //     await request(app)
+// // //       .post("/api/auth/register")
+// // //       .send({
+// // //         email: studentEmail,
+// // //         password: "SecurePassword123!!!",
+// // //         role: "STUDENT",
+// // //       });
+
+// // //     await prisma.user.update({
+// // //       where: { email: studentEmail },
+// // //       data: {
+// // //         isEmailVerified: true,
+// // //         status: "ACTIVE",
+// // //       },
+// // //     });
+
+// // //     const studentLogin = await request(app)
+// // //       .post("/api/auth/login")
+// // //       .send({
+// // //         email: studentEmail,
+// // //         password: "SecurePassword123!!!",
+// // //       });
+
+// // //     studentCookies = Array.isArray(studentLogin.headers["set-cookie"])
+// // //       ? studentLogin.headers["set-cookie"]
+// // //       : [];
+
+
+
+// // //     // =========================
+// // //     // PROF
+// // //     // =========================
+
+// // //     const profEmail = `prof${Date.now()}@test.com`;
+
+// // //     const hashedProfPassword = await bcrypt.hash("SecurePassword123!!!", 12);
+
+// // //     await prisma.user.create({
+// // //       data: {
+// // //         email: profEmail,
+// // //         password: hashedProfPassword,
+// // //         role: "PROF",
+// // //         status: "ACTIVE",
+// // //         isEmailVerified: true,
+// // //       },
+// // //     });
+
+// // //     const profLogin = await request(app)
+// // //       .post("/api/auth/login")
+// // //       .send({
+// // //         email: profEmail,
+// // //         password: "SecurePassword123!!!",
+// // //       });
+
+// // //     profCookies = Array.isArray(profLogin.headers["set-cookie"])
+// // //       ? profLogin.headers["set-cookie"]
+// // //       : [];
+
+
+
+// // //     // =========================
+// // //     // PRO
+// // //     // =========================
+
+// // //     const proEmail = `pro${Date.now()}@test.com`;
+
+// // //     const hashedProPassword = await bcrypt.hash("SecurePassword123!!!", 12);
+
+// // //     await prisma.user.create({
+// // //       data: {
+// // //         email: proEmail,
+// // //         password: hashedProPassword,
+// // //         role: "PRO",
+// // //         status: "ACTIVE",
+// // //         isEmailVerified: true,
+// // //       },
+// // //     });
+
+// // //     const proLogin = await request(app)
+// // //       .post("/api/auth/login")
+// // //       .send({
+// // //         email: proEmail,
+// // //         password: "SecurePassword123!!!",
+// // //       });
+
+// // //     proCookies = Array.isArray(proLogin.headers["set-cookie"])
+// // //       ? proLogin.headers["set-cookie"]
+// // //       : [];
+// // //   });
+
+
+
+// // //   afterAll(async () => {
+// // //     await prisma.studentSkill.deleteMany();
+// // //     await prisma.student.deleteMany();
+// // //     await prisma.prof.deleteMany();
+// // //     await prisma.professionnel.deleteMany();
+// // //     await prisma.skill.deleteMany();
+
+// // //     await prisma.user.deleteMany({
+// // //       where: {
+// // //         email: {
+// // //           contains: "@test.com",
+// // //         },
+// // //       },
+// // //     });
+// // //   });
+
+
+
+// // import request from "supertest";
+// // import app from "../../src/index";
+// // import { createAndLoginStudent, createAndLoginProf } from "../helpers/auth.helper";
+
+// // describe("PUT /api/user/me/profile", () => {
+
+// //   let studentCookies: string[] = [];
+// //   let profCookies: string[] = [];
+
+// //   beforeAll(async () => {
+// //     const s = await createAndLoginStudent();
+// //     studentCookies = s.cookies;
+
+// //     const p = await createAndLoginProf();
+// //     profCookies = p.cookies;
+// //   });
+
+// //   it("UP-01 : update student profile", async () => {
+// //     const res = await request(app)
+// //       .put("/api/user/me/profile")
+// //       .set("Cookie", studentCookies)
+// //       .send({ nom: "Nouveau Nom", prenom: "Nouveau Prénom" });
+
+// //     expect(res.status).toBe(200);
+// //     expect(res.body.user.student.nom).toBe("Nouveau Nom");
+// //   });
+
+// //   it("UP-02 : update prof profile", async () => {
+// //     const res = await request(app)
+// //       .put("/api/user/me/profile")
+// //       .set("Cookie", profCookies)
+// //       .send({ departement: "Informatique", specialite: "IA" });
+
+// //     expect(res.status).toBe(200);
+// //   });
+
+// //   it("UP-03 : no token returns 401", async () => {
+// //     const res = await request(app)
+// //       .put("/api/user/me/profile")
+// //       .send({ nom: "Test" });
+
+// //     expect(res.status).toBe(401);
+// //   });
+// // });
+// // import request from "supertest";
+// // import app from "../../src/index";
+// // import { createAndLoginStudent, createAndLoginProf } from "../helpers/auth.helper";
+
+// // describe("PUT /api/user/me/profile", () => {
+
+// //   let studentCookies: string[] = [];
+// //   let profCookies:    string[] = [];
+
+// //   beforeAll(async () => {
+// //     const s = await createAndLoginStudent();
+// //     studentCookies = s.cookies;
+
+// //     const p = await createAndLoginProf();
+// //     profCookies = p.cookies;
+// //   });
+
+// //   it("UP-01 : student met à jour son profil → 200", async () => {
+// //     const res = await request(app)
+// //       .put("/api/user/me/profile")
+// //       .set("Cookie", studentCookies)
+// //       .send({ nom: "Nouveau Nom", prenom: "Nouveau Prénom" });
+
+// //     // Accepter 200 ou 204
+// //     expect([200, 204]).toContain(res.status);
+// //   });
+
+// //   it("UP-02 : prof met à jour son profil → 200", async () => {
+// //     const res = await request(app)
+// //       .put("/api/user/me/profile")
+// //       .set("Cookie", profCookies)
+// //       .send({ departement: "Informatique", specialite: "IA" });
+
+// //     expect([200, 204]).toContain(res.status);
+// //   });
+
+// //   it("UP-03 : sans token → 401", async () => {
+// //     const res = await request(app)
+// //       .put("/api/user/me/profile")
+// //       .send({ nom: "Test" });
+
+// //     expect(res.status).toBe(401);
+// //   });
+
+// //   it("UP-04 : bio trop longue → 400", async () => {
+// //     const res = await request(app)
+// //       .put("/api/user/me/profile")
+// //       .set("Cookie", studentCookies)
+// //       .send({ bio: "a".repeat(501) });
+
+// //     expect(res.status).toBe(400);
+// //   });
+// // });
+// import request from "supertest";
+// import app from "../../src/index";
+// import { createAndLoginStudent, createAndLoginProf } from "../helpers/auth.helper";
+
+// describe("PUT /api/user/me/profile", () => {
+
+//   let studentCookies: string[] = [];
+//   let profCookies:    string[] = [];
+
+//   beforeAll(async () => {
+//     const s = await createAndLoginStudent();
+//     studentCookies = s.cookies;
+//     const p = await createAndLoginProf();
+//     profCookies = p.cookies;
+//   });
+
+//   it("UP-01 : student met à jour son profil → 200", async () => {
+//     const res = await request(app)
+//       .put("/api/user/me/profile")
+//       .set("Cookie", studentCookies)
+//       .send({ nom: "Nouveau Nom", prenom: "Nouveau Prénom" });
+
+//     expect([200, 204]).toContain(res.status);
+//   });
+
+//   it("UP-02 : prof met à jour son profil → 200", async () => {
+//     const res = await request(app)
+//       .put("/api/user/me/profile")
+//       .set("Cookie", profCookies)
+//       .send({ departement: "Informatique", specialite: "IA" });
+
+//     expect([200, 204]).toContain(res.status);
+//   });
+
+//   it("UP-03 : sans token → 401", async () => {
+//     const res = await request(app)
+//       .put("/api/user/me/profile")
+//       .send({ nom: "Test" });
+//     expect(res.status).toBe(401);
+//   });
+
+//   it("UP-04 : bio trop longue → 400", async () => {
+//     const res = await request(app)
+//       .put("/api/user/me/profile")
+//       .set("Cookie", studentCookies)
+//       .send({ bio: "a".repeat(501) });
+//     expect(res.status).toBe(400);
+//   });
+// });
+import request from "supertest";
+import app from "../../src/index";
+import { createAndLoginStudent, createAndLoginProf } from "../helpers/auth.helper";
+
+describe("PUT /api/user/me/profile", () => {
+
+  let studentCookies: string[] = [];
+  let profCookies:    string[] = [];
+
+  beforeAll(async () => {
+    const s = await createAndLoginStudent();
+    studentCookies = s.cookies;
+    const p = await createAndLoginProf();
+    profCookies = p.cookies;
+  });
+
+  it("UP-01 : student met à jour son profil → 200", async () => {
+    const res = await request(app)
+      .put("/api/user/me/profile")
+      .set("Cookie", studentCookies)
+      .send({ nom: "Nouveau Nom", prenom: "Nouveau Prénom" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty("message");
+  });
+
+  it("UP-02 : prof met à jour son profil → 200", async () => {
+    const res = await request(app)
+      .put("/api/user/me/profile")
+      .set("Cookie", profCookies)
+      .send({ departement: "Informatique", specialite: "IA" });
+
+    expect(res.status).toBe(200);
+  });
+
+  it("UP-03 : sans token → 401", async () => {
+    const res = await request(app)
+      .put("/api/user/me/profile")
+      .send({ nom: "Test" });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("UP-04 : bio trop longue (> 500 chars) → 400", async () => {
+    const res = await request(app)
+      .put("/api/user/me/profile")
+      .set("Cookie", studentCookies)
+      .send({ bio: "a".repeat(501) });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("UP-05 : champ inconnu (strict) → 400", async () => {
+    const res = await request(app)
+      .put("/api/user/me/profile")
+      .set("Cookie", studentCookies)
+      .send({ champInconnu: "valeur" });
+
+    expect(res.status).toBe(400);
+  });
+});

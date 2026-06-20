@@ -1,0 +1,44 @@
+{
+  "formations": [
+    {
+      "id": 1,
+      "title": "AWS Cloud Practitioner",
+      "provider": "AWS",
+      "type": "Certification",
+      "label": "Certification",
+      "date": "Janvier 2025",
+      "progress": 100,
+      "status": "Certifie",
+      "iconColor": "cream",
+      "tags": ["Cloud", "AWS", "DevOps"],
+      "certificateLink": "https://example.com/cert",
+      "progressColor": "green"
+    },
+    {
+      "id": 2,
+      "title": "React Advanced Patterns",
+      "provider": "Udemy",
+      "type": "MOOC",
+      "label": "MOOC",
+      "date": "En cours",
+      "progress": 65,
+      "status": "En cours",
+      "iconColor": "blue",
+      "tags": ["React", "JavaScript"],
+      "progressColor": "purple-orange"
+    },
+    {
+      "id": 3,
+      "title": "Docker Mastery",
+      "provider": "Coursera",
+      "type": "Formation",
+      "label": "Formation",
+      "date": "Février 2025",
+      "progress": 85,
+      "status": "En attente",
+      "iconColor": "green",
+      "tags": ["Docker", "DevOps"],
+      "progressColor": "purple-orange"
+    }
+  ]
+}

@@ -1,0 +1,187 @@
+/* ═══════════════════════════════════════════════════
+   PATCH DARK MODE — toutes les pages professor
+   À importer dans main.ts après theme.css
+═══════════════════════════════════════════════════ */
+
+/* Layout commun */
+.professor-layout { background: var(--bg-app) !important; }
+.main-content { background: var(--bg-app) !important; }
+.page-content { background: var(--bg-app) !important; }
+
+/* Dashboard */
+.dashboard { background: var(--bg-app) !important; }
+
+/* Cards */
+.card,
+.stat-card,
+.settings-card,
+.reco-card,
+.comment-card,
+.portfolio-card,
+.faq-item,
+.contact-section,
+.quick-link-card,
+.drawer,
+.modal {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Textes */
+.page-title,
+.card-header h2,
+.section-title,
+.student-name,
+.reco-name,
+.stat-value,
+.agent-name,
+.doc-body h4,
+.modal h3,
+.faq-title,
+.drawer-header h3 {
+  color: var(--text-primary) !important;
+}
+
+.page-subtitle,
+.stat-label,
+.reco-date,
+.comment-date,
+.comment-content p,
+.last-visit,
+.visit-count,
+.drawer-label,
+.drawer-value,
+.reco-meta,
+.activity-time,
+.project-meta,
+.doc-body > div > p,
+.faq-content p {
+  color: var(--text-secondary) !important;
+}
+
+/* Inputs, selects, textareas */
+input:not([type="checkbox"]),
+select,
+textarea,
+.search-box input,
+.reply-textarea,
+.chat-input-row input {
+  background: var(--bg-input) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+input::placeholder,
+textarea::placeholder { color: var(--text-muted) !important; }
+
+/* Search boxes */
+.search-box,
+.filters-bar .search-box {
+  background: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* Filter buttons */
+.filter-btn {
+  background: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-secondary) !important;
+}
+.filter-btn.active {
+  background: var(--text-primary) !important;
+  color: var(--bg-card) !important;
+  border-color: var(--text-primary) !important;
+}
+
+/* Tags */
+.tag { background: var(--bg-input) !important; color: var(--text-secondary) !important; }
+.reco-type, .comment-type { background: var(--bg-input) !important; color: var(--text-muted) !important; }
+
+/* Borders */
+.project-item,
+.reco-item,
+.activity-item,
+.toggle-item,
+.faq-item,
+.section-header,
+.card-header {
+  border-color: var(--border-color) !important;
+}
+
+/* Toggle items */
+.toggle-item { background: var(--bg-toggle) !important; }
+
+/* Comment unread */
+[data-theme="dark"] .comment-card.unread { background: #1e1a0f !important; border-left-color: #e5b230 !important; }
+
+/* Sort select */
+.sort-box select { background: var(--bg-card) !important; color: var(--text-secondary) !important; border-color: var(--border-color) !important; }
+
+/* Chat modal */
+.chat-modal { background: var(--bg-card) !important; }
+.chat-header { border-bottom-color: var(--border-color) !important; }
+.chat-message.bot p, .chat-message:not(.user) p { background: var(--bg-input) !important; color: var(--text-primary) !important; }
+.chat-input-row { border-top-color: var(--border-color) !important; }
+
+/* Doc modal */
+.doc-modal { background: var(--bg-card) !important; }
+.doc-modal-header { border-bottom-color: var(--border-color) !important; }
+.doc-modal-title { color: var(--text-primary) !important; }
+.doc-nav { background: var(--bg-input) !important; border-bottom-color: var(--border-color) !important; }
+.doc-nav-btn { color: var(--text-secondary) !important; }
+.doc-nav-btn:hover, .doc-nav-btn.active { background: var(--bg-card) !important; color: var(--accent) !important; border-color: var(--border-color) !important; }
+.doc-step { background: var(--bg-input) !important; }
+.doc-step strong { color: var(--text-primary) !important; }
+.doc-step p { color: var(--text-secondary) !important; }
+
+/* Modal overlay */
+.modal-overlay { background: rgba(0,0,0,0.6) !important; }
+.modal { background: var(--bg-card) !important; border: 1px solid var(--border-color) !important; }
+.modal h3 { color: var(--text-primary) !important; }
+.modal p { color: var(--text-secondary) !important; }
+.modal-header, .modal-footer { border-color: var(--border-color) !important; }
+.modal-body input, .modal-body textarea, .modal-body select { background: var(--bg-input) !important; border-color: var(--border-color) !important; color: var(--text-primary) !important; }
+
+/* Drawer */
+.drawer { background: var(--bg-card) !important; }
+.drawer-header h3 { color: var(--text-primary) !important; }
+.drawer-header p { color: var(--text-secondary) !important; }
+
+/* Buttons annuler */
+.btn-cancel, .btn-secondary { background: var(--bg-input) !important; border-color: var(--border-color) !important; color: var(--text-secondary) !important; }
+
+/* Stats icon boxes */
+[data-theme="dark"] .stat-icon.blue { background: rgba(2,132,199,0.15) !important; }
+[data-theme="dark"] .stat-icon.green { background: rgba(22,163,74,0.15) !important; }
+[data-theme="dark"] .stat-icon.orange { background: rgba(234,88,12,0.15) !important; }
+[data-theme="dark"] .stat-icon.purple { background: rgba(124,58,237,0.15) !important; }
+[data-theme="dark"] .stat-icon.teal { background: rgba(0,137,123,0.15) !important; }
+[data-theme="dark"] .stat-icon.yellow { background: rgba(146,64,14,0.15) !important; }
+
+/* FAQ header hover */
+[data-theme="dark"] .faq-header:hover { background: var(--bg-input) !important; }
+
+/* Empty states */
+.empty-state { color: var(--text-muted) !important; }
+
+/* Action buttons */
+[data-theme="dark"] .action-btn.reply-btn { background: var(--bg-input) !important; color: var(--text-secondary) !important; border-color: var(--border-color) !important; }
+[data-theme="dark"] .action-btn.delete-btn { background: rgba(239,68,68,0.1) !important; }
+
+/* Welcome card — garde son gradient */
+.welcome-card { background: linear-gradient(135deg, #0f3a4f 0%, #1a5568 100%) !important; }
+
+/* Preview card generer lettre */
+[data-theme="dark"] .form-card { background: var(--bg-card) !important; }
+[data-theme="dark"] .preview-card { background: var(--bg-card) !important; }
+[data-theme="dark"] .preview-content pre { color: var(--text-primary) !important; border-bottom-color: var(--border-color) !important; }
+[data-theme="dark"] .preview-empty p { color: var(--text-primary) !important; }
+[data-theme="dark"] .preview-empty span { color: var(--text-muted) !important; }
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group textarea,
+[data-theme="dark"] .select-field { background: var(--bg-input) !important; border-color: var(--border-color) !important; color: var(--text-primary) !important; }
+[data-theme="dark"] .chip { background: var(--bg-input) !important; border-color: var(--border-color) !important; color: var(--text-secondary) !important; }
+[data-theme="dark"] .chip.selected { background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important; }
+[data-theme="dark"] .section-title { color: var(--text-primary) !important; }
+[data-theme="dark"] .form-group label { color: var(--text-muted) !important; }
