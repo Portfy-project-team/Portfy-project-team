@@ -47,7 +47,9 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     try {
       await api.post('/auth/logout')
-    } catch (_) {}
+    } catch (error) {
+      console.error(error);
+    }
     user.value            = null
     isAuthenticated.value = false
     localStorage.removeItem('portfy_user')
